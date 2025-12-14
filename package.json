@@ -1,0 +1,11 @@
+{
+  "name": "uranai-app",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'No build step necessary for this beta'"
+  },
+  "dependencies": {
+    "stripe": "^14.0.0",
+    "@google/generative-ai": "^0.1.0"
+  }
+}

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>占いの館 ベータ版</title></head>
+<body>
+<h1>占いの館へようこそ</h1>
+<p>システム稼働テスト中...</p>
+<div id="status">DB接続確認中...</div>
+<script>
+  fetch('/api/test').then(res => res.json()).then(data => {
+    document.getElementById('status').innerText = data.message;
+  }).catch(e => {
+    document.getElementById('status').innerText = "接続エラー: 設定を見直してください";
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+name = "uranai-app"
+compatibility_date = "2024-04-01"
+pages_build_output_dir = "./public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "uranai-db"
+database_id = "【d6ec2313-06be-4178-8203-9be9dccc5c8f"
+
+[vars]
+STRIPE_PUBLISHABLE_KEY = "pk_test_51SdSnsGhk5moSQXe1qZQX9R2PycqqJWYTy26qVmoOaZkngOcgz7HsDq2YLIUGcmOx13XazP0IiAg1A0iIsNMCUe700ZPueNMxw"
+STRIPE_PRICE_ID_TICKET = "price_1SdSwfGhk5moSQXe77YXqffJ"
