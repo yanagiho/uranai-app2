@@ -1,16 +1,132 @@
 <!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"><title>占いの館 ベータ版</title></head>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI占いの館</title>
+    <style>
+        body { font-family: "Helvetica Neue", Arial, sans-serif; background: #1a1a2e; color: #fff; margin: 0; padding: 20px; text-align: center; }
+        h1 { margin-bottom: 30px; font-weight: 300; letter-spacing: 2px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
+        .card { background: #16213e; border-radius: 15px; padding: 15px; cursor: pointer; transition: 0.3s; border: 1px solid #0f3460; }
+        .card:hover { transform: translateY(-5px); border-color: #e94560; }
+        .card img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #e94560; }
+        .name { font-size: 1.1em; font-weight: bold; margin-bottom: 5px; }
+        .desc { font-size: 0.8em; color: #ccc; height: 40px; overflow: hidden; }
+        
+        /* チャット画面 */
+        #chat-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; }
+        .chat-box { width: 90%; max-width: 500px; height: 80%; background: #16213e; margin: 5% auto; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
+        .chat-header { padding: 15px; background: #0f3460; display: flex; justify-content: space-between; align-items: center; }
+        .close-btn { background: none; border: none; color: #fff; font-size: 1.5em; cursor: pointer; }
+        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .msg { max-width: 80%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; font-size: 0.9em; }
+        .msg.user { align-self: flex-end; background: #e94560; color: #fff; border-bottom-right-radius: 2px; }
+        .msg.bot { align-self: flex-start; background: #eee; color: #333; border-bottom-left-radius: 2px; white-space: pre-wrap; }
+        .input-area { padding: 15px; background: #0f3460; display: flex; gap: 10px; }
+        input { flex: 1; padding: 10px; border-radius: 20px; border: none; outline: none; }
+        button { padding: 10px 20px; background: #e94560; color: white; border: none; border-radius: 20px; cursor: pointer; }
+        button:disabled { background: #555; }
+    </style>
+</head>
 <body>
-<h1>占いの館へようこそ</h1>
-<p>システム稼働テスト中...</p>
-<div id="status">DB接続確認中...</div>
-<script>
-  fetch('/api/test').then(res => res.json()).then(data => {
-    document.getElementById('status').innerText = data.message;
-  }).catch(e => {
-    document.getElementById('status').innerText = "接続エラー: 設定を見直してください";
-  });
-</script>
+
+    <h1>🔮 AI占いの館</h1>
+    <div id="cast-list" class="grid">読み込み中...</div>
+
+    <div id="chat-modal">
+        <div class="chat-box">
+            <div class="chat-header">
+                <span id="chat-title">占い師</span>
+                <button class="close-btn" onclick="closeChat()">×</button>
+            </div>
+            <div id="messages"></div>
+            <div class="input-area">
+                <input type="text" id="user-input" placeholder="悩みを入力してください...">
+                <button onclick="sendMessage()" id="send-btn">送信</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 画像ファイル名のマッピング（日本語名 → ファイル名）
+        const imgMap = {
+            '紫雲': 'shiun.png', '星川レオナ': 'leona.png', '天照院 煌夜': 'koya.png',
+            '琥珀': 'kohaku.png', '碧海サナ': 'sana.png', '紅蓮マリア': 'maria.png',
+            '雪音': 'yukine.png', '黒曜イツキ': 'itsuki.png'
+        };
+
+        let currentCastId = null;
+
+        // 1. 占い師一覧を取得して表示
+        fetch('/api/casts')
+            .then(res => res.json())
+            .then(data => {
+                const list = document.getElementById('cast-list');
+                list.innerHTML = '';
+                data.forEach(cast => {
+                    const imgFile = imgMap[cast.name] || 'default.png';
+                    const div = document.createElement('div');
+                    div.className = 'card';
+                    div.innerHTML = `
+                        <img src="/img/${imgFile}" alt="${cast.name}">
+                        <div class="name">${cast.name}</div>
+                        <div class="desc">${cast.system_prompt.substring(10, 40)}...</div>
+                    `;
+                    div.onclick = () => openChat(cast);
+                    list.appendChild(div);
+                });
+            })
+            .catch(err => {
+                document.getElementById('cast-list').innerText = '読み込みエラー: ' + err;
+            });
+
+        // 2. チャットを開く
+        function openChat(cast) {
+            currentCastId = cast.id;
+            document.getElementById('chat-title').innerText = cast.name;
+            document.getElementById('messages').innerHTML = `<div class="msg bot">ようこそ、${cast.name}です。\n何かお悩みですか？</div>`;
+            document.getElementById('chat-modal').style.display = 'block';
+        }
+
+        function closeChat() {
+            document.getElementById('chat-modal').style.display = 'none';
+        }
+
+        // 3. メッセージ送信
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const btn = document.getElementById('send-btn');
+            const text = input.value;
+            if (!text) return;
+
+            // 自分のメッセージを表示
+            addMessage(text, 'user');
+            input.value = '';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ message: text, castId: currentCastId })
+                });
+                const data = await res.json();
+                addMessage(data.reply, 'bot');
+            } catch (e) {
+                addMessage('エラーが発生しました', 'bot');
+            }
+            btn.disabled = false;
+        }
+
+        function addMessage(text, type) {
+            const div = document.createElement('div');
+            div.className = `msg ${type}`;
+            div.innerText = text;
+            const container = document.getElementById('messages');
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+    </script>
 </body>
 </html>
