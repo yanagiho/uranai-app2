@@ -1,48 +1,54 @@
 export async function onRequestPost(context) {
   try {
-    const { message } = await context.request.json();
+    const { message, castId } = await context.request.json();
+    const db = context.env.DB;
     const apiKey = context.env.GEMINI_API_KEY;
 
-    // 1. APIキーの確認
     if (!apiKey) {
       return new Response(JSON.stringify({ reply: "【エラー】APIキーが設定されていません。" }), { headers: { "Content-Type": "application/json" } });
     }
 
-    // 2. 「使えるモデル一覧」をGoogleに問い合わせる (ListModels)
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    // 1. 占い師のデータを取得
+    const cast = await db.prepare("SELECT * FROM Casts WHERE id = ?").bind(castId).first();
+    if (!cast) {
+      return new Response(JSON.stringify({ reply: "【エラー】占い師が見つかりません。" }), { headers: { "Content-Type": "application/json" } });
+    }
+
+    // 2. 最新モデル「Gemini 2.0 Flash」に送信
+    const systemPrompt = cast.system_prompt;
+    // リストにあった gemini-2.0-flash を使用
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     
+    const payload = {
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: `あなたは「${cast.name}」として振る舞ってください。\n設定:\n${systemPrompt}\n\n相談者: ${message}` }]
+        }
+      ]
+    };
+
     const response = await fetch(apiUrl, {
-      method: "GET", // ここはGETで問い合わせます
-      headers: { "Content-Type": "application/json" }
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
     });
 
     const data = await response.json();
 
-    // 3. エラーチェック
+    // エラーがあれば表示（デバッグ用）
     if (data.error) {
-      return new Response(JSON.stringify({ reply: `【診断エラー】\nCode: ${data.error.code}\nMessage: ${data.error.message}` }), { headers: { "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ reply: `【AIエラー】Code: ${data.error.code}\nMessage: ${data.error.message}` }), { headers: { "Content-Type": "application/json" } });
     }
 
-    // 4. モデル一覧を見やすく整形して返す
-    let replyText = "【診断成功】あなたのキーで使えるモデル一覧:\n\n";
-    if (data.models) {
-      // "generateContent" という機能に対応しているモデルだけを抜き出す
-      const validModels = data.models
-        .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
-        .map(m => m.name.replace("models/", "")); // "models/" を消して名前だけにする
-      
-      replyText += validModels.join("\n");
-    } else {
-      replyText += "（モデルが見つかりませんでした）";
-    }
+    // 正常な返信を取得
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "（星の言葉が届きませんでした...）";
 
-    replyText += "\n\n↑この中にある名前を使えば必ず動きます！";
-
-    return new Response(JSON.stringify({ reply: replyText }), {
+    return new Response(JSON.stringify({ reply }), {
       headers: { "Content-Type": "application/json" }
     });
 
   } catch (e) {
-    return new Response(JSON.stringify({ reply: `【システムエラー】\n${e.message}` }), { status: 500, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ reply: `【システムエラー】${e.message}` }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 }
