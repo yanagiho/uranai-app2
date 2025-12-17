@@ -4,11 +4,22 @@ export async function onRequestPost(context) {
     const db = context.env.DB;
     const apiKey = context.env.GEMINI_API_KEY;
 
-    // 1. 占い師の性格（プロンプト）を取得
-    const cast = await db.prepare("SELECT * FROM Casts WHERE id = ?").bind(castId).first();
-    if (!cast) return new Response("Cast not found", { status: 404 });
+    // 1. APIキーがあるか確認
+    if (!apiKey) {
+      return new Response(JSON.stringify({ reply: "【エラー】設定画面で GEMINI_API_KEY が設定されていません。" }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
 
-    // 2. Gemini APIに送信
+    // 2. 占い師データの取得
+    const cast = await db.prepare("SELECT * FROM Casts WHERE id = ?").bind(castId).first();
+    if (!cast) {
+      return new Response(JSON.stringify({ reply: "【エラー】データベースに占い師が見つかりません。" }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // 3. AIに送信
     const systemPrompt = cast.system_prompt;
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
@@ -28,13 +39,25 @@ export async function onRequestPost(context) {
     });
 
     const data = await response.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "（星の巡りが悪く、言葉が届きませんでした...）";
+
+    // ★重要：AIからのエラーがあれば、隠さずにそのまま表示する
+    if (data.error) {
+      return new Response(JSON.stringify({ reply: `【AIからのエラー報告】\nCode: ${data.error.code}\nMessage: ${data.error.message}` }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // 正常な場合
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "（AIからの応答が空でした）";
 
     return new Response(JSON.stringify({ reply }), {
       headers: { "Content-Type": "application/json" }
     });
 
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+    // システムエラーも隠さず表示
+    return new Response(JSON.stringify({ reply: `【システムエラー】\n${e.message}` }), {
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }
