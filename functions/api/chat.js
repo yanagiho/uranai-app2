@@ -21,8 +21,8 @@ export async function onRequestPost(context) {
 
     // 3. AIに送信
     const systemPrompt = cast.system_prompt;
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    
+// gemini-1.5-flash の後ろに -001 をつけます
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent?key=${apiKey}`;    
     const payload = {
       contents: [
         {
