@@ -19,7 +19,8 @@ export async function onRequestPost(context) {
 
     const systemPrompt = cast.system_prompt;
     
-    // ★ここが修正点！確実に動く「プレビュー版」の正式名称を指定
+    // ★ここが修正点！
+    // 確実に「長い名前」を指定して、古い設定（lite）を上書きします
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;
     
     const payload = {
@@ -39,9 +40,10 @@ export async function onRequestPost(context) {
 
     const data = await response.json();
 
-    // エラー報告（デバッグ用）
+    // エラー報告
     if (data.error) {
-      return new Response(JSON.stringify({ reply: `【AIエラー報告】\nCode: ${data.error.code}\nMessage: ${data.error.message}` }), {
+      // エラーメッセージの中に「使おうとしたモデル名」を表示させるようにして、確認しやすくします
+      return new Response(JSON.stringify({ reply: `【AIエラー】\nModel: ${apiUrl.split('models/')[1].split(':')[0]}\nMessage: ${data.error.message}` }), {
         headers: { "Content-Type": "application/json" }
       });
     }
