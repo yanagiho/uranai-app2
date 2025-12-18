@@ -1,221 +1,55 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI占いの館</title>
-    <style>
-        body { font-family: "Helvetica Neue", Arial, sans-serif; background: #1a1a2e; color: #fff; margin: 0; padding: 20px; text-align: center; }
-        h1 { margin-bottom: 30px; font-weight: 300; letter-spacing: 2px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
-        .card-cast { background: #16213e; border-radius: 15px; padding: 15px; cursor: pointer; transition: 0.3s; border: 1px solid #0f3460; }
-        .card-cast:hover { transform: translateY(-5px); border-color: #e94560; }
-        .card-cast img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #e94560; }
-        .name { font-size: 1.1em; font-weight: bold; margin-bottom: 5px; }
-        .desc { font-size: 0.8em; color: #ccc; height: 40px; overflow: hidden; }
-        
-        /* チャット画面 */
-        #chat-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; }
-        .chat-box { width: 90%; max-width: 500px; height: 80%; background: #16213e; margin: 5% auto; border-radius: 10px; display: flex; flex-direction: column; position: relative; }
-        .chat-header { padding: 15px; background: #0f3460; display: flex; justify-content: space-between; align-items: center; }
-        .close-btn { background: none; border: none; color: #fff; font-size: 1.5em; cursor: pointer; }
-        #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        
-        /* メッセージ吹き出し */
-        .msg { max-width: 80%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; font-size: 0.9em; text-align: left; }
-        .msg.user { align-self: flex-end; background: #e94560; color: #fff; border-bottom-right-radius: 2px; }
-        .msg.bot { align-self: flex-start; background: #eee; color: #333; border-bottom-left-radius: 2px; white-space: pre-wrap; }
+export async function onRequestPost(context) {
+  try {
+    const { message, castId, cardName } = await context.request.json();
+    const db = context.env.DB;
+    const apiKey = context.env.GEMINI_API_KEY;
 
-        .input-area { padding: 15px; background: #0f3460; display: flex; gap: 10px; flex-direction: column; }
-        .text-input-row { display: flex; gap: 10px; }
-        input { flex: 1; padding: 10px; border-radius: 20px; border: none; outline: none; }
-        button { padding: 10px 20px; background: #e94560; color: white; border: none; border-radius: 20px; cursor: pointer; white-space: nowrap; }
-        button:disabled { background: #555; }
+    if (!apiKey) return new Response(JSON.stringify({ reply: "【エラー】APIキーが設定されていません" }));
 
-        /* ★タロットカード演出エリア */
-        #tarot-stage { display: none; height: 0; transition: 0.5s; overflow: visible; perspective: 1000px; margin-bottom: 10px; justify-content: center; align-items: center; }
-        .tarot-card { width: 120px; height: 200px; position: relative; transform-style: preserve-3d; transition: transform 1s; }
-        .tarot-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 10px; display: flex; justify-content: center; align-items: center; flex-direction: column; box-shadow: 0 0 15px rgba(233, 69, 96, 0.5); border: 2px solid #e94560; background: #222; }
-        .tarot-back { background: repeating-linear-gradient(45deg, #1a1a2e, #1a1a2e 10px, #0f3460 10px, #0f3460 20px); }
-        .tarot-front { transform: rotateY(180deg); background: #fff; color: #000; padding: 10px; text-align: center; }
-        .card-title { font-weight: bold; font-size: 1.1em; margin-bottom: 5px; color: #e94560; }
-        .card-img-placeholder { font-size: 3em; }
+    // 1. 占い師データの取得
+    const cast = await db.prepare("SELECT * FROM Casts WHERE id = ?").bind(castId).first();
+    if (!cast) return new Response(JSON.stringify({ reply: "【エラー】占い師が見つかりません" }));
 
-        .flipped { transform: rotateY(180deg); }
-        /* 紫雲専用ボタン：より目立つように */
-        .tarot-btn { background: linear-gradient(135deg, #6a0dad, #9b59b6) !important; width: 100%; margin-bottom: 5px; display: none; font-weight: bold; box-shadow: 0 4px 10px rgba(106, 13, 173, 0.5); } 
-    </style>
-</head>
-<body>
+    // 2. プロンプトの作成
+    let userMessage = `相談者: ${message}`;
+    if (cardName) {
+      userMessage += `\n\n【状況】\n相談者はタロットカードを引き、「${cardName}」が出ました。\nこのカードの意味（正位置）を踏まえて、相談者の悩みにアドバイスしてください。カードの描写も交えると効果的です。`;
+    }
 
-    <h1>🔮 AI占いの館</h1>
-    <div id="cast-list" class="grid">読み込み中...</div>
-
-    <div id="chat-modal">
-        <div class="chat-box">
-            <div class="chat-header">
-                <span id="chat-title">占い師</span>
-                <button class="close-btn" onclick="closeChat()">×</button>
-            </div>
-            
-            <div id="messages"></div>
-
-            <div id="tarot-stage">
-                <div class="tarot-card" id="tarot-card-el">
-                    <div class="tarot-face tarot-back"></div>
-                    <div class="tarot-face tarot-front">
-                        <div class="card-img-placeholder">🃏</div>
-                        <div class="card-title" id="card-name">?</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="input-area">
-                <button onclick="drawCard()" id="tarot-btn" class="tarot-btn">🎴 カードを引いて占う</button>
-                <div class="text-input-row">
-                    <input type="text" id="user-input" placeholder="悩みを入力してください...">
-                    <button onclick="sendMessage()" id="send-btn">送信</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const imgMap = { '紫雲': 'shiun.png', '星川レオナ': 'leona.png', '天照院 煌夜': 'koya.png', '琥珀': 'kohaku.png', '碧海サナ': 'sana.png', '紅蓮マリア': 'maria.png', '雪音': 'yukine.png', '黒曜イツキ': 'itsuki.png' };
-        
-        const tarotCards = [
-            "0. 愚者 (The Fool)", "I. 魔術師 (The Magician)", "II. 女教皇 (The High Priestess)", "III. 女帝 (The Empress)", "IV. 皇帝 (The Emperor)",
-            "V. 法王 (The Hierophant)", "VI. 恋人 (The Lovers)", "VII. 戦車 (The Chariot)", "VIII. 力 (Strength)", "IX. 隠者 (The Hermit)",
-            "X. 運命の輪 (Wheel of Fortune)", "XI. 正義 (Justice)", "XII. 吊るされた男 (The Hanged Man)", "XIII. 死神 (Death)", "XIV. 節制 (Temperance)",
-            "XV. 悪魔 (The Devil)", "XVI. 塔 (The Tower)", "XVII. 星 (The Star)", "XVIII. 月 (The Moon)", "XIX. 太陽 (The Sun)",
-            "XX. 審判 (Judgement)", "XXI. 世界 (The World)"
-        ];
-
-        let currentCast = null;
-        let drawnCardName = null;
-
-        fetch('/api/casts').then(res => res.json()).then(data => {
-            const list = document.getElementById('cast-list');
-            list.innerHTML = '';
-            data.forEach(cast => {
-                const div = document.createElement('div');
-                div.className = 'card-cast';
-                div.innerHTML = `<img src="/img/${imgMap[cast.name] || 'default.png'}"><div class="name">${cast.name}</div><div class="desc">${cast.system_prompt.substring(0, 30)}...</div>`;
-                div.onclick = () => openChat(cast);
-                list.appendChild(div);
-            });
-        });
-
-        function openChat(cast) {
-            currentCast = cast;
-            drawnCardName = null;
-            document.getElementById('chat-title').innerText = cast.name;
-            document.getElementById('messages').innerHTML = `<div class="msg bot">ようこそ、${cast.name}です。\n悩みをお聞かせください。</div>`;
-            document.getElementById('chat-modal').style.display = 'block';
-            
-            const tarotBtn = document.getElementById('tarot-btn');
-            const sendBtn = document.getElementById('send-btn');
-            const stage = document.getElementById('tarot-stage');
-            
-            // 完全リセット
-            stage.style.display = 'none';
-            stage.style.height = '0';
-            document.getElementById('tarot-card-el').classList.remove('flipped'); 
-
-            // 紫雲専用モード
-            if (cast.name.includes('紫雲')) {
-                tarotBtn.style.display = 'block';
-                sendBtn.style.display = 'none'; // 最初は隠す
-                document.getElementById('user-input').placeholder = "悩みを入力して、カードボタンを押してね";
-            } else {
-                tarotBtn.style.display = 'none';
-                sendBtn.style.display = 'block';
-                document.getElementById('user-input').placeholder = "悩みを入力してください...";
-            }
+    const systemPrompt = cast.system_prompt;
+    
+    // ★モデル変更：シンプルな「Lite」を使用
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
+    
+    const payload = {
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: `あなたは「${cast.name}」として振る舞ってください。\n設定:\n${systemPrompt}\n\n${userMessage}` }]
         }
+      ]
+    };
 
-        function closeChat() {
-            document.getElementById('chat-modal').style.display = 'none';
-        }
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
 
-        function drawCard() {
-            const stage = document.getElementById('tarot-stage');
-            const cardEl = document.getElementById('tarot-card-el');
-            const cardNameEl = document.getElementById('card-name');
-            const input = document.getElementById('user-input');
+    const data = await response.json();
 
-            if(!input.value) { alert("先に悩みを入力してください！"); return; }
+    // ★重要：AIからのエラーがあれば、隠さずにそのまま表示する（デバッグ用）
+    if (data.error) {
+      return new Response(JSON.stringify({ reply: `【AIエラー報告】\nCode: ${data.error.code}\nMessage: ${data.error.message}` }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
 
-            // ★ここが修正点：アニメーションをリセットして再実行できるようにする
-            stage.style.display = 'none';
-            cardEl.classList.remove('flipped');
-            void cardEl.offsetWidth; // ブラウザにリセットを認識させる魔法
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "（AIからの応答が空でした）";
 
-            // 表示開始
-            stage.style.display = 'flex';
-            stage.style.height = '220px';
-            
-            const randomCard = tarotCards[Math.floor(Math.random() * tarotCards.length)];
-            drawnCardName = randomCard;
-            cardNameEl.innerText = randomCard;
+    return new Response(JSON.stringify({ reply }), { headers: { "Content-Type": "application/json" } });
 
-            // 回転アニメーション
-            setTimeout(() => {
-                cardEl.classList.add('flipped');
-            }, 100);
-
-            // 送信
-            setTimeout(() => {
-                sendMessage();
-            }, 2000);
-        }
-
-        async function sendMessage() {
-            const input = document.getElementById('user-input');
-            const sendBtn = document.getElementById('send-btn');
-            const text = input.value;
-            if (!text) return;
-
-            addMessage(text, 'user');
-            input.value = '';
-            document.getElementById('tarot-btn').disabled = true;
-
-            if (drawnCardName) {
-                addMessage(`(カードを引きました: ${drawnCardName})`, 'user');
-                // 鑑定後、会話ボタンを復活
-                sendBtn.style.display = 'block';
-                // ★さらに、次の占いのためにタロットボタンも有効のままにしておく
-                // ユーザーは「会話の続き(送信)」か「新しい話題(タロット)」か選べる
-            }
-
-            try {
-                const res = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        message: text, 
-                        castId: currentCast.id,
-                        cardName: drawnCardName 
-                    })
-                });
-                const data = await res.json();
-                addMessage(data.reply, 'bot');
-            } catch (e) {
-                addMessage('エラー: ' + e, 'bot');
-            }
-            
-            drawnCardName = null;
-            document.getElementById('tarot-btn').disabled = false;
-        }
-
-        function addMessage(text, type) {
-            const div = document.createElement('div');
-            div.className = `msg ${type}`;
-            div.innerText = text;
-            const container = document.getElementById('messages');
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        }
-    </script>
-</body>
-</html>
+  } catch (e) {
+    return new Response(JSON.stringify({ reply: `【システムエラー】: ${e.message}` }), { status: 500 });
+  }
+}
