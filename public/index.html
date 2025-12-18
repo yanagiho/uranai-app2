@@ -8,25 +8,41 @@
         body { font-family: "Helvetica Neue", Arial, sans-serif; background: #1a1a2e; color: #fff; margin: 0; padding: 20px; text-align: center; }
         h1 { margin-bottom: 30px; font-weight: 300; letter-spacing: 2px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
-        .card { background: #16213e; border-radius: 15px; padding: 15px; cursor: pointer; transition: 0.3s; border: 1px solid #0f3460; }
-        .card:hover { transform: translateY(-5px); border-color: #e94560; }
-        .card img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #e94560; }
+        .card-cast { background: #16213e; border-radius: 15px; padding: 15px; cursor: pointer; transition: 0.3s; border: 1px solid #0f3460; }
+        .card-cast:hover { transform: translateY(-5px); border-color: #e94560; }
+        .card-cast img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #e94560; }
         .name { font-size: 1.1em; font-weight: bold; margin-bottom: 5px; }
         .desc { font-size: 0.8em; color: #ccc; height: 40px; overflow: hidden; }
         
         /* チャット画面 */
         #chat-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; }
-        .chat-box { width: 90%; max-width: 500px; height: 80%; background: #16213e; margin: 5% auto; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
+        .chat-box { width: 90%; max-width: 500px; height: 80%; background: #16213e; margin: 5% auto; border-radius: 10px; display: flex; flex-direction: column; position: relative; }
         .chat-header { padding: 15px; background: #0f3460; display: flex; justify-content: space-between; align-items: center; }
         .close-btn { background: none; border: none; color: #fff; font-size: 1.5em; cursor: pointer; }
         #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; font-size: 0.9em; }
+        
+        /* メッセージ吹き出し */
+        .msg { max-width: 80%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; font-size: 0.9em; text-align: left; }
         .msg.user { align-self: flex-end; background: #e94560; color: #fff; border-bottom-right-radius: 2px; }
         .msg.bot { align-self: flex-start; background: #eee; color: #333; border-bottom-left-radius: 2px; white-space: pre-wrap; }
-        .input-area { padding: 15px; background: #0f3460; display: flex; gap: 10px; }
+
+        .input-area { padding: 15px; background: #0f3460; display: flex; gap: 10px; flex-direction: column; }
+        .text-input-row { display: flex; gap: 10px; }
         input { flex: 1; padding: 10px; border-radius: 20px; border: none; outline: none; }
         button { padding: 10px 20px; background: #e94560; color: white; border: none; border-radius: 20px; cursor: pointer; }
         button:disabled { background: #555; }
+
+        /* ★タロットカード演出エリア */
+        #tarot-stage { display: none; height: 0; transition: 0.5s; overflow: visible; perspective: 1000px; margin-bottom: 10px; justify-content: center; align-items: center; }
+        .tarot-card { width: 120px; height: 200px; position: relative; transform-style: preserve-3d; transition: transform 1s; }
+        .tarot-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 10px; display: flex; justify-content: center; align-items: center; flex-direction: column; box-shadow: 0 0 15px rgba(233, 69, 96, 0.5); border: 2px solid #e94560; background: #222; }
+        .tarot-back { background: repeating-linear-gradient(45deg, #1a1a2e, #1a1a2e 10px, #0f3460 10px, #0f3460 20px); }
+        .tarot-front { transform: rotateY(180deg); background: #fff; color: #000; padding: 10px; text-align: center; }
+        .card-title { font-weight: bold; font-size: 1.1em; margin-bottom: 5px; color: #e94560; }
+        .card-img-placeholder { font-size: 3em; }
+
+        .flipped { transform: rotateY(180deg); }
+        .tarot-btn { background: #6a0dad !important; width: 100%; margin-bottom: 5px; display: none; } /* 紫雲専用ボタン */
     </style>
 </head>
 <body>
@@ -40,83 +56,144 @@
                 <span id="chat-title">占い師</span>
                 <button class="close-btn" onclick="closeChat()">×</button>
             </div>
+            
             <div id="messages"></div>
+
+            <div id="tarot-stage">
+                <div class="tarot-card" id="tarot-card-el">
+                    <div class="tarot-face tarot-back"></div>
+                    <div class="tarot-face tarot-front">
+                        <div class="card-img-placeholder">🃏</div>
+                        <div class="card-title" id="card-name">愚者</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="input-area">
-                <input type="text" id="user-input" placeholder="悩みを入力してください...">
-                <button onclick="sendMessage()" id="send-btn">送信</button>
+                <button onclick="drawCard()" id="tarot-btn" class="tarot-btn">🎴 カードを引いて占う</button>
+                <div class="text-input-row">
+                    <input type="text" id="user-input" placeholder="悩みを入力してください...">
+                    <button onclick="sendMessage()" id="send-btn">送信</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // 画像ファイル名のマッピング（日本語名 → ファイル名）
-        const imgMap = {
-            '紫雲': 'shiun.png', '星川レオナ': 'leona.png', '天照院 煌夜': 'koya.png',
-            '琥珀': 'kohaku.png', '碧海サナ': 'sana.png', '紅蓮マリア': 'maria.png',
-            '雪音': 'yukine.png', '黒曜イツキ': 'itsuki.png'
-        };
+        const imgMap = { '紫雲': 'shiun.png', '星川レオナ': 'leona.png', '天照院 煌夜': 'koya.png', '琥珀': 'kohaku.png', '碧海サナ': 'sana.png', '紅蓮マリア': 'maria.png', '雪音': 'yukine.png', '黒曜イツキ': 'itsuki.png' };
+        
+        // タロットカード大アルカナ22枚
+        const tarotCards = [
+            "0. 愚者 (The Fool)", "I. 魔術師 (The Magician)", "II. 女教皇 (The High Priestess)", "III. 女帝 (The Empress)", "IV. 皇帝 (The Emperor)",
+            "V. 法王 (The Hierophant)", "VI. 恋人 (The Lovers)", "VII. 戦車 (The Chariot)", "VIII. 力 (Strength)", "IX. 隠者 (The Hermit)",
+            "X. 運命の輪 (Wheel of Fortune)", "XI. 正義 (Justice)", "XII. 吊るされた男 (The Hanged Man)", "XIII. 死神 (Death)", "XIV. 節制 (Temperance)",
+            "XV. 悪魔 (The Devil)", "XVI. 塔 (The Tower)", "XVII. 星 (The Star)", "XVIII. 月 (The Moon)", "XIX. 太陽 (The Sun)",
+            "XX. 審判 (Judgement)", "XXI. 世界 (The World)"
+        ];
 
-        let currentCastId = null;
+        let currentCast = null;
+        let drawnCardName = null;
 
-        // 1. 占い師一覧を取得して表示
-        fetch('/api/casts')
-            .then(res => res.json())
-            .then(data => {
-                const list = document.getElementById('cast-list');
-                list.innerHTML = '';
-                data.forEach(cast => {
-                    const imgFile = imgMap[cast.name] || 'default.png';
-                    const div = document.createElement('div');
-                    div.className = 'card';
-                    div.innerHTML = `
-                        <img src="/img/${imgFile}" alt="${cast.name}">
-                        <div class="name">${cast.name}</div>
-                        <div class="desc">${cast.system_prompt.substring(10, 40)}...</div>
-                    `;
-                    div.onclick = () => openChat(cast);
-                    list.appendChild(div);
-                });
-            })
-            .catch(err => {
-                document.getElementById('cast-list').innerText = '読み込みエラー: ' + err;
+        // 1. 占い師一覧
+        fetch('/api/casts').then(res => res.json()).then(data => {
+            const list = document.getElementById('cast-list');
+            list.innerHTML = '';
+            data.forEach(cast => {
+                const div = document.createElement('div');
+                div.className = 'card-cast';
+                div.innerHTML = `<img src="/img/${imgMap[cast.name] || 'default.png'}"><div class="name">${cast.name}</div><div class="desc">${cast.system_prompt.substring(0, 30)}...</div>`;
+                div.onclick = () => openChat(cast);
+                list.appendChild(div);
             });
+        });
 
-        // 2. チャットを開く
         function openChat(cast) {
-            currentCastId = cast.id;
+            currentCast = cast;
+            drawnCardName = null;
             document.getElementById('chat-title').innerText = cast.name;
-            document.getElementById('messages').innerHTML = `<div class="msg bot">ようこそ、${cast.name}です。\n何かお悩みですか？</div>`;
+            document.getElementById('messages').innerHTML = `<div class="msg bot">ようこそ、${cast.name}です。\n悩みをお聞かせください。</div>`;
             document.getElementById('chat-modal').style.display = 'block';
+            
+            // 紫雲の場合だけ「タロットボタン」を表示
+            const tarotBtn = document.getElementById('tarot-btn');
+            const stage = document.getElementById('tarot-stage');
+            stage.style.height = '0'; // リセット
+            document.getElementById('tarot-card-el').classList.remove('flipped'); // リセット
+
+            if (cast.name.includes('紫雲')) {
+                tarotBtn.style.display = 'block';
+            } else {
+                tarotBtn.style.display = 'none';
+            }
         }
 
         function closeChat() {
             document.getElementById('chat-modal').style.display = 'none';
         }
 
-        // 3. メッセージ送信
+        // 2. タロットを引く（演出のみ）
+        function drawCard() {
+            const stage = document.getElementById('tarot-stage');
+            const cardEl = document.getElementById('tarot-card-el');
+            const cardNameEl = document.getElementById('card-name');
+            const input = document.getElementById('user-input');
+
+            if(!input.value) { alert("先に悩みを入力してください！"); return; }
+
+            // ステージを表示
+            stage.style.display = 'flex';
+            stage.style.height = '220px';
+            
+            // ランダムにカードを選ぶ
+            const randomCard = tarotCards[Math.floor(Math.random() * tarotCards.length)];
+            drawnCardName = randomCard;
+            cardNameEl.innerText = randomCard;
+
+            // アニメーション：少し待ってからめくる
+            setTimeout(() => {
+                cardEl.classList.add('flipped');
+            }, 500);
+
+            // さらに待ってから自動送信
+            setTimeout(() => {
+                sendMessage();
+            }, 2000);
+        }
+
+        // 3. 送信
         async function sendMessage() {
             const input = document.getElementById('user-input');
-            const btn = document.getElementById('send-btn');
             const text = input.value;
             if (!text) return;
 
-            // 自分のメッセージを表示
             addMessage(text, 'user');
             input.value = '';
-            btn.disabled = true;
+            document.getElementById('tarot-btn').disabled = true;
+
+            // タロットが引かれていれば、それをメッセージとして表示
+            if (drawnCardName) {
+                addMessage(`(カードを引きました: ${drawnCardName})`, 'user');
+            }
 
             try {
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ message: text, castId: currentCastId })
+                    body: JSON.stringify({ 
+                        message: text, 
+                        castId: currentCast.id,
+                        cardName: drawnCardName // 引いたカードを送る（なければnull）
+                    })
                 });
                 const data = await res.json();
                 addMessage(data.reply, 'bot');
             } catch (e) {
-                addMessage('エラーが発生しました', 'bot');
+                addMessage('エラー: ' + e, 'bot');
             }
-            btn.disabled = false;
+            
+            // リセット
+            drawnCardName = null;
+            document.getElementById('tarot-btn').disabled = false;
         }
 
         function addMessage(text, type) {
