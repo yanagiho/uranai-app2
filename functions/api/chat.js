@@ -18,9 +18,9 @@ export async function onRequestPost(context) {
 
     const systemPrompt = cast.system_prompt;
     
-    // ★安定している「Lite」モデルを使用
-// 確実に動く「プレビュー版」に戻します
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;    
+    // ★重要：確実に動く「プレビュー版」の正式名称を指定しています
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;
+    
     const payload = {
       contents: [
         {
@@ -38,7 +38,7 @@ const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2
 
     const data = await response.json();
 
-    // ★エラー詳細を表示
+    // ★AIからのエラーがあれば、隠さずにそのまま表示する（デバッグ用）
     if (data.error) {
       return new Response(JSON.stringify({ reply: `【AIエラー報告】\nCode: ${data.error.code}\nMessage: ${data.error.message}` }), {
         headers: { "Content-Type": "application/json" }
