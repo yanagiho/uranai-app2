@@ -6,11 +6,9 @@ export async function onRequestPost(context) {
 
     if (!apiKey) return new Response(JSON.stringify({ reply: "【エラー】APIキー設定なし" }));
 
-    // 1. 占い師データの取得
     const cast = await db.prepare("SELECT * FROM Casts WHERE id = ?").bind(castId).first();
     if (!cast) return new Response(JSON.stringify({ reply: "【エラー】占い師データなし" }));
 
-    // 2. プロンプト作成
     let userMessage = `相談者: ${message}`;
     if (cardName) {
       userMessage += `\n\n【状況】\n相談者はタロットカードを引き、「${cardName}」が出ました。\nこのカードの意味（正位置）を踏まえて、相談者の悩みにアドバイスしてください。カードの描写も交えると効果的です。`;
@@ -18,8 +16,8 @@ export async function onRequestPost(context) {
 
     const systemPrompt = cast.system_prompt;
     
-    // ★ここが最終決定版！リストにあった「標準版」を使います
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    // ★これが唯一の正解！朝9時に成功した「Liteプレビュー版」です
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;
     
     const payload = {
       contents: [
@@ -38,11 +36,10 @@ export async function onRequestPost(context) {
 
     const data = await response.json();
 
-    // ★エラーが起きたら、日本語で詳細を表示（デバッグ用）
     if (data.error) {
       const modelName = apiUrl.split('models/')[1].split(':')[0];
       return new Response(JSON.stringify({ 
-        reply: `【AIエラー報告】\nモデル: ${modelName}\n内容: ${data.error.message}\n(この画面をスクショしてください)` 
+        reply: `【復旧失敗...】\nモデル: ${modelName}\nエラー: ${data.error.message}` 
       }), {
         headers: { "Content-Type": "application/json" }
       });
