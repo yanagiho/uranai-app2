@@ -41,7 +41,9 @@ export async function onRequestPost(context) {
 
     // ★重要：更新されたか確認するための「目印」をつけました
     if (data.error) {
-      return new Response(JSON.stringify({ reply: `【最新版デバッグ】\n使用モデル: ${apiUrl.split('models/')[1].split(':')[0]}\nエラー: ${data.error.message}` }), {
+      // エラーメッセージを日本語にして、モデル名も表示させます
+      const errorMsg = `【最新版デバッグ】\nモデル: ${apiUrl.split('models/')[1].split(':')[0]}\nエラー: ${data.error.message}`;
+      return new Response(JSON.stringify({ reply: errorMsg }), {
         headers: { "Content-Type": "application/json" }
       });
     }
