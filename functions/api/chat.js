@@ -1,27 +1,33 @@
 export async function onRequestPost(context) {
   try {
-    const { message, castId } = await context.request.json();
+    // message（悩み）に加え、cardName（引いたカード）も受け取るようにする
+    const { message, castId, cardName } = await context.request.json();
     const db = context.env.DB;
     const apiKey = context.env.GEMINI_API_KEY;
 
-    if (!apiKey) {
-      return new Response(JSON.stringify({ reply: "【エラー】APIキーが設定されていません。" }), { headers: { "Content-Type": "application/json" } });
-    }
+    if (!apiKey) return new Response(JSON.stringify({ reply: "APIキーが設定されていません" }));
 
-    // 1. 占い師のデータを取得
+    // 1. 占い師データの取得
     const cast = await db.prepare("SELECT * FROM Casts WHERE id = ?").bind(castId).first();
-    if (!cast) {
-      return new Response(JSON.stringify({ reply: "【エラー】占い師が見つかりません。" }), { headers: { "Content-Type": "application/json" } });
+    if (!cast) return new Response(JSON.stringify({ reply: "占い師が見つかりません" }));
+
+    // 2. プロンプトの作成
+    let userMessage = `相談者: ${message}`;
+    
+    // ★もしカードが引かれていたら、AIにその情報を渡す
+    if (cardName) {
+      userMessage += `\n\n【状況】\n相談者はタロットカードを引き、「${cardName}」が出ました。\nこのカードの意味（正位置）を踏まえて、相談者の悩みにアドバイスしてください。カードの描写も交えると効果的です。`;
     }
 
-    // 2. 最新モデル「Gemini 2.0 Flash」に送信
     const systemPrompt = cast.system_prompt;
-    // リストにあった gemini-2.0-flash を使用
-// リストにあった「Lite（軽量版）」のプレビューモデルを使います
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;      contents: [
+    // 成功した「Lite」モデルを使用
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;
+    
+    const payload = {
+      contents: [
         {
           role: "user",
-          parts: [{ text: `あなたは「${cast.name}」として振る舞ってください。\n設定:\n${systemPrompt}\n\n相談者: ${message}` }]
+          parts: [{ text: `あなたは「${cast.name}」として振る舞ってください。\n設定:\n${systemPrompt}\n\n${userMessage}` }]
         }
       ]
     };
@@ -33,20 +39,11 @@ const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2
     });
 
     const data = await response.json();
-
-    // エラーがあれば表示（デバッグ用）
-    if (data.error) {
-      return new Response(JSON.stringify({ reply: `【AIエラー】Code: ${data.error.code}\nMessage: ${data.error.message}` }), { headers: { "Content-Type": "application/json" } });
-    }
-
-    // 正常な返信を取得
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "（星の言葉が届きませんでした...）";
 
-    return new Response(JSON.stringify({ reply }), {
-      headers: { "Content-Type": "application/json" }
-    });
+    return new Response(JSON.stringify({ reply }), { headers: { "Content-Type": "application/json" } });
 
   } catch (e) {
-    return new Response(JSON.stringify({ reply: `【システムエラー】${e.message}` }), { status: 500, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ reply: `エラー: ${e.message}` }), { status: 500 });
   }
 }
