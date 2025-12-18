@@ -17,9 +17,8 @@ export async function onRequestPost(context) {
     // 2. 最新モデル「Gemini 2.0 Flash」に送信
     const systemPrompt = cast.system_prompt;
     // リストにあった gemini-2.0-flash を使用
-// 「-exp」がついた実験版モデルを使います（無料枠が広いことが多いです）
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;    
-    const payload = {
+// 「最新のFlashモデル」を自動で選ぶ設定
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;    const payload = {
       contents: [
         {
           role: "user",
