@@ -4,6 +4,7 @@ export async function onRequestPost(context) {
     const db = context.env.DB;
     const apiKey = context.env.GEMINI_API_KEY;
 
+    // APIキーの確認
     if (!apiKey) return new Response(JSON.stringify({ reply: "【エラー】APIキーが設定されていません" }));
 
     // 1. 占い師データの取得
@@ -18,7 +19,7 @@ export async function onRequestPost(context) {
 
     const systemPrompt = cast.system_prompt;
     
-    // ★重要：確実に動く「プレビュー版」の正式名称を指定しています
+    // ★ここが修正点！確実に動く「プレビュー版」の正式名称を指定
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;
     
     const payload = {
@@ -38,7 +39,7 @@ export async function onRequestPost(context) {
 
     const data = await response.json();
 
-    // ★AIからのエラーがあれば、隠さずにそのまま表示する（デバッグ用）
+    // エラー報告（デバッグ用）
     if (data.error) {
       return new Response(JSON.stringify({ reply: `【AIエラー報告】\nCode: ${data.error.code}\nMessage: ${data.error.message}` }), {
         headers: { "Content-Type": "application/json" }
