@@ -114,16 +114,22 @@
             document.getElementById('messages').innerHTML = `<div class="msg bot">ようこそ、${cast.name}です。\n悩みをお聞かせください。</div>`;
             document.getElementById('chat-modal').style.display = 'block';
             
-            // 紫雲の場合だけ「タロットボタン」を表示
+            // UI要素の取得
             const tarotBtn = document.getElementById('tarot-btn');
+            const sendBtn = document.getElementById('send-btn');
             const stage = document.getElementById('tarot-stage');
-            stage.style.height = '0'; // リセット
-            document.getElementById('tarot-card-el').classList.remove('flipped'); // リセット
+            
+            // リセット
+            stage.style.height = '0'; 
+            document.getElementById('tarot-card-el').classList.remove('flipped'); 
 
+            // ★紫雲の場合だけボタンを切り替える
             if (cast.name.includes('紫雲')) {
                 tarotBtn.style.display = 'block';
+                sendBtn.style.display = 'none'; // 最初は送信ボタンを隠す！
             } else {
                 tarotBtn.style.display = 'none';
+                sendBtn.style.display = 'block';
             }
         }
 
@@ -163,6 +169,7 @@
         // 3. 送信
         async function sendMessage() {
             const input = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
             const text = input.value;
             if (!text) return;
 
@@ -173,6 +180,9 @@
             // タロットが引かれていれば、それをメッセージとして表示
             if (drawnCardName) {
                 addMessage(`(カードを引きました: ${drawnCardName})`, 'user');
+                
+                // ★カードを引いた後は、通常の送信ボタンを復活させる（会話を続けるため）
+                sendBtn.style.display = 'block';
             }
 
             try {
