@@ -16,8 +16,9 @@ export async function onRequestPost(context) {
 
     const systemPrompt = cast.system_prompt;
     
-    // ★これが唯一の正解！朝9時に成功した「Liteプレビュー版」です
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;
+    // ★ここが変更点！まだ未使用の「実験版モデル」を使います
+    // これなら「Lite」の制限に引っかかりません
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-exp-1206:generateContent?key=${apiKey}`;
     
     const payload = {
       contents: [
@@ -38,8 +39,9 @@ export async function onRequestPost(context) {
 
     if (data.error) {
       const modelName = apiUrl.split('models/')[1].split(':')[0];
+      // エラー時の表示
       return new Response(JSON.stringify({ 
-        reply: `【復旧失敗...】\nモデル: ${modelName}\nエラー: ${data.error.message}` 
+        reply: `【再トライ失敗】\nモデル: ${modelName}\nエラー: ${data.error.message}` 
       }), {
         headers: { "Content-Type": "application/json" }
       });
