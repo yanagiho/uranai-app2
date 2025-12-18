@@ -19,8 +19,8 @@ export async function onRequestPost(context) {
     const systemPrompt = cast.system_prompt;
     
     // ★安定している「Lite」モデルを使用
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
-    
+// 確実に動く「プレビュー版」に戻します
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;    
     const payload = {
       contents: [
         {
