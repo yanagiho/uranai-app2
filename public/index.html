@@ -29,7 +29,7 @@
         .input-area { padding: 15px; background: #0f3460; display: flex; gap: 10px; flex-direction: column; }
         .text-input-row { display: flex; gap: 10px; }
         input { flex: 1; padding: 10px; border-radius: 20px; border: none; outline: none; }
-        button { padding: 10px 20px; background: #e94560; color: white; border: none; border-radius: 20px; cursor: pointer; }
+        button { padding: 10px 20px; background: #e94560; color: white; border: none; border-radius: 20px; cursor: pointer; white-space: nowrap; }
         button:disabled { background: #555; }
 
         /* ★タロットカード演出エリア */
@@ -42,7 +42,8 @@
         .card-img-placeholder { font-size: 3em; }
 
         .flipped { transform: rotateY(180deg); }
-        .tarot-btn { background: #6a0dad !important; width: 100%; margin-bottom: 5px; display: none; } /* 紫雲専用ボタン */
+        /* 紫雲専用ボタン：より目立つように */
+        .tarot-btn { background: linear-gradient(135deg, #6a0dad, #9b59b6) !important; width: 100%; margin-bottom: 5px; display: none; font-weight: bold; box-shadow: 0 4px 10px rgba(106, 13, 173, 0.5); } 
     </style>
 </head>
 <body>
@@ -64,7 +65,7 @@
                     <div class="tarot-face tarot-back"></div>
                     <div class="tarot-face tarot-front">
                         <div class="card-img-placeholder">🃏</div>
-                        <div class="card-title" id="card-name">愚者</div>
+                        <div class="card-title" id="card-name">?</div>
                     </div>
                 </div>
             </div>
@@ -82,7 +83,6 @@
     <script>
         const imgMap = { '紫雲': 'shiun.png', '星川レオナ': 'leona.png', '天照院 煌夜': 'koya.png', '琥珀': 'kohaku.png', '碧海サナ': 'sana.png', '紅蓮マリア': 'maria.png', '雪音': 'yukine.png', '黒曜イツキ': 'itsuki.png' };
         
-        // タロットカード大アルカナ22枚
         const tarotCards = [
             "0. 愚者 (The Fool)", "I. 魔術師 (The Magician)", "II. 女教皇 (The High Priestess)", "III. 女帝 (The Empress)", "IV. 皇帝 (The Emperor)",
             "V. 法王 (The Hierophant)", "VI. 恋人 (The Lovers)", "VII. 戦車 (The Chariot)", "VIII. 力 (Strength)", "IX. 隠者 (The Hermit)",
@@ -94,7 +94,6 @@
         let currentCast = null;
         let drawnCardName = null;
 
-        // 1. 占い師一覧
         fetch('/api/casts').then(res => res.json()).then(data => {
             const list = document.getElementById('cast-list');
             list.innerHTML = '';
@@ -114,22 +113,24 @@
             document.getElementById('messages').innerHTML = `<div class="msg bot">ようこそ、${cast.name}です。\n悩みをお聞かせください。</div>`;
             document.getElementById('chat-modal').style.display = 'block';
             
-            // UI要素の取得
             const tarotBtn = document.getElementById('tarot-btn');
             const sendBtn = document.getElementById('send-btn');
             const stage = document.getElementById('tarot-stage');
             
-            // リセット
-            stage.style.height = '0'; 
+            // 完全リセット
+            stage.style.display = 'none';
+            stage.style.height = '0';
             document.getElementById('tarot-card-el').classList.remove('flipped'); 
 
-            // ★紫雲の場合だけボタンを切り替える
+            // 紫雲専用モード
             if (cast.name.includes('紫雲')) {
                 tarotBtn.style.display = 'block';
-                sendBtn.style.display = 'none'; // 最初は送信ボタンを隠す！
+                sendBtn.style.display = 'none'; // 最初は隠す
+                document.getElementById('user-input').placeholder = "悩みを入力して、カードボタンを押してね";
             } else {
                 tarotBtn.style.display = 'none';
                 sendBtn.style.display = 'block';
+                document.getElementById('user-input').placeholder = "悩みを入力してください...";
             }
         }
 
@@ -137,7 +138,6 @@
             document.getElementById('chat-modal').style.display = 'none';
         }
 
-        // 2. タロットを引く（演出のみ）
         function drawCard() {
             const stage = document.getElementById('tarot-stage');
             const cardEl = document.getElementById('tarot-card-el');
@@ -146,27 +146,30 @@
 
             if(!input.value) { alert("先に悩みを入力してください！"); return; }
 
-            // ステージを表示
+            // ★ここが修正点：アニメーションをリセットして再実行できるようにする
+            stage.style.display = 'none';
+            cardEl.classList.remove('flipped');
+            void cardEl.offsetWidth; // ブラウザにリセットを認識させる魔法
+
+            // 表示開始
             stage.style.display = 'flex';
             stage.style.height = '220px';
             
-            // ランダムにカードを選ぶ
             const randomCard = tarotCards[Math.floor(Math.random() * tarotCards.length)];
             drawnCardName = randomCard;
             cardNameEl.innerText = randomCard;
 
-            // アニメーション：少し待ってからめくる
+            // 回転アニメーション
             setTimeout(() => {
                 cardEl.classList.add('flipped');
-            }, 500);
+            }, 100);
 
-            // さらに待ってから自動送信
+            // 送信
             setTimeout(() => {
                 sendMessage();
             }, 2000);
         }
 
-        // 3. 送信
         async function sendMessage() {
             const input = document.getElementById('user-input');
             const sendBtn = document.getElementById('send-btn');
@@ -177,12 +180,12 @@
             input.value = '';
             document.getElementById('tarot-btn').disabled = true;
 
-            // タロットが引かれていれば、それをメッセージとして表示
             if (drawnCardName) {
                 addMessage(`(カードを引きました: ${drawnCardName})`, 'user');
-                
-                // ★カードを引いた後は、通常の送信ボタンを復活させる（会話を続けるため）
+                // 鑑定後、会話ボタンを復活
                 sendBtn.style.display = 'block';
+                // ★さらに、次の占いのためにタロットボタンも有効のままにしておく
+                // ユーザーは「会話の続き(送信)」か「新しい話題(タロット)」か選べる
             }
 
             try {
@@ -192,7 +195,7 @@
                     body: JSON.stringify({ 
                         message: text, 
                         castId: currentCast.id,
-                        cardName: drawnCardName // 引いたカードを送る（なければnull）
+                        cardName: drawnCardName 
                     })
                 });
                 const data = await res.json();
@@ -201,7 +204,6 @@
                 addMessage('エラー: ' + e, 'bot');
             }
             
-            // リセット
             drawnCardName = null;
             document.getElementById('tarot-btn').disabled = false;
         }
