@@ -17,9 +17,8 @@ export async function onRequestPost(context) {
     // 2. 最新モデル「Gemini 2.0 Flash」に送信
     const systemPrompt = cast.system_prompt;
     // リストにあった gemini-2.0-flash を使用
-// 「最新のFlashモデル」を自動で選ぶ設定
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;    const payload = {
-      contents: [
+// リストにあった「Lite（軽量版）」のプレビューモデルを使います
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;      contents: [
         {
           role: "user",
           parts: [{ text: `あなたは「${cast.name}」として振る舞ってください。\n設定:\n${systemPrompt}\n\n相談者: ${message}` }]
