@@ -43,10 +43,9 @@ export async function onRequestPost(context) {
       parts: [{ text: currentInput }]
     });
 
-    // ★ここが勝利の鍵です！
-    // 「新しいキー」なら、この「標準モデル」が必ず見つかります。
-    // そして標準モデルなら、2.0のような厳しい制限もありません。
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // ★ここが修正点！「v1beta」を「v1」に変更しました。
+    // これで新しいキーを使って、正式なルートで接続します。
+    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const payload = {
       systemInstruction: {
