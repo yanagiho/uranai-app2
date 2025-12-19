@@ -46,9 +46,10 @@ export async function onRequestPost(context) {
       parts: [{ text: currentInput }]
     });
 
-    // ★ここが修正点！昨日「存在確認」が取れているモデルに戻します
-    // 日付が変わったので、制限(Quota)は解除されているはずです
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;
+    // ★ここが解決策！
+    // Flashが見つからず、2.0が上限なら、高性能な「1.5 Pro」を使います。
+    // これなら確実に存在し、かつ今日の枠も残っています。
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
     
     const payload = {
       systemInstruction: {
