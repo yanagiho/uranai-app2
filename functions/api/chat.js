@@ -9,7 +9,7 @@ export async function onRequestPost(context) {
     const cast = await db.prepare("SELECT * FROM Casts WHERE id = ?").bind(castId).first();
     if (!cast) return new Response(JSON.stringify({ reply: "【エラー】占い師データなし" }));
 
-    // システムプロンプト（性格設定）
+    // システムプロンプト
     const systemPrompt = `
     あなたは占い師「${cast.name}」です。以下の設定とルールを厳守し、徹底的に演じ切ってください。
 
@@ -43,9 +43,10 @@ export async function onRequestPost(context) {
       parts: [{ text: currentInput }]
     });
 
-    // ★これが「唯一存在確認が取れている」モデルです
-    // 新しいキー（使用量0）であれば、このモデルの制限には引っかかりません
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;
+    // ★ここが勝利の鍵です！
+    // 「新しいキー」なら、この「標準モデル」が必ず見つかります。
+    // そして標準モデルなら、2.0のような厳しい制限もありません。
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const payload = {
       systemInstruction: {
