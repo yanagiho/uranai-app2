@@ -28,24 +28,22 @@ export async function onRequestPost(context) {
     今回は「${cardName || "まだ引いていない"}」が出ています。
     `;
 
-    // ★ここが修正点！
-    // 「systemInstruction」機能を使わず、会話の履歴として自然に設定を読み込ませます。
-    
+    // 会話データ（contents）の作成
     let contents = [];
 
-    // 1. 最初の命令（ユーザー役として設定を送りつける）
+    // 1. 設定を「ユーザーからの命令」として擬似的に送る
     contents.push({
       role: "user",
-      parts: [{ text: `【命令】以下の設定になりきって振る舞ってください。\n\n${systemPromptText}` }]
+      parts: [{ text: `【システム命令】\n${systemPromptText}` }]
     });
 
-    // 2. AIの承諾（AI役として承諾させることで、設定を固定する）
+    // 2. AIに承諾させる（これで設定が固定されます）
     contents.push({
       role: "model",
-      parts: [{ text: "承知いたしました。私はその設定の占い師として振る舞います。" }]
+      parts: [{ text: "承知いたしました。その設定になりきって対話します。" }]
     });
 
-    // 3. 実際の過去の会話履歴を追加
+    // 3. 過去の会話履歴を追加
     if (history && history.length > 0) {
       history.forEach(h => {
         contents.push({
@@ -62,10 +60,10 @@ export async function onRequestPost(context) {
       parts: [{ text: currentInput }]
     });
 
-    // 接続先は、さきほどモデルが見つかった「v1（安定版）」を使います
+    // ★接続先は「v1（安定版）」
+    // ここが v1beta になっていると Not Found になります
     const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
-    // payloadから systemInstruction を削除し、シンプルにしました
     const payload = {
       contents: contents
     };
@@ -79,8 +77,9 @@ export async function onRequestPost(context) {
     const data = await response.json();
 
     if (data.error) {
+      // エラー時に「どのバージョンに接続したか」を表示して確認できるようにします
       return new Response(JSON.stringify({ 
-        reply: `【エラー】\nモデル: ${apiUrl.split('models/')[1].split(':')[0]}\n原因: ${data.error.message}` 
+        reply: `【接続エラー】\n接続先: ${apiUrl.includes('/v1/') ? 'v1(正)' : 'v1beta(誤)'}\n内容: ${data.error.message}` 
       }), {
         headers: { "Content-Type": "application/json" }
       });
