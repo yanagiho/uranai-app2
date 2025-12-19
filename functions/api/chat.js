@@ -9,7 +9,7 @@ export async function onRequestPost(context) {
     const cast = await db.prepare("SELECT * FROM Casts WHERE id = ?").bind(castId).first();
     if (!cast) return new Response(JSON.stringify({ reply: "【エラー】占い師データなし" }));
 
-    // AIへの演技指導（システムプロンプト）
+    // システムプロンプト（性格設定）
     const systemPrompt = `
     あなたは占い師「${cast.name}」です。以下の設定とルールを厳守し、徹底的に演じ切ってください。
 
@@ -29,7 +29,7 @@ export async function onRequestPost(context) {
     会話が十分に深まった、またはユーザーが真剣に答えを求めた段階で初めて、このカードの意味と、あなたの直感を交えて運勢を告げてください。
     `;
 
-    // 過去の会話履歴を整形
+    // 履歴の整形
     let contents = [];
     if (history && history.length > 0) {
       contents = history.map(h => ({
@@ -38,18 +38,15 @@ export async function onRequestPost(context) {
       }));
     }
 
-    // 今回のユーザーの発言を追加
     const currentInput = message ? message : "（相談者は黙ってこちらを見ている...）";
-    
     contents.push({
       role: "user",
       parts: [{ text: currentInput }]
     });
 
-    // ★ここが解決策！
-    // Flashが見つからず、2.0が上限なら、高性能な「1.5 Pro」を使います。
-    // これなら確実に存在し、かつ今日の枠も残っています。
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+    // ★新しいキーなら、この「最も標準的なモデル名」が必ず動きます
+    // 無料枠(Free Tier)でも1分間に15回まで会話できます
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const payload = {
       systemInstruction: {
