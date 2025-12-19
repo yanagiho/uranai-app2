@@ -9,8 +9,8 @@ export async function onRequestPost(context) {
     const cast = await db.prepare("SELECT * FROM Casts WHERE id = ?").bind(castId).first();
     if (!cast) return new Response(JSON.stringify({ reply: "【エラー】占い師データなし" }));
 
-    // システムプロンプト
-    const systemPrompt = `
+    // キャラクター設定の文章
+    const systemPromptText = `
     あなたは占い師「${cast.name}」です。以下の設定とルールを厳守し、徹底的に演じ切ってください。
 
     【キャラクター設定】
@@ -28,29 +28,45 @@ export async function onRequestPost(context) {
     今回は「${cardName || "まだ引いていない"}」が出ています。
     `;
 
-    // 履歴の整形
+    // ★ここが修正点！
+    // 「systemInstruction」機能を使わず、会話の履歴として自然に設定を読み込ませます。
+    
     let contents = [];
+
+    // 1. 最初の命令（ユーザー役として設定を送りつける）
+    contents.push({
+      role: "user",
+      parts: [{ text: `【命令】以下の設定になりきって振る舞ってください。\n\n${systemPromptText}` }]
+    });
+
+    // 2. AIの承諾（AI役として承諾させることで、設定を固定する）
+    contents.push({
+      role: "model",
+      parts: [{ text: "承知いたしました。私はその設定の占い師として振る舞います。" }]
+    });
+
+    // 3. 実際の過去の会話履歴を追加
     if (history && history.length > 0) {
-      contents = history.map(h => ({
-        role: h.role === 'bot' ? 'model' : 'user',
-        parts: [{ text: h.text }]
-      }));
+      history.forEach(h => {
+        contents.push({
+          role: h.role === 'bot' ? 'model' : 'user',
+          parts: [{ text: h.text }]
+        });
+      });
     }
 
+    // 4. 今回のユーザーの発言を追加
     const currentInput = message ? message : "（相談者は黙ってこちらを見ている...）";
     contents.push({
       role: "user",
       parts: [{ text: currentInput }]
     });
 
-    // ★ここが修正点！「v1beta」を「v1」に変更しました。
-    // これで新しいキーを使って、正式なルートで接続します。
+    // 接続先は、さきほどモデルが見つかった「v1（安定版）」を使います
     const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
+    // payloadから systemInstruction を削除し、シンプルにしました
     const payload = {
-      systemInstruction: {
-        parts: [{ text: systemPrompt }]
-      },
       contents: contents
     };
 
