@@ -1,6 +1,5 @@
 export async function onRequestPost(context) {
   try {
-    // history: これまでの会話履歴を受け取る
     const { message, castId, cardName, history } = await context.request.json();
     const db = context.env.DB;
     const apiKey = context.env.GEMINI_API_KEY;
@@ -40,7 +39,6 @@ export async function onRequestPost(context) {
     }
 
     // 今回のユーザーの発言を追加
-    // もし空文字なら、ト書きとして扱う
     const currentInput = message ? message : "（相談者は黙ってこちらを見ている...）";
     
     contents.push({
@@ -48,8 +46,9 @@ export async function onRequestPost(context) {
       parts: [{ text: currentInput }]
     });
 
-    // ★ここが修正点！確実に存在するバージョン番号付きのモデル名に変更
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent?key=${apiKey}`;
+    // ★ここが修正点！昨日「存在確認」が取れているモデルに戻します
+    // 日付が変わったので、制限(Quota)は解除されているはずです
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${apiKey}`;
     
     const payload = {
       systemInstruction: {
