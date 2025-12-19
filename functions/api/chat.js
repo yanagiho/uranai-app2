@@ -1,6 +1,7 @@
 export async function onRequestPost(context) {
   try {
-    const { message, castId, cardName } = await context.request.json();
+    // history: これまでの会話履歴を受け取る（記憶機能）
+    const { message, castId, cardName, history } = await context.request.json();
     const db = context.env.DB;
     const apiKey = context.env.GEMINI_API_KEY;
 
@@ -9,24 +10,54 @@ export async function onRequestPost(context) {
     const cast = await db.prepare("SELECT * FROM Casts WHERE id = ?").bind(castId).first();
     if (!cast) return new Response(JSON.stringify({ reply: "【エラー】占い師データなし" }));
 
-    let userMessage = `相談者: ${message}`;
-    if (cardName) {
-      userMessage += `\n\n【状況】\n相談者はタロットカードを引き、「${cardName}」が出ました。\nこのカードの意味（正位置）を踏まえて、相談者の悩みにアドバイスしてください。カードの描写も交えると効果的です。`;
+    // ★ここが核心！AIへの「演技指導（システムプロンプト）」を強化
+    const systemPrompt = `
+    あなたは占い師「${cast.name}」です。以下の設定とルールを厳守し、徹底的に演じ切ってください。
+
+    【キャラクター設定】
+    ${cast.system_prompt}
+
+    【会話のルール（絶対厳守）】
+    1. **すぐに占うな**: ユーザーの悩みが浅い場合、すぐにカードの意味を教えないでください。
+    2. **情報を引き出せ**: 「コールドリーディング」のテクニックを使い、「図星をつくような指摘」や「揺さぶり」をかけて、ユーザーの本心を暴いてください。（例:「ふん、口ではそう言っているが、本音は金のことなんじゃないか？」など）
+    3. **圧をかけろ**: ただ優しいだけの占い師ではありません。相手を見透かすような、少し威圧的な態度や、意味深な沈黙（……）を交えてください。
+    4. **適当な入力への対応**:
+       - ユーザーが「あ」や無意味な文字列を送ってきた場合 -> 「は？ 冷やかしなら帰りな」「言葉も出ないほど疲れてるのか？」など、キャラに合わせてあしらってください。
+       - ユーザーが何も言わない（空文字）の場合 -> 「……。（無言の圧）」「黙っていては分からんぞ」など、沈黙に対して反応してください。
+
+    【タロットカードについて】
+    今回は「${cardName || "まだ引いていない"}」が出ています。
+    会話が十分に深まった、またはユーザーが真剣に答えを求めた段階で初めて、このカードの意味と、あなたの直感を交えて運勢を告げてください。
+    `;
+
+    // 過去の会話履歴をAIに渡す（これで文脈を理解します）
+    // historyがなければ空の配列
+    let contents = [];
+    if (history && history.length > 0) {
+      contents = history.map(h => ({
+        role: h.role === 'bot' ? 'model' : 'user',
+        parts: [{ text: h.text }]
+      }));
     }
 
-    const systemPrompt = cast.system_prompt;
+    // 今回のユーザーの発言を追加
+    // もし空文字（沈黙）なら、"(沈黙している)"というト書きとして扱う
+    const currentInput = message ? message : "（相談者は黙ってこちらを見ている...）";
     
-    // ★ここが変更点！まだ未使用の「実験版モデル」を使います
-    // これなら「Lite」の制限に引っかかりません
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-exp-1206:generateContent?key=${apiKey}`;
+    contents.push({
+      role: "user",
+      parts: [{ text: currentInput }]
+    });
+
+    // システムプロンプトを先頭に追加（Geminiの仕様に合わせて調整）
+    // 1.5 Flashモデルを使用（安定版）
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const payload = {
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `あなたは「${cast.name}」として振る舞ってください。\n設定:\n${systemPrompt}\n\n${userMessage}` }]
-        }
-      ]
+      systemInstruction: {
+        parts: [{ text: systemPrompt }]
+      },
+      contents: contents
     };
 
     const response = await fetch(apiUrl, {
@@ -38,16 +69,14 @@ export async function onRequestPost(context) {
     const data = await response.json();
 
     if (data.error) {
-      const modelName = apiUrl.split('models/')[1].split(':')[0];
-      // エラー時の表示
       return new Response(JSON.stringify({ 
-        reply: `【再トライ失敗】\nモデル: ${modelName}\nエラー: ${data.error.message}` 
+        reply: `【エラー】\n${data.error.message}` 
       }), {
         headers: { "Content-Type": "application/json" }
       });
     }
 
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "（AIからの応答が空でした）";
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "（...気配が消えた）";
 
     return new Response(JSON.stringify({ reply }), { headers: { "Content-Type": "application/json" } });
 
