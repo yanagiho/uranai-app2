@@ -1,6 +1,6 @@
 export async function onRequestPost(context) {
   try {
-    // history: これまでの会話履歴を受け取る（記憶機能）
+    // history: これまでの会話履歴を受け取る
     const { message, castId, cardName, history } = await context.request.json();
     const db = context.env.DB;
     const apiKey = context.env.GEMINI_API_KEY;
@@ -10,7 +10,7 @@ export async function onRequestPost(context) {
     const cast = await db.prepare("SELECT * FROM Casts WHERE id = ?").bind(castId).first();
     if (!cast) return new Response(JSON.stringify({ reply: "【エラー】占い師データなし" }));
 
-    // ★ここが核心！AIへの「演技指導（システムプロンプト）」を強化
+    // AIへの演技指導（システムプロンプト）
     const systemPrompt = `
     あなたは占い師「${cast.name}」です。以下の設定とルールを厳守し、徹底的に演じ切ってください。
 
@@ -30,8 +30,7 @@ export async function onRequestPost(context) {
     会話が十分に深まった、またはユーザーが真剣に答えを求めた段階で初めて、このカードの意味と、あなたの直感を交えて運勢を告げてください。
     `;
 
-    // 過去の会話履歴をAIに渡す（これで文脈を理解します）
-    // historyがなければ空の配列
+    // 過去の会話履歴を整形
     let contents = [];
     if (history && history.length > 0) {
       contents = history.map(h => ({
@@ -41,7 +40,7 @@ export async function onRequestPost(context) {
     }
 
     // 今回のユーザーの発言を追加
-    // もし空文字（沈黙）なら、"(沈黙している)"というト書きとして扱う
+    // もし空文字なら、ト書きとして扱う
     const currentInput = message ? message : "（相談者は黙ってこちらを見ている...）";
     
     contents.push({
@@ -49,9 +48,8 @@ export async function onRequestPost(context) {
       parts: [{ text: currentInput }]
     });
 
-    // システムプロンプトを先頭に追加（Geminiの仕様に合わせて調整）
-    // 1.5 Flashモデルを使用（安定版）
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // ★ここが修正点！確実に存在するバージョン番号付きのモデル名に変更
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent?key=${apiKey}`;
     
     const payload = {
       systemInstruction: {
@@ -70,7 +68,7 @@ export async function onRequestPost(context) {
 
     if (data.error) {
       return new Response(JSON.stringify({ 
-        reply: `【エラー】\n${data.error.message}` 
+        reply: `【エラー】\nモデル: ${apiUrl.split('models/')[1].split(':')[0]}\n原因: ${data.error.message}` 
       }), {
         headers: { "Content-Type": "application/json" }
       });
