@@ -21,9 +21,11 @@
         .close-btn { background: none; border: none; color: #fff; font-size: 1.5em; cursor: pointer; }
         #messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         
+        /* メッセージ吹き出し */
         .msg { max-width: 80%; padding: 10px 15px; border-radius: 15px; line-height: 1.4; font-size: 0.9em; text-align: left; }
         .msg.user { align-self: flex-end; background: #e94560; color: #fff; border-bottom-right-radius: 2px; }
         .msg.bot { align-self: flex-start; background: #eee; color: #333; border-bottom-left-radius: 2px; white-space: pre-wrap; }
+        .msg.system { align-self: center; background: transparent; color: #aaa; font-size: 0.8em; border: 1px solid #555; }
 
         .input-area { padding: 15px; background: #0f3460; display: flex; gap: 10px; flex-direction: column; }
         .text-input-row { display: flex; gap: 10px; }
@@ -41,6 +43,7 @@
         .card-img-placeholder { font-size: 3em; }
 
         .flipped { transform: rotateY(180deg); }
+        /* タロットボタン */
         .tarot-btn { background: linear-gradient(135deg, #6a0dad, #9b59b6) !important; width: 100%; margin-bottom: 5px; display: none; font-weight: bold; box-shadow: 0 4px 10px rgba(106, 13, 173, 0.5); } 
     </style>
 </head>
@@ -71,7 +74,7 @@
             <div class="input-area">
                 <button onclick="drawCard()" id="tarot-btn" class="tarot-btn">🎴 カードを引いて占う</button>
                 <div class="text-input-row">
-                    <input type="text" id="user-input" placeholder="悩みを入力してください...">
+                    <input type="text" id="user-input" placeholder="悩みを入れるか、無言で送信...">
                     <button onclick="sendMessage()" id="send-btn">送信</button>
                 </div>
             </div>
@@ -91,6 +94,7 @@
 
         let currentCast = null;
         let drawnCardName = null;
+        let chatHistory = []; // ★会話履歴を保存する配列
 
         fetch('/api/casts').then(res => res.json()).then(data => {
             const list = document.getElementById('cast-list');
@@ -107,26 +111,30 @@
         function openChat(cast) {
             currentCast = cast;
             drawnCardName = null;
+            chatHistory = []; // 履歴リセット
+            
             document.getElementById('chat-title').innerText = cast.name;
-            document.getElementById('messages').innerHTML = `<div class="msg bot">ようこそ、${cast.name}です。\n悩みをお聞かせください。</div>`;
+            document.getElementById('messages').innerHTML = `<div class="msg bot">ようこそ、${cast.name}です。\n悩みをお聞かせください。（無言でも構いませんよ）</div>`;
             document.getElementById('chat-modal').style.display = 'block';
             
             const tarotBtn = document.getElementById('tarot-btn');
             const sendBtn = document.getElementById('send-btn');
             const stage = document.getElementById('tarot-stage');
             
+            // 完全リセット
             stage.style.display = 'none';
             stage.style.height = '0';
             document.getElementById('tarot-card-el').classList.remove('flipped'); 
 
+            // 紫雲の場合のみタロットボタンを初期表示
             if (cast.name.includes('紫雲')) {
                 tarotBtn.style.display = 'block';
                 sendBtn.style.display = 'none'; 
-                document.getElementById('user-input').placeholder = "悩みを入力して、カードボタンを押してね";
+                document.getElementById('user-input').placeholder = "まずは悩みを話すか、カードを引いてみて...";
             } else {
                 tarotBtn.style.display = 'none';
                 sendBtn.style.display = 'block';
-                document.getElementById('user-input').placeholder = "悩みを入力してください...";
+                document.getElementById('user-input').placeholder = "悩みを入れるか、無言で送信...";
             }
         }
 
@@ -138,14 +146,14 @@
             const stage = document.getElementById('tarot-stage');
             const cardEl = document.getElementById('tarot-card-el');
             const cardNameEl = document.getElementById('card-name');
-            const input = document.getElementById('user-input');
-
-            if(!input.value) { alert("先に悩みを入力してください！"); return; }
-
+            const sendBtn = document.getElementById('send-btn');
+            
+            // アニメーションリセット
             stage.style.display = 'none';
             cardEl.classList.remove('flipped');
             void cardEl.offsetWidth; 
 
+            // 表示開始
             stage.style.display = 'flex';
             stage.style.height = '220px';
             
@@ -153,29 +161,42 @@
             drawnCardName = randomCard;
             cardNameEl.innerText = randomCard;
 
+            // 回転アニメーション
             setTimeout(() => {
                 cardEl.classList.add('flipped');
             }, 100);
 
+            // カードを引いたことを履歴に残して、会話を促す
             setTimeout(() => {
-                sendMessage();
-            }, 2000);
+                const sysMsg = `(カードを引きました: ${drawnCardName})`;
+                addMessage(sysMsg, 'system');
+                sendBtn.style.display = 'block'; // 会話ボタン復活
+                
+                // カード結果を履歴に追加（AIにはシステム通知として送る）
+                // ユーザーには「カードを引いた」という事実だけ伝える
+                // ここでは自動送信せず、ユーザーの言葉を待つか、無言送信させる
+            }, 1500);
         }
 
         async function sendMessage() {
             const input = document.getElementById('user-input');
             const sendBtn = document.getElementById('send-btn');
-            const text = input.value;
-            if (!text) return;
+            let text = input.value;
+            
+            // ★空送信の対応
+            if (!text) {
+                // 空なら「（沈黙...）」と表示し、AIには空文字を送る
+                addMessage("（……沈黙……）", 'user');
+                text = ""; // AIには空文字を送る
+            } else {
+                addMessage(text, 'user');
+            }
 
-            addMessage(text, 'user');
             input.value = '';
             document.getElementById('tarot-btn').disabled = true;
 
-            if (drawnCardName) {
-                addMessage(`(カードを引きました: ${drawnCardName})`, 'user');
-                sendBtn.style.display = 'block';
-            }
+            // 履歴に追加
+            chatHistory.push({ role: 'user', text: text });
 
             try {
                 const res = await fetch('/api/chat', {
@@ -183,18 +204,28 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
                         message: text, 
-                        castId: currentCast.id,
-                        cardName: drawnCardName 
+                        castId: currentCast.id, 
+                        cardName: drawnCardName,
+                        history: chatHistory // ★履歴を送信
                     })
                 });
                 const data = await res.json();
+                
                 addMessage(data.reply, 'bot');
+                
+                // AIの返答も履歴に追加
+                chatHistory.push({ role: 'bot', text: data.reply });
+
             } catch (e) {
                 addMessage('エラー: ' + e, 'bot');
             }
             
-            drawnCardName = null;
+            // タロットボタンは常に有効（いつでも引き直せる）
             document.getElementById('tarot-btn').disabled = false;
+            // 紫雲の場合、一度会話したら「会話ボタン」と「タロットボタン」両方出しておく
+            if (currentCast.name.includes('紫雲')) {
+                sendBtn.style.display = 'block';
+            }
         }
 
         function addMessage(text, type) {
