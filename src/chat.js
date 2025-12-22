@@ -247,3 +247,11 @@ app.post("/chats/:chatId/messages", async (c) => {
 });
 
 export default app;
+// ==========================================
+// 🆕 追加：キャスト一覧を取得するAPI
+// ==========================================
+app.get("/api/casts", (c) => {
+  // casts.js から読み込んだデータを、扱いやすい配列の形にして返す
+  const castsArray = Object.values(casts);
+  return c.json(castsArray);
+});
