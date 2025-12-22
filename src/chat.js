@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import { v4 as uuidv4 } from "uuid";
 // Gemini APIクライアントのインポート
 import { GoogleGenerativeAI } from "@google/generative-ai";
+// ▼▼▼ 追加：静的ファイル配信のためのインポート ▼▼▼
+import { serveStatic } from 'hono/serve-static';
 
 // 用意したデータと設定ファイルをインポート
 import casts from "./casts.js";
@@ -22,7 +24,8 @@ function drawTarotCard(dataSource) {
     deck = tarotDataShion;
   } else {
     // 将来他の占い師のデータが増えたらここに追加
-    console.warn(`Unknown data source: ${dataSource}`);
+    // 現時点ではタロット以外の占い師が選ばれた場合、nullを返す
+    console.warn(`Unknown data source or divination type not supported yet: ${dataSource}`);
     return null;
   }
 
@@ -47,7 +50,7 @@ function generateDivinationPrompt(cast, userMessage, cardResult) {
 【✨ 特別指令：占断を実行せよ ✨】
 ========================================
 現在、ユーザーから以下の相談が寄せられました。
-これに対し、あなたの占術（タロット）で占った結果は以下の通りです。
+これに対し、あなたの占術で占った結果は以下の通りです。
 
 この結果に基づき、設定されたキャラクター人格（${cast.name}）を崩さず、
 相談者に寄り添ったアドバイスを行ってください。
@@ -56,13 +59,13 @@ function generateDivinationPrompt(cast, userMessage, cardResult) {
 ■ 相談者のメッセージ:
 「${userMessage}」
 
-■ タロット占いの結果:
-* 引いたカード: **${cardResult.name}** (${cardResult.position})
-* カードの解釈キー: ${cardResult.message}
+■ 占いの結果:
+* 結果の名称: **${cardResult.name}**
+* 結果の解釈キー: ${cardResult.message}
 ---
 
 【回答のガイドライン】
-1.  カードの名前を無理に出す必要はありません。自然な会話の流れを重視してください。
+1.  結果の名称を無理に出す必要はありません。自然な会話の流れを重視してください。
 2.  「解釈キー」はそのまま読み上げるのではなく、あなたの言葉で噛み砕き、相談内容に合わせてアレンジして伝えてください。
 3.  断定は避け、相談者が自ら気づきを得られるような、前向きな示唆を与えてください。
 ========================================
@@ -77,7 +80,13 @@ function generateDivinationPrompt(cast, userMessage, cardResult) {
 // 🚀 APIルート定義
 // ==========================================
 
-// 🆕 追加：キャスト一覧を取得するAPI
+// ▼▼▼ 追加：画像ファイルの配信設定 ▼▼▼
+// '/img/*' へのアクセスを 'public/img' ディレクトリ内のファイルにマッピングします。
+// 例: ブラウザが '/img/shiun.png' を要求 → サーバーの 'public/img/shiun.png' を返す 
+app.use('/img/*', serveStatic({ root: './public/img' }));
+
+
+// キャスト一覧を取得するAPI
 app.get("/api/casts", (c) => {
   // casts.js から読み込んだデータを、扱いやすい配列の形にして返す
   const castsArray = Object.values(casts);
@@ -87,13 +96,11 @@ app.get("/api/casts", (c) => {
 // チャット一覧の取得
 app.get("/chats", async (c) => {
   const db = c.env.DB;
-  // テーブルが存在しない場合のハンドリングを追加
   try {
     const { results } = await db.prepare("SELECT * FROM chats ORDER BY created_at DESC").all();
     return c.json(results);
   } catch (e) {
     console.error("Database error:", e);
-    // まだテーブルがない場合は空配列を返す
     return c.json([]);
   }
 });
@@ -155,18 +162,21 @@ app.post("/chats/:chatId/messages", async (c) => {
   let systemPromptToUse = castSetting.systemPrompt; // デフォルトは基本プロンプト
 
   // C. 占術タイプに応じた処理の分岐
-  let drawnCard = null;
+  let drawnResult = null;
+  
+  // ★もし「タロット」なら…
   if (castSetting.divinationType === 'tarot') {
     console.log(`🔮 ${castSetting.name}がタロット占いを開始します...`);
-    
     // C-1. カードを引く
-    drawnCard = drawTarotCard(castSetting.dataSource);
-    
-    if (drawnCard) {
-      console.log(`🃏 引いたカード: ${drawnCard.name} (${drawnCard.position})`);
-      // C-2. 占い結果を含めた強力なシステムプロンプトを動的に生成する
-      systemPromptToUse = generateDivinationPrompt(castSetting, content, drawnCard);
-    }
+    drawnResult = drawTarotCard(castSetting.dataSource);
+  }
+  // ★ここに他の占術（ルーン、占星術など）の分岐を将来追加します
+
+  // 占いの結果が出た場合、システムプロンプトを強化する
+  if (drawnResult) {
+    console.log(`🃏 占い結果: ${drawnResult.name}`);
+    // C-2. 占い結果を含めた強力なシステムプロンプトを動的に生成する
+    systemPromptToUse = generateDivinationPrompt(castSetting, content, drawnResult);
   }
 
   // -------------------------------------------------------
@@ -237,5 +247,4 @@ app.post("/chats/:chatId/messages", async (c) => {
   }, 201);
 });
 
-// この行が必ず最後に来るようにしてください（//は不要です）
 export default app;
