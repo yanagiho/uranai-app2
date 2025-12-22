@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 // Gemini APIクライアントのインポート
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// ★追加1: 用意したデータと設定ファイルをインポート
+// 用意したデータと設定ファイルをインポート
 import casts from "./casts.js";
 import { tarotDataShion } from "./tarot_data_shion.js";
 
@@ -77,14 +77,28 @@ function generateDivinationPrompt(cast, userMessage, cardResult) {
 // 🚀 APIルート定義
 // ==========================================
 
-// チャット一覧の取得 (既存のまま)
-app.get("/chats", async (c) => {
-  const db = c.env.DB;
-  const { results } = await db.prepare("SELECT * FROM chats ORDER BY created_at DESC").all();
-  return c.json(results);
+// 🆕 追加：キャスト一覧を取得するAPI（これが足りなかった部分です！）
+app.get("/api/casts", (c) => {
+  // casts.js から読み込んだデータを、扱いやすい配列の形にして返す
+  const castsArray = Object.values(casts);
+  return c.json(castsArray);
 });
 
-// 新しいチャットの作成 (既存のまま)
+// チャット一覧の取得
+app.get("/chats", async (c) => {
+  const db = c.env.DB;
+  // テーブルが存在しない場合のハンドリングを追加
+  try {
+    const { results } = await db.prepare("SELECT * FROM chats ORDER BY created_at DESC").all();
+    return c.json(results);
+  } catch (e) {
+    console.error("Database error:", e);
+    // まだテーブルがない場合は空配列を返す
+    return c.json([]);
+  }
+});
+
+// 新しいチャットの作成
 app.post("/chats", async (c) => {
   const db = c.env.DB;
   // リクエストボディから castId を取得（デフォルトは1:紫苑）
@@ -100,7 +114,7 @@ app.post("/chats", async (c) => {
   return c.json({ id, castId, createdAt }, 201);
 });
 
-// チャット履歴の取得 (既存のまま)
+// チャット履歴の取得
 app.get("/chats/:chatId/messages", async (c) => {
   const db = c.env.DB;
   const { chatId } = c.req.param();
@@ -113,14 +127,14 @@ app.get("/chats/:chatId/messages", async (c) => {
 
 
 // =================================================================
-// ⭐ メッセージの送信とAI回答の生成（ここが最大の変更点！）⭐
+// ⭐ メッセージの送信とAI回答の生成
 // =================================================================
 app.post("/chats/:chatId/messages", async (c) => {
   const db = c.env.DB;
   const { chatId } = c.req.param();
   const { content, role } = await c.req.json(); // role は 'user'
 
-  // 1. ユーザーのメッセージをDBに保存 (既存処理)
+  // 1. ユーザーのメッセージをDBに保存
   const userMessageId = uuidv4();
   const createdAt = new Date().toISOString();
   await db
@@ -129,7 +143,7 @@ app.post("/chats/:chatId/messages", async (c) => {
     .run();
 
   // -------------------------------------------------------
-  // 🔮 ここから占いロジック開始 🔮
+  // 🔮 占いロジック開始
   // -------------------------------------------------------
   
   // A. 現在のチャットの担当キャストIDを調べる
@@ -154,7 +168,6 @@ app.post("/chats/:chatId/messages", async (c) => {
       systemPromptToUse = generateDivinationPrompt(castSetting, content, drawnCard);
     }
   }
-  // ※将来他の占術が増えたらここに else if で追加していく
 
   // -------------------------------------------------------
   // 🤖 Gemini APIへの接続準備
@@ -163,10 +176,9 @@ app.post("/chats/:chatId/messages", async (c) => {
   const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
   // Geminiに送る会話履歴の準備
-  // まず、動的に生成したシステムプロンプトを先頭にセット
   let historyForGemini = [
     {
-      role: "user", // Gemini Proではシステム指示もuserロールで送るのが一般的
+      role: "user",
       parts: [{ text: systemPromptToUse }],
     },
     {
@@ -175,26 +187,10 @@ app.post("/chats/:chatId/messages", async (c) => {
     }
   ];
 
-  // 過去の会話履歴をDBから取得して追加（直近数件に絞るのがベターだが一旦全件）
-  // ※今回は占い結果をプロンプトに含めるので、過去ログは必須ではないが念のため
-  const pastMessages = await db
-  .prepare("SELECT content, role FROM messages WHERE chat_id = ? ORDER BY created_at ASC")
-  .bind(chatId)
-  .all();
-
-  // DBの履歴をGeminiの形式に変換して追加
-  // (直前のユーザーメッセージは重複するので除外する工夫が必要だが、簡易実装として進める)
-  /* pastMessages.results.forEach(msg => {
-      historyForGemini.push({
-          role: msg.role === 'user' ? 'user' : 'model',
-          parts: [{ text: msg.content }]
-      });
-  });
-  */
-  // ★簡易実装：今回は過去ログを入れず、強力なシステムプロンプト＋直前の質問だけで勝負してみる
+  // 今回のメッセージを追加
   historyForGemini.push({
     role: "user",
-    parts: [{ text: content }] // 今回の相談内容
+    parts: [{ text: content }]
   });
 
 
@@ -205,13 +201,12 @@ app.post("/chats/:chatId/messages", async (c) => {
   const chat = model.startChat({
     history: historyForGemini,
     generationConfig: {
-      maxOutputTokens: 500, // 回答の長さ制限
+      maxOutputTokens: 500,
     },
   });
 
   let aiResponseText = "";
   try {
-    // ストリーミングを使わず一括で回答を取得（占い結果をまとめるため）
     const result = await chat.sendMessage(content);
     const response = await result.response;
     aiResponseText = response.text();
@@ -226,9 +221,6 @@ app.post("/chats/:chatId/messages", async (c) => {
   // 📝 AIの回答を処理して保存
   // -------------------------------------------------------
 
-  // (将来的な拡張：ここに「引いたカードの画像ファイル名」をレスポンスに含める処理を入れる)
-  // 例: aiResponseText = aiResponseText + `\n\n(CARD_IMAGE:${drawnCard.imageFile})`;
-
   // 3. AIの回答をDBに保存
   const aiMessageId = uuidv4();
   await db
@@ -242,16 +234,7 @@ app.post("/chats/:chatId/messages", async (c) => {
     content: aiResponseText,
     role: "assistant",
     createdAt: new Date().toISOString(),
-    // 将来的にここに cardImage: drawnCard.imageFile などを追加できる
   }, 201);
 });
 
-export default app;
-// ==========================================
-// 🆕 追加：キャスト一覧を取得するAPI
-// ==========================================
-app.get("/api/casts", (c) => {
-  // casts.js から読み込んだデータを、扱いやすい配列の形にして返す
-  const castsArray = Object.values(casts);
-  return c.json(castsArray);
-});
+export default app; // ★この行が必ず最後に来るようにしてください
