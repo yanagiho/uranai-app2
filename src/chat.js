@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 // Gemini APIクライアントのインポート
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// 用意したデータと設定ファイルをインポート
+// +追加1: 用意したデータと設定ファイルをインポート
 import casts from "./casts.js";
 import { tarotDataShion } from "./tarot_data_shion.js";
 
@@ -77,7 +77,7 @@ function generateDivinationPrompt(cast, userMessage, cardResult) {
 // 🚀 APIルート定義
 // ==========================================
 
-// 🆕 追加：キャスト一覧を取得するAPI（これが足りなかった部分です！）
+// 追加: キャスト一覧を取得するAPI（これが足りなかった部分です！）
 app.get("/api/casts", (c) => {
   // casts.js から読み込んだデータを、扱いやすい配列の形にして返す
   const castsArray = Object.values(casts);
@@ -237,4 +237,5 @@ app.post("/chats/:chatId/messages", async (c) => {
   }, 201);
 });
 
-export default app; // ★この行が必ず最後に来るようにしてください
+// ★ここが重要です！コメント（//）を外して有効にしました。
+export default app;
