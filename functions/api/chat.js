@@ -6,18 +6,15 @@ export async function onRequestPost(context) {
     const { text, history = [] } = await request.json();
 
     if (!env.GEMINI_API_KEY) {
-      return new Response(JSON.stringify({ reply: "APIエラー詳細: APIキーが設定されていません。" }), { status: 200 });
+      return new Response(JSON.stringify({ reply: "APIエラー：APIキーが設定されていません。" }), { status: 200 });
     }
 
     const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+    
+    // 修正ポイント：モデル名を「gemini-1.5-flash-latest」に変更して安定性を高めます
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      systemInstruction: `あなたは占い師の紫雲（シウン）です。
-      【行動指針】
-      ・京都風の冷徹な女将として、威圧的に接してください。
-      ・「3つの関所」：挨拶し、生年月日と名前を聞き出すまで絶対に占ってはいけません。
-      ・ユーザーの本音を深掘りし、覚悟が足りなければ突き放してください。
-      ・一人称は「私（わたくし）」、二人称は「お前さん」「あんた」です。`
+      model: "gemini-1.5-flash-latest",
+      systemInstruction: "あなたは占い師の紫雲（シウン）です。京都風の冷徹な女将として、威圧的に接してください。生年月日と名前を聞き出すまで絶対に占わないでください。"
     });
 
     const chat = model.startChat({
@@ -27,6 +24,7 @@ export async function onRequestPost(context) {
       })),
     });
 
+    // メッセージが空の場合の予備テキストを設定
     const result = await chat.sendMessage(text || "（沈黙）");
     const response = await result.response;
 
@@ -35,7 +33,13 @@ export async function onRequestPost(context) {
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({ reply: "APIエラー詳細: " + error.message }), {
+    // もしFlashモデルがダメな場合はProモデルを試すようエラーメッセージを調整
+    let errorMsg = error.message;
+    if (errorMsg.includes("404")) {
+      errorMsg = "モデル名が認識されませんでした。'gemini-1.5-pro' への変更が必要かもしれません。";
+    }
+    
+    return new Response(JSON.stringify({ reply: "APIエラー詳細: " + errorMsg }), {
       headers: { "Content-Type": "application/json" },
     });
   }
