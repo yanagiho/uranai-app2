@@ -36,7 +36,6 @@
             addMsg(txt, 'user');
 
             try {
-                // 通信先を /api/chat に修正しました
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
