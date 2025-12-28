@@ -1,78 +1,66 @@
-import { Hono } from 'hono';
-import { serveStatic } from 'hono/serve-static';
-import chatHandler from './chat.js';
-
-const app = new Hono<{ Bindings: { GEMINI_API_KEY: string } }>();
-
-// 静的ファイルの配信
-app.use('/img/*', serveStatic({ root: './public' }));
-
-app.get('/', (c) => {
-  return c.html(\`
-    <!DOCTYPE html>
-    <html lang="ja">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>鑑定ルーム - 紫苑</title>
-      <style>
-        body { font-family: sans-serif; background: #000; color: #fff; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>占いの館 - 紫雲</title>
+    <style>
+        body { font-family: sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; }
         #log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .bubble { padding: 12px 18px; border-radius: 20px; background: rgba(50, 30, 80, 0.9); border: 1px solid #7c4dff; max-width: 85%; }
-        .user .bubble { align-self: flex-end; background: #fff; color: #000; border: none; }
-        .input-bar { padding: 20px; background: #111; display: flex; gap: 10px; border-top: 1px solid #333; }
-        input { flex: 1; padding: 12px; border-radius: 25px; border: none; background: #222; color: #fff; outline: none; }
-        button { background: #9c27b0; color: #fff; border: none; padding: 0 25px; border-radius: 25px; cursor: pointer; font-weight: bold; }
-      </style>
-    </head>
-    <body>
-      <div id="log"></div>
-      <div class="input-bar">
-        <input type="text" id="msg" placeholder="紫苑先生に話しかける..." onkeydown="if(event.key==='Enter')send()">
+        .row { display: flex; gap: 10px; max-width: 85%; }
+        .row.asst { align-self: flex-start; }
+        .row.user { align-self: flex-end; flex-direction: row-reverse; }
+        .bubble { padding: 12px 18px; border-radius: 20px; background: rgba(50, 30, 80, 0.9); border: 1px solid #7c4dff; line-height: 1.6; }
+        .user .bubble { background: #fff; color: #000; border: none; }
+        .input-bar { padding: 20px; display: flex; gap: 10px; background: #111; border-top: 1px solid #333; }
+        input { flex: 1; padding: 12px 20px; border-radius: 25px; border: none; outline: none; background: #222; color: #fff; }
+        button { background: #9c27b0; color: #fff; border: none; padding: 0 25px; border-radius: 25px; font-weight: bold; cursor: pointer; }
+        button:disabled { background: #444; }
+    </style>
+</head>
+<body>
+    <div id="log"></div>
+    <div class="input-bar">
+        <input type="text" id="user-msg" placeholder="紫雲先生に話しかける..." onkeydown="if(event.key==='Enter')send()">
         <button id="send-btn" onclick="send()">送信</button>
-      </div>
-      <script>
+    </div>
+    <script>
         let history = [];
         async function send() {
-          const inp = document.getElementById('msg');
-          const txt = inp.value.trim();
-          if (!txt) return;
-          inp.value = "";
-          addMsg(txt, 'user');
+            const inp = document.getElementById('user-msg');
+            const btn = document.getElementById('send-btn');
+            const txt = inp.value.trim();
+            if (!txt || btn.disabled) return;
 
-          try {
-            const res = await fetch('/chat', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ content: txt, history: history })
-            });
-            const data = await res.json();
-            addMsg(data.content, 'asst');
-            history.push({ role: 'user', content: txt });
-            history.push({ role: 'model', content: data.content });
-          } catch (e) {
-            addMsg("……星の導きが途絶えた。APIキーの設定を確認しておくれ。", 'asst');
-          }
+            inp.value = ""; btn.disabled = true;
+            addMsg(txt, 'user');
+
+            try {
+                // 通信先を /api/chat に、送る名前を message に統一します
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ message: txt, history: history })
+                });
+                const data = await res.json();
+                
+                // サーバーから返ってくる「reply」を表示
+                addMsg(data.reply, 'asst');
+                history.push({ role: 'user', text: txt });
+                history.push({ role: 'model', text: data.reply });
+            } catch (e) {
+                addMsg("……星の導きが途絶えたようだね。設定を確認しておくれ。", 'asst');
+            } finally { btn.disabled = false; }
         }
         function addMsg(t, r) {
-          const div = document.createElement('div');
-          div.style.display = 'flex';
-          div.style.flexDirection = r === 'user' ? 'column' : 'column';
-          div.className = r;
-          div.innerHTML = '<div class="bubble">' + t + '</div>';
-          document.getElementById('log').appendChild(div);
-          document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+            const log = document.getElementById('log');
+            const div = document.createElement('div');
+            div.className = 'row ' + r;
+            div.innerHTML = '<div class="bubble">' + t.replace(/\n/g, '<br>') + '</div>';
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
         }
-        window.onload = () => addMsg("紫苑：いらっしゃい。重い顔をして、どうしたんだい？ まぁ、そこに座んなさい。", 'asst');
-      </script>
-    </body>
-    </html>
-  \`);
-});
-
-// `/chat` へのリクエストを Gemini 処理（chat.js）へ中継
-app.post('/chat', async (c) => {
-  return await chatHandler.fetch(c.req.raw, c.env);
-});
-
-export default app;
+        window.onload = () => addMsg("紫雲：いらっしゃい。重い顔をして、どうしたんだい？ まぁ、そこに座んなさい。", 'asst');
+    </script>
+</body>
+</html>
