@@ -36,7 +36,7 @@
             addMsg(txt, 'user');
 
             try {
-                // 通信先を /api/chat に、送る名前を message に統一します
+                // 通信先を /api/chat に修正しました
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -44,7 +44,6 @@
                 });
                 const data = await res.json();
                 
-                // サーバーから返ってくる「reply」を表示
                 addMsg(data.reply, 'asst');
                 history.push({ role: 'user', text: txt });
                 history.push({ role: 'model', text: data.reply });
