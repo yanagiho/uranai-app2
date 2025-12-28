@@ -8,17 +8,12 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ reply: "APIエラー：APIキーが設定されていません。" }), { status: 200 });
     }
 
-    // 【重要修正】 v1 を v1beta に変更しました
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+    // モデル名を最も正確な「gemini-1.5-flash-latest」に変更します
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
-    // あなたが作成した src/casts.js の紫雲人格を完璧に再現
-    const systemInstruction = `あなたは「占いの館」の主、紫雲（シウン）です。
-【人格】
-京都風の落ち着いた丁寧語。圧倒的な洞察力で、言葉の裏にある嘘や見栄を見抜きます。
-中途半端な覚悟の客には冷徹にあたりますが、真剣な者には深い慈愛で道を示します。
-【鑑定フロー】
-1. 最初から占わず、まずは挨拶し、座らせ、覚悟を問いなさい。
-2. 名前と生年月日を聞き出すまで、絶対にカードを出してはいけません。
+    const systemInstruction = `あなたは占い師の紫雲（シウン）です。
+【人格】京都風の冷徹な女将。威圧的。
+【鑑定フロー】名前と生年月日を聞き出すまで絶対に占わない。
 口調：一人称は「私（わたくし）」、二人称は「お前さん」。`;
 
     const body = {
@@ -41,7 +36,8 @@ export async function onRequestPost(context) {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error?.message || "通信エラー");
+      // ここで出るメッセージが「User location is not supported」なら、地域制限が確定します
+      throw new Error(data.error?.message || "Google API側でエラーが発生しました");
     }
 
     const aiReply = data.candidates[0].content.parts[0].text;
