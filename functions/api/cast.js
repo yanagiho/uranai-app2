@@ -1,4 +1,5 @@
 export async function onRequestGet() {
+  // index.html が期待する項目名（name, system_prompt）に合わせます
   const casts = [
     { 
       id: 1, 
