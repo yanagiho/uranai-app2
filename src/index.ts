@@ -1,27 +1,19 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/serve-static';
+import chatHandler from './chat.js';
 
 const app = new Hono<{ Bindings: { GEMINI_API_KEY: string } }>();
 
-// 画像などを表示するための設定
-app.use('/img/*', serveStatic({ root: './' }));
+// 静的ファイルの配信設定
+app.use('/img/*', serveStatic({ root: './public' }));
 
-// 占い師の基本データ（画面表示用）
+// 占い師のデータ（数字の1: 紫苑 に統一）
 const CAST_DATA: any = {
-  "1": { name: "紫苑", img: "/img/shiun.png" },
-  "2": { name: "レオナ", img: "/img/leona.png" },
-  "3": { name: "煌夜", img: "/img/koya.png" },
-  "4": { name: "琥珀", img: "/img/kohaku.png" },
-  "5": { name: "サナ", img: "/img/sana.png" },
-  "6": { name: "マリア", img: "/img/maria.png" },
-  "7": { name: "雪音", img: "/img/yukine.png" },
-  "8": { name: "イツキ", img: "/img/itsuki.png" }
+  "1": { name: "紫苑", img: "/img/shiun.png" }
 };
 
-// メイン画面（HTML）
 app.get('/', (c) => {
-  const char = CAST_DATA["1"]; // 最初は紫苑を表示
-
+  const char = CAST_DATA["1"];
   return c.html(`
     <!DOCTYPE html>
     <html lang="ja">
@@ -38,7 +30,7 @@ app.get('/', (c) => {
         .bubble { padding: 12px 16px; border-radius: 18px; line-height: 1.5; font-size: 0.95rem; background: rgba(50, 30, 80, 0.9); border: 1px solid #7c4dff; }
         .user .bubble { background: #fff; color: #000; border: none; }
         .input-bar { padding: 15px; background: #000; display: flex; gap: 10px; border-top: 1px solid #333; }
-        input { flex: 1; padding: 12px 20px; border-radius: 25px; border: none; background: #fff; }
+        input { flex: 1; padding: 12px 20px; border-radius: 25px; border: none; background: #fff; color: #000; }
         button { background: #9c27b0; color: #fff; border: none; padding: 0 25px; border-radius: 25px; cursor: pointer; font-weight: bold; }
       </style>
     </head>
@@ -46,26 +38,31 @@ app.get('/', (c) => {
       <div id="chat-log"></div>
       <div class="input-bar">
         <input type="text" id="user-input" placeholder="先生に相談する...">
-        <button onclick="send()">送信</button>
+        <button id="send-btn" onclick="send()">送信</button>
       </div>
       <script>
         let history = [];
         async function send() {
           const inp = document.getElementById('user-input');
+          const btn = document.getElementById('send-btn');
           const txt = inp.value.trim();
           if (!txt) return;
-          inp.value = "";
+          inp.value = ""; btn.disabled = true;
           addMsg(txt, 'user');
 
-          const res = await fetch('/chat', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ content: txt, castId: "1", history: history })
-          });
-          const data = await res.json();
-          addMsg(data.content, 'asst');
-          history.push({ role: 'user', content: txt });
-          history.push({ role: 'model', content: data.content });
+          try {
+            const res = await fetch('/chat', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ content: txt, castId: 1, history: history })
+            });
+            const data = await res.json();
+            addMsg(data.content, 'asst');
+            history.push({ role: 'user', content: txt });
+            history.push({ role: 'model', content: data.content });
+          } catch (e) {
+            addMsg("通信エラーが起きました。APIキーを確認してください。", 'asst');
+          } finally { btn.disabled = false; }
         }
         function addMsg(t, role) {
           const log = document.getElementById('chat-log');
@@ -82,9 +79,9 @@ app.get('/', (c) => {
   `);
 });
 
-// Geminiを呼び出すルート
-// src/index.ts の一番下の部分をこう書き換える
-import chatHandler from './chat.js'; // ここを ./chat.js に修正
+// /chat へのリクエストを Gemini（chat.js）へ中継
 app.post('/chat', async (c) => {
   return await chatHandler.fetch(c.req.raw, c.env);
 });
+
+export default app;
