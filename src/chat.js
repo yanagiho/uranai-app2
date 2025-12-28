@@ -1,250 +1,42 @@
-import { Hono } from "hono";
-import { v4 as uuidv4 } from "uuid";
-// Gemini APIクライアントのインポート
 import { GoogleGenerativeAI } from "@google/generative-ai";
-// ▼▼▼ 追加：静的ファイル配信のためのインポート ▼▼▼
-import { serveStatic } from 'hono/serve-static';
+import { casts } from "./casts";
 
-// 用意したデータと設定ファイルをインポート
-import casts from "./casts.js";
-import { tarotDataShion } from "./tarot_data_shion.js";
-
-const app = new Hono();
-
-// ==========================================
-// 🛠️ ユーティリティ関数: 占術ロジック
-// ==========================================
-
-/**
- * 指定されたデータソースからランダムにタロットカードを1枚引く
- */
-function drawTarotCard(dataSource) {
-  let deck = [];
-  if (dataSource === 'shion_tarot') {
-    deck = tarotDataShion;
-  } else {
-    // 将来他の占い師のデータが増えたらここに追加
-    // 現時点ではタロット以外の占い師が選ばれた場合、nullを返す
-    console.warn(`Unknown data source or divination type not supported yet: ${dataSource}`);
-    return null;
-  }
-
-  if (!deck || deck.length === 0) {
-    return null;
-  }
-
-  const randomIndex = Math.floor(Math.random() * deck.length);
-  return deck[randomIndex];
-}
-
-/**
- * 占い結果を含めた動的なシステムプロンプトを生成する
- */
-function generateDivinationPrompt(cast, userMessage, cardResult) {
-  // 基本の性格設定
-  let basePrompt = cast.systemPrompt;
-
-  // 占い結果に基づく追加指令を作成
-  let divinationInstruction = `\n
-========================================
-【✨ 特別指令：占断を実行せよ ✨】
-========================================
-現在、ユーザーから以下の相談が寄せられました。
-これに対し、あなたの占術で占った結果は以下の通りです。
-
-この結果に基づき、設定されたキャラクター人格（${cast.name}）を崩さず、
-相談者に寄り添ったアドバイスを行ってください。
-
----
-■ 相談者のメッセージ:
-「${userMessage}」
-
-■ 占いの結果:
-* 結果の名称: **${cardResult.name}**
-* 結果の解釈キー: ${cardResult.message}
----
-
-【回答のガイドライン】
-1.  結果の名称を無理に出す必要はありません。自然な会話の流れを重視してください。
-2.  「解釈キー」はそのまま読み上げるのではなく、あなたの言葉で噛み砕き、相談内容に合わせてアレンジして伝えてください。
-3.  断定は避け、相談者が自ら気づきを得られるような、前向きな示唆を与えてください。
-========================================
-`;
-
-  // 基本設定と追加指令を合体させる
-  return basePrompt + divinationInstruction;
-}
-
-
-// ==========================================
-// 🚀 APIルート定義
-// ==========================================
-
-// ▼▼▼ 追加：画像ファイルの配信設定 ▼▼▼
-// '/img/*' へのアクセスを 'public/img' ディレクトリ内のファイルにマッピングします。
-// 例: ブラウザが '/img/shiun.png' を要求 → サーバーの 'public/img/shiun.png' を返す 
-app.use('/img/*', serveStatic({ root: './public/img' }));
-
-
-// キャスト一覧を取得するAPI
-app.get("/api/casts", (c) => {
-  // casts.js から読み込んだデータを、扱いやすい配列の形にして返す
-  const castsArray = Object.values(casts);
-  return c.json(castsArray);
-});
-
-// チャット一覧の取得
-app.get("/chats", async (c) => {
-  const db = c.env.DB;
-  try {
-    const { results } = await db.prepare("SELECT * FROM chats ORDER BY created_at DESC").all();
-    return c.json(results);
-  } catch (e) {
-    console.error("Database error:", e);
-    return c.json([]);
-  }
-});
-
-// 新しいチャットの作成
-app.post("/chats", async (c) => {
-  const db = c.env.DB;
-  // リクエストボディから castId を取得（デフォルトは1:紫苑）
-  const { castId = 1 } = await c.req.json();
-  const id = uuidv4();
-  const createdAt = new Date().toISOString();
-  
-  await db
-    .prepare("INSERT INTO chats (id, cast_id, created_at) VALUES (?, ?, ?)")
-    .bind(id, castId, createdAt)
-    .run();
-  
-  return c.json({ id, castId, createdAt }, 201);
-});
-
-// チャット履歴の取得
-app.get("/chats/:chatId/messages", async (c) => {
-  const db = c.env.DB;
-  const { chatId } = c.req.param();
-  const { results } = await db
-    .prepare("SELECT * FROM messages WHERE chat_id = ? ORDER BY created_at ASC")
-    .bind(chatId)
-    .all();
-  return c.json(results);
-});
-
-
-// =================================================================
-// ⭐ メッセージの送信とAI回答の生成
-// =================================================================
-app.post("/chats/:chatId/messages", async (c) => {
-  const db = c.env.DB;
-  const { chatId } = c.req.param();
-  const { content, role } = await c.req.json(); // role は 'user'
-
-  // 1. ユーザーのメッセージをDBに保存
-  const userMessageId = uuidv4();
-  const createdAt = new Date().toISOString();
-  await db
-    .prepare("INSERT INTO messages (id, chat_id, content, role, created_at) VALUES (?, ?, ?, ?, ?)")
-    .bind(userMessageId, chatId, content, role, createdAt)
-    .run();
-
-  // -------------------------------------------------------
-  // 🔮 占いロジック開始
-  // -------------------------------------------------------
-  
-  // A. 現在のチャットの担当キャストIDを調べる
-  const chatInfo = await db.prepare("SELECT cast_id FROM chats WHERE id = ?").bind(chatId).first();
-  const currentCastId = chatInfo ? chatInfo.cast_id : 1; // デフォルトは1
-  
-  // B. casts.js からキャストの設定情報を取得
-  const castSetting = casts[currentCastId];
-  let systemPromptToUse = castSetting.systemPrompt; // デフォルトは基本プロンプト
-
-  // C. 占術タイプに応じた処理の分岐
-  let drawnResult = null;
-  
-  // ★もし「タロット」なら…
-  if (castSetting.divinationType === 'tarot') {
-    console.log(`🔮 ${castSetting.name}がタロット占いを開始します...`);
-    // C-1. カードを引く
-    drawnResult = drawTarotCard(castSetting.dataSource);
-  }
-  // ★ここに他の占術（ルーン、占星術など）の分岐を将来追加します
-
-  // 占いの結果が出た場合、システムプロンプトを強化する
-  if (drawnResult) {
-    console.log(`🃏 占い結果: ${drawnResult.name}`);
-    // C-2. 占い結果を含めた強力なシステムプロンプトを動的に生成する
-    systemPromptToUse = generateDivinationPrompt(castSetting, content, drawnResult);
-  }
-
-  // -------------------------------------------------------
-  // 🤖 Gemini APIへの接続準備
-  // -------------------------------------------------------
-  const genAI = new GoogleGenerativeAI(c.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-  // Geminiに送る会話履歴の準備
-  let historyForGemini = [
-    {
-      role: "user",
-      parts: [{ text: systemPromptToUse }],
-    },
-    {
-      role: "model",
-      parts: [{ text: "承知いたしました。そのような設定と状況を踏まえ、回答します。" }],
-    }
-  ];
-
-  // 今回のメッセージを追加
-  historyForGemini.push({
-    role: "user",
-    parts: [{ text: content }]
+export async function handleChat(request, env) {
+  const genAI = new GoogleGenerativeAI(env.GOOGLE_AI_API_KEY);
+  // Gemini 1.5 Proを指定（より人間らしい推論が可能です）
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-1.5-pro",
   });
 
-
-  console.log("🚀 Geminiにリクエストを送信します...");
-  // -------------------------------------------------------
-  // 🗣️ Geminiに回答を生成させる
-  // -------------------------------------------------------
-  const chat = model.startChat({
-    history: historyForGemini,
-    generationConfig: {
-      maxOutputTokens: 500,
-    },
-  });
-
-  let aiResponseText = "";
   try {
-    const result = await chat.sendMessage(content);
+    const { message, castId, history } = await request.json();
+    const cast = casts[castId] || casts[1];
+
+    // Geminiの「システムインストラクション」機能を使用して、
+    // 会話の途中で性格がブレないように固定します。
+    const chat = model.startChat({
+      history: history.map(h => ({
+        role: h.role === "user" ? "user" : "model",
+        parts: [{ text: h.content }],
+      })),
+      // ここで最強のプロンプトを注入します
+      systemInstruction: {
+        parts: [{ text: cast.systemPrompt }]
+      }
+    });
+
+    const result = await chat.sendMessage(message);
     const response = await result.response;
-    aiResponseText = response.text();
-    console.log("✅ Geminiから回答を受信しました。");
+    const text = response.text();
 
+    return new Response(JSON.stringify({ response: text }), {
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error("❌ Gemini API Error:", error);
-    aiResponseText = "申し訳ありません。星の声が少し遠いようです...少し時間を空けて、もう一度話しかけていただけますか？";
+    console.error("Gemini Error:", error);
+    return new Response(JSON.stringify({ error: "通信に失敗しました。少し時間を置いておくれ。" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
-
-  // -------------------------------------------------------
-  // 📝 AIの回答を処理して保存
-  // -------------------------------------------------------
-
-  // 3. AIの回答をDBに保存
-  const aiMessageId = uuidv4();
-  await db
-    .prepare("INSERT INTO messages (id, chat_id, content, role, created_at) VALUES (?, ?, ?, ?, ?)")
-    .bind(aiMessageId, chatId, aiResponseText, "assistant", new Date().toISOString())
-    .run();
-
-  // 4. フロントエンドに回答を返す
-  return c.json({
-    id: aiMessageId,
-    content: aiResponseText,
-    role: "assistant",
-    createdAt: new Date().toISOString(),
-  }, 201);
-});
-
-export default app;
+}
