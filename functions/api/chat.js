@@ -2,9 +2,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function onRequestPost(context) {
   const { request, env } = context;
-
   try {
-    const { message, history = [] } = await request.json();
+    // 画面から送られてくる "text" と "history" を受け取ります
+    const { text, history = [] } = await request.json();
 
     if (!env.GEMINI_API_KEY) {
       return new Response(JSON.stringify({ reply: "APIキーが設定されていません。" }), { status: 200 });
@@ -23,9 +23,11 @@ export async function onRequestPost(context) {
       })),
     });
 
-    const result = await chat.sendMessage(message || "（無言）");
+    // 空のメッセージ対策として "（無言）" を設定
+    const result = await chat.sendMessage(text || "（無言）");
     const response = await result.response;
 
+    // reply という名前で結果を返します
     return new Response(JSON.stringify({ reply: response.text() }), {
       headers: { "Content-Type": "application/json" },
     });
