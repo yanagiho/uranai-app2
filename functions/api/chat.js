@@ -4,7 +4,7 @@ export async function onRequestPost(context) {
   const { request, env } = context;
 
   try {
-    const { message, castId, history = [] } = await request.json();
+    const { message, history = [] } = await request.json();
 
     if (!env.GEMINI_API_KEY) {
       return new Response(JSON.stringify({ reply: "APIキーが設定されていません。" }), { status: 200 });
@@ -26,7 +26,6 @@ export async function onRequestPost(context) {
     const result = await chat.sendMessage(message || "（無言）");
     const response = await result.response;
 
-    // 画面(index.html)が受け取れるように reply という名前で返します
     return new Response(JSON.stringify({ reply: response.text() }), {
       headers: { "Content-Type": "application/json" },
     });
