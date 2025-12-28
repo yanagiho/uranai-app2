@@ -36,7 +36,6 @@
             addMsg(txt, 'user');
 
             try {
-                // 通信先を /api/chat に、送る名前を "text" に統一します
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -44,12 +43,15 @@
                 });
                 const data = await res.json();
                 
-                // サーバーから返ってくる「reply」を表示します
                 addMsg(data.reply, 'asst');
-                history.push({ role: 'user', text: txt });
-                history.push({ role: 'model', text: data.reply });
+
+                // 重要：エラーメッセージ（APIエラー詳細：...）が含まれていない場合のみ履歴に保存します
+                if (!data.reply.includes("APIエラー詳細")) {
+                    history.push({ role: 'user', text: txt });
+                    history.push({ role: 'model', text: data.reply });
+                }
             } catch (e) {
-                addMsg("……星の導きが途絶えたようだね。設定を確認しておくれ。", 'asst');
+                addMsg("（使い魔）：星の導きが途絶えたようです。もう一度話しかけてください。", 'asst');
             } finally { btn.disabled = false; }
         }
         function addMsg(t, r) {
