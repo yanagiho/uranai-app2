@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>占いの館 - 紫雲</title>
+    <title>鑑定ルーム - 紫雲</title>
     <style>
-        body { font-family: sans-serif; background: #000; color: #fff; margin: 0; height: 100vh; display: flex; flex-direction: column; }
+        body { font-family: sans-serif; background: #000; color: #fff; margin: 0; display: flex; flex-direction: column; height: 100vh; }
         #log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         .row { display: flex; gap: 10px; max-width: 85%; }
         .row.asst { align-self: flex-start; }
@@ -36,13 +36,15 @@
             addMsg(txt, 'user');
 
             try {
+                // 通信先を /api/chat に、送る名前を "text" に統一します
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ message: txt, history: history })
+                    body: JSON.stringify({ text: txt, history: history })
                 });
                 const data = await res.json();
                 
+                // サーバーから返ってくる「reply」を表示します
                 addMsg(data.reply, 'asst');
                 history.push({ role: 'user', text: txt });
                 history.push({ role: 'model', text: data.reply });
