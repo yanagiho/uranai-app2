@@ -83,7 +83,8 @@ app.get('/', (c) => {
 });
 
 // Geminiを呼び出すルート
-import chatHandler from './chat.js';
-app.post('/chat', (c) => chatHandler.fetch(c.req.raw, c.env));
-
-export default app;
+// src/index.ts の一番下の部分をこう書き換える
+import chatHandler from './chat.js'; // ここを ./chat.js に修正
+app.post('/chat', async (c) => {
+  return await chatHandler.fetch(c.req.raw, c.env);
+});
