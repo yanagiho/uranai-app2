@@ -1,5 +1,4 @@
 export async function onRequestGet() {
-  // 仕様書に基づき、画面が期待する形式で占い師データを返します
   const casts = [
     { 
       id: 1, 
