@@ -6,11 +6,15 @@ export async function onRequestPost(context) {
   try {
     const { content, history = [] } = await request.json();
 
-    // 1. Geminiの準備
+    // APIキーがない場合のエラー回避
+    if (!env.GEMINI_API_KEY) {
+      return new Response(JSON.stringify({ content: "APIキーが設定されていません。" }), { status: 500 });
+    }
+
     const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
-      // 紫苑先生の性格と「3つの関所」ロジックを注入
+      // 仕様書に基づいた「最強のプロンプト」を直接書き込みました
       systemInstruction: `
 あなたは「占いの館」の主、紫苑（しうん）です。
 【重要ルール：鑑定開始までの3つの関所】
@@ -24,7 +28,6 @@ export async function onRequestPost(context) {
 `
     });
 
-    // 2. 会話の開始
     const chat = model.startChat({
       history: history.map(h => ({
         role: h.role === "user" ? "user" : "model",
