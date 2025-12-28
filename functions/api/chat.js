@@ -4,22 +4,16 @@ export async function onRequestPost(context) {
   const { request, env } = context;
 
   try {
-    // 画面（index.html）から送られてくる名前（message, castId, history）に合わせます
     const { message, castId, history = [] } = await request.json();
 
     if (!env.GEMINI_API_KEY) {
-      return new Response(JSON.stringify({ reply: "エラー：APIキーが未設定です。" }), { status: 200 });
+      return new Response(JSON.stringify({ reply: "APIキーが設定されていません。" }), { status: 200 });
     }
 
     const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
-      systemInstruction: `あなたは「占いの館」の主、紫雲（しうん）です。
-【重要：鑑定開始フロー】
-1. 導入：威圧感を持って迎え、座らせなさい。
-2. ヒアリング：名前と生年月日を聞き出すまで、絶対に占ってはいけません。
-3. 鑑定：情報が揃い、覚悟を確認した時のみ結果を伝えなさい。
-口調は京都風の丁寧語。「〜だね」「〜かい？」を混ぜ、中途半端な客には冷淡に接してください。`
+      [cite_start]systemInstruction: "あなたは占い師の紫雲（しうん）です。仕様書に基づき、挨拶し、名前と生年月日を聞き出すまで絶対に占わないでください。" // [cite: 234-247]
     });
 
     const chat = model.startChat({
@@ -29,11 +23,10 @@ export async function onRequestPost(context) {
       })),
     });
 
-    // messageが空（無言送信）の場合は「（沈黙）」として扱います
-    const result = await chat.sendMessage(message || "（沈黙）");
+    const result = await chat.sendMessage(message || "（無言）");
     const response = await result.response;
 
-    // 画面が期待している名前「reply」で返します
+    [cite_start]// 画面(index.html)が「reply」という項目名で待っているので、合わせます [cite: 718-720]
     return new Response(JSON.stringify({ reply: response.text() }), {
       headers: { "Content-Type": "application/json" },
     });
