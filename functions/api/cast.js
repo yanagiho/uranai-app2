@@ -1,5 +1,5 @@
 export async function onRequestGet() {
-  // index.html が期待する項目名（name, system_prompt）に合わせます
+  // 画面（index.html）が必要としているデータ形式に合わせています
   const casts = [
     { 
       id: 1, 
