@@ -4,7 +4,7 @@ import chatHandler from './chat.js';
 
 const app = new Hono<{ Bindings: { GEMINI_API_KEY: string } }>();
 
-// 静的ファイルの配信設定
+// 画像などの静的ファイル設定
 app.use('/img/*', serveStatic({ root: './public' }));
 
 app.get('/', (c) => {
@@ -32,7 +32,7 @@ app.get('/', (c) => {
     <body>
       <div id="chat-log"></div>
       <div class="input-bar">
-        <input type="text" id="user-input" placeholder="先生に相談する..." onkeydown="if(event.key==='Enter')send()">
+        <input type="text" id="user-input" placeholder="紫苑先生に相談する...">
         <button id="send-btn" onclick="send()">送信</button>
       </div>
       <script>
@@ -58,7 +58,7 @@ app.get('/', (c) => {
             history.push({ role: 'user', content: txt });
             history.push({ role: 'model', content: data.content });
           } catch (e) {
-            addMsg("紫苑：……おや、星の導きが途絶えたようだね。設定（APIキー）を見直しておくれ。", 'asst');
+            addMsg("（紫苑の使い魔）：申し訳ありません。星の導きが途絶えました。APIキーの設定を確認してください。", 'asst');
           } finally {
             btn.disabled = false;
           }
