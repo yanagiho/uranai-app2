@@ -1,42 +1,46 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { casts } from "./casts";
+// casts.js を読み込みます。パスが正しいか確認してください
+import casts from "./casts.js";
 
-export async function handleChat(request, env) {
-  const genAI = new GoogleGenerativeAI(env.GOOGLE_AI_API_KEY);
-  // Gemini 1.5 Proを指定（より人間らしい推論が可能です）
-  const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-pro",
-  });
+export default {
+  async fetch(request, env) {
+    // API以外のリクエスト（HTMLなど）は無視する設定
+    if (request.method !== "POST") {
+      return new Response("Method Not Allowed", { status: 405 });
+    }
 
-  try {
-    const { message, castId, history } = await request.json();
-    const cast = casts[castId] || casts[1];
+    try {
+      const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+      // Gemini 1.5 Proを使用
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
-    // Geminiの「システムインストラクション」機能を使用して、
-    // 会話の途中で性格がブレないように固定します。
-    const chat = model.startChat({
-      history: history.map(h => ({
-        role: h.role === "user" ? "user" : "model",
-        parts: [{ text: h.content }],
-      })),
-      // ここで最強のプロンプトを注入します
-      systemInstruction: {
-        parts: [{ text: cast.systemPrompt }]
-      }
-    });
+      const { content, castId = 1, history = [] } = await request.json();
+      const cast = casts[castId];
 
-    const result = await chat.sendMessage(message);
-    const response = await result.response;
-    const text = response.text();
+      const chat = model.startChat({
+        history: history.map(h => ({
+          role: h.role === "user" ? "user" : "model",
+          parts: [{ text: h.content }],
+        })),
+        systemInstruction: {
+          parts: [{ text: cast.systemPrompt }]
+        }
+      });
 
-    return new Response(JSON.stringify({ response: text }), {
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("Gemini Error:", error);
-    return new Response(JSON.stringify({ error: "通信に失敗しました。少し時間を置いておくれ。" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+      const result = await chat.sendMessage(content);
+      const response = await result.response;
+      const aiText = response.text();
+
+      return new Response(JSON.stringify({ content: aiText }), {
+        headers: { "Content-Type": "application/json" },
+      });
+
+    } catch (error) {
+      console.error("Gemini Error:", error);
+      return new Response(JSON.stringify({ content: "星の声が届かないようです。時間を置いておくれ。" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   }
-}
+};
