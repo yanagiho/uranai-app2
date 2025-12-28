@@ -6,26 +6,24 @@ export async function onRequestPost(context) {
   try {
     const { content, history = [] } = await request.json();
 
-    // APIキーがない場合のエラー回避
+    // 1. APIキーの存在チェック
     if (!env.GEMINI_API_KEY) {
-      return new Response(JSON.stringify({ content: "APIキーが設定されていません。" }), { status: 500 });
+      return new Response(JSON.stringify({ content: "エラー：GEMINI_API_KEY が Cloudflare の管理画面で設定されていません。" }), { status: 200 });
     }
 
     const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+    
+    // 2. モデルの準備（systemInstruction の書き方をより確実な形式に変更）
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
-      // 仕様書に基づいた「最強のプロンプト」を直接書き込みました
-      systemInstruction: `
-あなたは「占いの館」の主、紫苑（しうん）です。
+      systemInstruction: {
+        parts: [{ text: `あなたは「占いの館」の主、紫苑（しうん）です。
 【重要ルール：鑑定開始までの3つの関所】
-1. 導入：まずは挨拶し、着席を促しなさい。いきなり占ってはいけません。
+1. 導入：まずは挨拶し、着席を促しなさい。
 2. ヒアリング：会話の中で自然に「生年月日」と「名前」を聞き出しなさい。
-3. ラポール形成：情報が揃い、あなたが「占う価値がある」と判断するまで絶対にカードを出してはいけません。
-
-【人格】
-京都風の落ち着いた丁寧語。洞察力が鋭く、中途半端な客には冷徹。
-意味不明な入力には「出直しておいで」と塩対応すること。
-`
+3. 鑑定：情報が揃うまで占ってはいけません。
+京都風の丁寧語で、洞察力が鋭く、中途半端な客には冷徹に接してください。` }]
+      }
     });
 
     const chat = model.startChat({
@@ -35,6 +33,7 @@ export async function onRequestPost(context) {
       })),
     });
 
+    // 3. 送信
     const result = await chat.sendMessage(content);
     const response = await result.response;
     const aiText = response.text();
@@ -44,8 +43,10 @@ export async function onRequestPost(context) {
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({ content: "……星の導きが途絶えたようだね。設定を確認しておくれ。" }), {
-      status: 500,
+    // 【ここが重要】エラーの正体を画面に返します
+    console.error("Gemini Error:", error);
+    return new Response(JSON.stringify({ content: "APIエラー詳細: " + error.message }), {
+      status: 200, // エラーでも文字として表示させるために 200 にします
       headers: { "Content-Type": "application/json" },
     });
   }
