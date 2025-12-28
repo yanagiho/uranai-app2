@@ -1,5 +1,3 @@
 name = "uranai-app2"
-pages_build_output_dir = "dist"
-
-[vars]
-# ここにGeminiのAPIキーは書かず、Cloudflareの管理画面（Settings > Variables）から設定してください
+# 修正：ビルドを介さず public フォルダを直接公開します
+pages_build_output_dir = "public"
