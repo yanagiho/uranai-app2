@@ -7,16 +7,13 @@ export async function onRequestPost(context) {
     const { message, castId, history = [] } = await request.json();
 
     if (!env.GEMINI_API_KEY) {
-      return new Response(JSON.stringify({ reply: "エラー：APIキーが設定されていません。" }), { status: 200 });
+      return new Response(JSON.stringify({ reply: "APIキーが設定されていません。" }), { status: 200 });
     }
 
     const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
-      systemInstruction: `あなたは占い師の紫苑です。仕様書に基づき以下の「3つの関所」を厳守してください。
-      1. 挨拶：まずは威圧感を持って迎え、座らせる。
-      2. 聴取：生年月日と名前を聞き出すまで絶対に占わない。
-      3. 鑑定：覚悟を確認してからカードを出す。`
+      systemInstruction: "あなたは占い師の紫苑です。仕様書にある『3つの関所（挨拶・ヒアリング・鑑定）』を遵守し、すぐには占わずに対話を深めてください。"
     });
 
     const chat = model.startChat({
@@ -34,7 +31,7 @@ export async function onRequestPost(context) {
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({ reply: "APIエラー詳細: " + error.message }), {
+    return new Response(JSON.stringify({ reply: "エラーが発生しました: " + error.message }), {
       headers: { "Content-Type": "application/json" },
     });
   }
