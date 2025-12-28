@@ -6,15 +6,15 @@ export async function onRequestPost(context) {
     const { text, history = [] } = await request.json();
 
     if (!env.GEMINI_API_KEY) {
-      return new Response(JSON.stringify({ reply: "APIエラー：APIキーが設定されていません。" }), { status: 200 });
+      return new Response(JSON.stringify({ reply: "APIエラー詳細: APIキーが Cloudflare に設定されていません。" }), { status: 200 });
     }
 
     const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
     
-    // 修正ポイント：モデル名を「gemini-1.5-flash-latest」に変更して安定性を高めます
+    // 修正ポイント：より確実で高性能な「gemini-1.5-pro」に切り替えます
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash-latest",
-      systemInstruction: "あなたは占い師の紫雲（シウン）です。京都風の冷徹な女将として、威圧的に接してください。生年月日と名前を聞き出すまで絶対に占わないでください。"
+      model: "gemini-1.5-pro", 
+      systemInstruction: "あなたは占い師の紫雲（シウン）です。京都風の冷徹な女将として、威圧的に接してください。まずは生年月日と名前を聞き出すまで、客が何を言っても絶対に占わないでください。一人称は『私（わたくし）』、二人称は『お前さん』です。"
     });
 
     const chat = model.startChat({
@@ -24,7 +24,6 @@ export async function onRequestPost(context) {
       })),
     });
 
-    // メッセージが空の場合の予備テキストを設定
     const result = await chat.sendMessage(text || "（沈黙）");
     const response = await result.response;
 
@@ -33,13 +32,8 @@ export async function onRequestPost(context) {
     });
 
   } catch (error) {
-    // もしFlashモデルがダメな場合はProモデルを試すようエラーメッセージを調整
-    let errorMsg = error.message;
-    if (errorMsg.includes("404")) {
-      errorMsg = "モデル名が認識されませんでした。'gemini-1.5-pro' への変更が必要かもしれません。";
-    }
-    
-    return new Response(JSON.stringify({ reply: "APIエラー詳細: " + errorMsg }), {
+    // 再度エラーになった場合に、原因を特定するための詳細を出します
+    return new Response(JSON.stringify({ reply: "APIエラー詳細: " + error.message }), {
       headers: { "Content-Type": "application/json" },
     });
   }
