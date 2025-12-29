@@ -11,11 +11,13 @@
         .cast-card { background: #111; border: 1px solid #333; padding: 10px; border-radius: 15px; cursor: pointer; }
         #chat-screen { display: none; flex-direction: column; height: 100vh; }
         #log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .bubble { padding: 12px; border-radius: 15px; background: #1a0033; border: 1px solid #7c4dff; max-width: 85%; }
-        .user .bubble { align-self: flex-end; background: #fff; color: #000; }
+        .bubble { padding: 12px; border-radius: 15px; background: #1a0033; border: 1px solid #7c4dff; max-width: 85%; line-height: 1.6; }
+        .user { align-self: flex-end; }
+        .user .bubble { background: #fff; color: #000; border: none; }
         .tarot-img { width: 150px; border-radius: 10px; margin-top: 10px; display: block; }
-        .input-bar { padding: 15px; display: flex; background: #111; }
-        input { flex: 1; padding: 10px; border-radius: 20px; border: none; }
+        .input-bar { padding: 15px; display: flex; gap: 10px; background: #111; }
+        input { flex: 1; padding: 12px; border-radius: 20px; border: none; background: #222; color: #fff; }
+        button { background: #9c27b0; color: #fff; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -39,7 +41,7 @@
             const casts = await res.json();
             document.getElementById('cast-list').innerHTML = casts.map(c => `
                 <div class="cast-card" onclick="startChat(${c.id})">
-                    <img src="/img/${c.img}" style="width:100%">
+                    <img src="/img/${c.img}" style="width:100%; border-radius: 10px;">
                     <h3>${c.name}</h3>
                 </div>
             `).join('');
@@ -58,27 +60,34 @@
             if(!txt) return;
             addMsg(txt, 'user');
             inp.value = "";
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                body: JSON.stringify({ text: txt, history: history, cast_id: currentCastId })
-            });
-            const data = await res.json();
-            addMsg(data.reply, 'asst');
-            history.push({ role: 'user', text: txt }, { role: 'model', text: data.reply });
+            
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }, // ←ここが重要です
+                    body: JSON.stringify({ text: txt, history: history, cast_id: currentCastId })
+                });
+                const data = await res.json();
+                addMsg(data.reply, 'asst');
+                history.push({ role: 'user', text: txt }, { role: 'model', text: data.reply });
+            } catch (e) {
+                addMsg("（使い魔）：通信が途絶えました。もう一度お話しください。", 'asst');
+            }
         }
 
         function addMsg(t, r) {
             const log = document.getElementById('log');
             const div = document.createElement('div');
+            div.style.display = "flex";
+            div.style.flexDirection = "column";
             div.className = r === 'user' ? 'user' : '';
             
             let content = t.replace(/\n/g, '<br>');
-            // AIが「画像：〜.png」と言った場合、それを検知する
             const imgMatch = t.match(/画像：(.*?\.png)/);
             if(imgMatch) {
-                // 実際のファイルは .jpg なので、拡張子を置換して img タグを作成する
-                const jpgName = imgMatch[1].replace('.png', '.jpg');
-                content += `<img src="/img/${jpgName}" class="tarot-img">`;
+                // 画像ファイルが.jpgの場合の対策
+                const fileName = imgMatch[1].replace('.png', '.jpg');
+                content += `<img src="/img/${fileName}" class="tarot-img">`;
             }
             div.innerHTML = `<div class="bubble">${content}</div>`;
             log.appendChild(div);
