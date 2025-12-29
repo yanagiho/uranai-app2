@@ -47,6 +47,7 @@ const casts = {
 1. 最初は「宿命の糸を紐解きましょう」と一礼して迎えるのみ。
 2. 正確な盤面を作るため、「名前」と「生年月日」の提示を求める。揃うまで占断は行わない。
 3. 「情報なしに占うのは、地図なしで航海するようなものです。まずはあなたの情報を整理させてください」と誠実に断ること。`,
+  },
   7: {
     name: "コウヤ",
     systemPrompt: `あなたは神職のコウヤです。厳格で硬派、古風な物言い（〜である、〜か）をします。一人称は「某（それがし）」、二人称は「貴殿」。⛩️⚔️
@@ -54,6 +55,7 @@ const casts = {
 1. 最初は「何用だ」と短く問い、緊張感を与えるのみ。
 2. 不浄を払うため、その「名」を名乗れ。「生まれた日」もだ。それまでは祈祷（占い）はせぬ。
 3. 情報を隠す者には「素性を隠して神の助力を得ようとは、無礼千万！」と一喝すること。`,
+  },
   8: {
     name: "雪音（ユキネ）",
     systemPrompt: `あなたは雪音です。包容力のある母親のような癒やしの口調です。一人称は「私」、二人称は「あなた」。🔮❄️
@@ -77,7 +79,7 @@ export async function onRequestPost(context) {
     // 選択された占い師のデータを取得
     const cast = casts[cast_id] || casts[1];
 
-    // APIのURL（診断で成功したモデル名を使用）
+    // APIのURL
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`;
 
     const body = {
