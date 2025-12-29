@@ -1,156 +1,26 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI占いの館</title>
-    <style>
-        :root { --bg: #0a0510; --accent: #9c27b0; --gold: #d4af37; }
-        body { font-family: serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+<div id="setup-screen">
+    <h1 style="color:var(--gold)">あなたの情報を教えてください</h1>
+    <div class="form-group">
+        <label>氏名（フルネーム）</label>
+        <input type="text" id="user-name" placeholder="例：斉藤 太郎">
+    </div>
+    <button onclick="saveProfile()">占い師を選ぶ</button>
+</div>
+
+<script>
+    // ...省略...
+    function saveProfile() {
+        const name = document.getElementById('user-name').value.trim();
+        const dob = document.getElementById('user-dob').value;
+        const blood = document.getElementById('user-blood').value;
         
-        /* 入力フォーム共通 */
-        input, select { padding: 12px; border-radius: 10px; border: 1px solid #333; background: #000; color: #fff; outline: none; }
-        button { background: var(--accent); color: #fff; border: none; padding: 10px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; }
-
-        /* プロフィール設定画面 */
-        #setup-screen { padding: 40px 20px; text-align: center; overflow-y: auto; flex: 1; }
-        .form-group { max-width: 300px; margin: 0 auto 20px; text-align: left; display: flex; flex-direction: column; gap: 8px; }
-        .form-group label { color: var(--gold); font-size: 0.9rem; }
-
-        /* 選択画面・チャット画面 */
-        #selection-screen, #chat-screen, #history-screen { display: none; padding: 20px; text-align: center; overflow-y: auto; flex: 1; }
-        .cast-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; max-width: 900px; margin: 20px auto; }
-        .cast-card { background: rgba(255,255,255,0.05); border: 1px solid #333; padding: 15px; border-radius: 15px; cursor: pointer; }
-        .cast-card img { width: 100%; border-radius: 10px; margin-bottom: 10px; border: 1px solid #444; }
-
-        #chat-screen { padding: 0; flex-direction: column; background: #000; }
-        header { background: #1a0b2e; padding: 15px; display: flex; align-items: center; border-bottom: 1px solid var(--accent); }
-        .back-btn { background: none; color: var(--gold); font-size: 1.2rem; cursor: pointer; padding-right: 15px; }
-        #log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .bubble { padding: 15px; border-radius: 20px; background: #1a1a1a; border: 1px solid #333; max-width: 80%; line-height: 1.6; text-align: left; }
-        .asst .bubble { border-color: var(--accent); background: #1a0b2e; }
-        .user { align-self: flex-end; }
-        .user .bubble { background: #eee; color: #111; }
-        .tarot-img { width: 180px; border-radius: 10px; margin-top: 10px; display: block; border: 1px solid var(--gold); }
-        .input-bar { padding: 20px; display: flex; gap: 10px; background: #111; }
-    </style>
-</head>
-<body>
-    <div id="setup-screen">
-        <h1 style="color:var(--gold)">あなたの情報を教えてください</h1>
-        <div class="form-group">
-            <label>お名前（ニックネーム可）</label>
-            <input type="text" id="user-name" placeholder="例：斉藤">
-        </div>
-        <div class="form-group">
-            <label>生年月日</label>
-            <input type="date" id="user-dob">
-        </div>
-        <div class="form-group">
-            <label>血液型</label>
-            <select id="user-blood">
-                <option value="不明">不明</option>
-                <option value="A型">A型</option>
-                <option value="B型">B型</option>
-                <option value="O型">O型</option>
-                <option value="AB型">AB型</option>
-            </select>
-        </div>
-        <button onclick="saveProfile()">占い師を選ぶ</button>
-    </div>
-
-    <div id="selection-screen">
-        <h1 style="color:var(--gold)">占いの館</h1>
-        <div id="cast-list" class="cast-grid"></div>
-    </div>
-
-    <div id="chat-screen">
-        <header>
-            <button class="back-btn" onclick="location.reload()">◀戻る</button>
-            <strong id="header-name" style="color:var(--gold)">鑑定室</strong>
-        </header>
-        <div id="log"></div>
-        <div class="input-bar">
-            <input type="text" id="user-msg" placeholder="占いたいことを入力...">
-            <button onclick="send()">送信</button>
-        </div>
-    </div>
-
-    <script>
-        let userProfile = null;
-        let currentCast = null;
-        let history = [];
-
-        function saveProfile() {
-            const name = document.getElementById('user-name').value;
-            const dob = document.getElementById('user-dob').value;
-            const blood = document.getElementById('user-blood').value;
-            if(!name || !dob) return alert("お名前と生年月日を入力してください");
-            
-            userProfile = { name, dob, blood };
-            document.getElementById('setup-screen').style.display = 'none';
-            document.getElementById('selection-screen').style.display = 'block';
-            loadCasts();
-        }
-
-        async function loadCasts() {
-            const res = await fetch('/api/casts');
-            const data = await res.json();
-            document.getElementById('cast-list').innerHTML = data.map(c => `
-                <div class="cast-card" onclick="startChat(${JSON.stringify(c).replace(/"/g, '&quot;')})">
-                    <img src="/img/${c.img}">
-                    <strong>${c.name}</strong>
-                    <p style="font-size:0.7rem; color:#aaa;">${c.role}</p>
-                </div>
-            `).join('');
-        }
-
-        function startChat(cast) {
-            currentCast = cast;
-            document.getElementById('selection-screen').style.display = 'none';
-            document.getElementById('chat-screen').style.display = 'flex';
-            document.getElementById('header-name').innerText = cast.name + " 鑑定室";
-            addMsg(`（${cast.name}）お待ちしておりました、${userProfile.name}さん。お前さんの宿命、既に視えておりますよ。`, 'asst');
-        }
-
-        async function send() {
-            const inp = document.getElementById('user-msg');
-            const txt = inp.value.trim();
-            if(!txt) return;
-            addMsg(txt, 'user');
-            inp.value = "";
-            try {
-                const res = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        text: txt, 
-                        history: history, 
-                        cast_id: currentCast.id,
-                        userProfile: userProfile // プロフィールを送信
-                    })
-                });
-                const data = await res.json();
-                addMsg(data.reply, 'asst');
-                history.push({ role: 'user', text: txt }, { role: 'model', text: data.reply });
-            } catch (e) {
-                addMsg("(使い魔): 通信エラーが発生しました。", 'asst');
-            }
-        }
-
-        function addMsg(t, r) {
-            const log = document.getElementById('log');
-            const div = document.createElement('div');
-            div.className = r === 'user' ? 'user' : 'asst';
-            let content = t.replace(/\n/g, '<br>');
-            const imgMatch = t.match(/画像[:：](.*?\.png)/);
-            if(imgMatch) {
-                content += `<br><img src="/img/${imgMatch[1].trim()}" class="tarot-img">`;
-            }
-            div.innerHTML = `<div class="bubble">${content}</div>`;
-            log.appendChild(div);
-            log.scrollTop = log.scrollHeight;
-        }
-    </script>
-</body>
-</html>
+        // フルネームかどうか（スペースが含まれているか）の簡易チェックを入れることも可能です
+        if(!name || !dob) return alert("氏名と生年月日を入力してください");
+        
+        userProfile = { name, dob, blood }; // bloodに統一
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('selection-screen').style.display = 'block';
+        loadCasts();
+    }
+    // ...省略...
+</script>
