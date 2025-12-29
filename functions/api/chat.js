@@ -1,5 +1,5 @@
 const casts = {
-  1: { name: "紫雲", method: "tarot", systemPrompt: "あなたは紫雲です。京都風の丁寧語を使い、威圧的だが慈愛を持って接してください。名前と生年月日を聞くまでは絶対に占わないでください。" },
+  1: { name: "紫雲", method: "tarot", systemPrompt: "あなたは紫雲です。京都風の丁寧語を使い、威圧的ですが慈愛を持って接してください。名前と生年月日を聞くまでは絶対に占わないでください。一人称：私（わたくし）、二人称：お前さん。" },
   2: { name: "星川レオナ", method: "astrology", systemPrompt: "あなたは星川レオナです。理系女子で宇宙の絵文字を多用します。データが揃うまで占いません。" },
   3: { name: "琥珀", method: "pendulum", systemPrompt: "あなたは琥珀です。華やかな姉御肌です。本名と生年月日を聞くまでは占いません。" },
   4: { name: "マリア", method: "candle", systemPrompt: "あなたはマリアです。神秘的で静かです。情報が揃うまで占いません。" },
@@ -28,25 +28,25 @@ export async function onRequestPost(context) {
     const cast = casts[castId] || casts[1];
 
     if (!API_KEY) {
-      return new Response(JSON.stringify({ reply: "エラー：APIキー(GEMINI_API_KEY)が設定されていません。Cloudflareの設定画面を確認してください。" }), { status: 200 });
+      return new Response(JSON.stringify({ reply: "エラー：APIキー(GEMINI_API_KEY)が設定されていません。" }), { status: 200 });
     }
 
     let divi = "";
     if ((text.includes("年") || text.includes("月") || text.includes("日")) && history.length >= 1) {
       if (cast.method === "tarot") {
         const c = tarotData[Math.floor(Math.random() * tarotData.length)];
-        divi = "\n\n【占断】結果:" + c.name + "。意味:" + c.message + "。最後に「画像:" + c.file + "」と書きなさい。";
+        divi = "\n\n【占断】結果:" + c.name + "。意味:" + c.message + "。最後に必ず「画像:" + c.file + "」と書きなさい。";
       } else {
         divi = "\n\n【占断】運勢は上向きです。";
       }
     }
 
-    // 安定性の高い旧来の形式でリクエスト
-    const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + API_KEY;
+    // エラーが出ていたURLを修正：gemini-1.5-flash を使用し、エンドポイントを /v1 に変更
+    const url = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" + API_KEY;
+    
     const body = {
+      system_instruction: { parts: [{ text: cast.systemPrompt + divi }] },
       contents: [
-        { role: "user", parts: [{ text: cast.systemPrompt + divi + "\n\nここから対話を開始します。" }] },
-        { role: "model", parts: [{ text: "承知いたしました。お客様を丁寧にお迎えいたします。" }] },
         ...history.map(h => ({ role: h.role === "user" ? "user" : "model", parts: [{ text: h.text }] })),
         { role: "user", parts: [{ text: text }] }
       ]
@@ -61,14 +61,17 @@ export async function onRequestPost(context) {
     const result = await res.json();
 
     if (!res.ok) {
-      return new Response(JSON.stringify({ reply: "AIからのエラー： " + (result.error?.message || "原因不明の通信失敗") }), { status: 200 });
-    }
-
-    if (!result.candidates || result.candidates.length === 0) {
-      return new Response(JSON.stringify({ reply: "AIが応答を生成できませんでした（不適切な表現と判断された可能性があります）。" }), { status: 200 });
+      return new Response(JSON.stringify({ reply: "AI通信エラー： " + (result.error?.message || "接続に失敗しました。URLを確認してください。") }), { status: 200 });
     }
 
     const reply = result.candidates[0].content.parts[0].text;
+
+    if (env.DB) {
+      try {
+        await env.DB.prepare("INSERT INTO ChatLogs (sender, content) VALUES (?, ?)").bind("user", text).run();
+        await env.DB.prepare("INSERT INTO ChatLogs (sender, content) VALUES (?, ?)").bind("asst", reply).run();
+      } catch (e) {}
+    }
 
     return new Response(JSON.stringify({ reply: reply }), { headers: { "Content-Type": "application/json" } });
 
