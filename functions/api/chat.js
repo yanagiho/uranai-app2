@@ -9,48 +9,68 @@ const casts = {
   8: { name: "雪音", method: "dream", systemPrompt: "あなたは雪音です。癒やしの占い師です。名前と生年月日を聞くまでは占いません。" }
 };
 
-// タロット全78枚のデータを統合
 const tarotData = [
-  { name: '愚者', position: '正位置', message: 'ふふ、新しい旅の始まりですね。自由な心が最大の武器。', imageFile: 'major_0_fool.png' },
-  { name: '愚者', position: '逆位置', message: '少し足元がフワフワ。今は現実的な準備を忘れずに。', imageFile: 'major_0_fool.png' },
-  { name: '魔術師', position: '正位置', message: '準備は整いました。あなたの意志が新しい現実を創造します。', imageFile: 'major_1_magician.png' },
-  { name: '魔術師', position: '逆位置', message: '才能はあるが自信不足。地に足をつけて、誠実さを大切に。', imageFile: 'major_1_magician.png' },
-  { name: '女教皇', position: '正位置', message: '静かに、自分の内なる声に耳を傾けるべき時です。', imageFile: 'major_2_high_priestess.png' },
-  { name: '女教皇', position: '逆位置', message: '少し神経質。直感を無視して理屈で考えすぎかもしれません。', imageFile: 'major_2_high_priestess.png' },
-  { name: '女帝', position: '正位置', message: '素晴らしい豊かさと愛のエネルギーに満ちています。', imageFile: 'major_3_empress.png' },
-  { name: '女帝', position: '逆位置', message: '贅沢が過ぎるか、あるいは愛情が過保護に変わっていませんか？', imageFile: 'major_3_empress.png' },
-  { name: '皇帝', position: '正位置', message: '揺るぎない意志とリーダーシップが必要です。現実的な視点を。', imageFile: 'major_4_emperor.png' },
-  { name: '皇帝', position: '逆位置', message: '少し頑固になりすぎです。柔軟さも強さのうちですよ。', imageFile: 'major_4_emperor.png' },
-  { name: '教皇', position: '正位置', message: '伝統や信頼できる年長者の助言に従うことで道が開けます。', imageFile: 'major_5_hierophant.png' },
-  { name: '教皇', position: '逆位置', message: 'ルールに縛られすぎか、あるいは新しい価値観を見つける時です。', imageFile: 'major_5_hierophant.png' },
-  { name: '恋人', position: '正位置', message: '素晴らしい選択の時。直感と情熱が調和をもたらします。', imageFile: 'major_6_lovers.png' },
-  { name: '恋人', position: '逆位置', message: '迷いが生じています。今は冷静な判断が必要な時です。', imageFile: 'major_6_lovers.png' },
-  { name: '戦車', position: '正位置', message: '前進あるのみ！スピーディーに行動することで勝利を得ます。', imageFile: 'major_7_chariot.png' },
-  { name: '戦車', position: '逆位置', message: '少し焦りすぎ。一度立ち止まり、進路を修正してください。', imageFile: 'major_7_chariot.png' },
-  { name: '力', position: '正位置', message: '忍耐強く、自分の弱さや本能をコントロールする時です。', imageFile: 'major_8_strength.png' },
-  { name: '力', position: '逆位置', message: '少し自信喪失気味。自分自身を労ってあげてください。', imageFile: 'major_8_strength.png' },
-  { name: '隠者', position: '正位置', message: '一人静かに考える時間が必要。内面を深く探求しましょう。', imageFile: 'major_9_hermit.png' },
-  { name: '隠者', position: '逆位置', message: '孤独感に苛まれているよう。少しだけ心の扉を開いてみては。', imageFile: 'major_9_hermit.png' },
-  { name: '運命の輪', position: '正位置', message: '運命の歯車が回り始めました。チャンスの波に乗ってください。', imageFile: 'major_10_wheel_of_fortune.png' },
-  { name: '運命の輪', position: '逆位置', message: 'タイミングが合わない時期。流れが変わるのを静かに待って。', imageFile: 'major_10_wheel_of_fortune.png' },
-  { name: '正義', position: '正位置', message: '客観的な判断が必要。物事のバランスを見極めなさい。', imageFile: 'major_11_justice.png' },
-  { name: '正義', position: '逆位置', message: '自分に都合良く解釈していないかい？公平な視点を取り戻して。', imageFile: 'major_11_justice.png' },
-  { name: '吊るされた男', position: '正位置', message: '修行の時。視点を変えることで新しい気づきが得られます。', imageFile: 'major_12_hanged_man.png' },
-  { name: '吊るされた男', position: '逆位置', message: '無駄な犠牲を払っているよう。自分の意志で一歩踏み出して。', imageFile: 'major_12_hanged_man.png' },
-  { name: '死神', position: '正位置', message: '一つのサイクルが終了。執着を手放せば新しい道が開けます。', imageFile: 'major_13_death.png' },
-  { name: '死神', position: '逆位置', message: '変化を恐れているね。再生のためには古い殻を脱ぎなさい。', imageFile: 'major_13_death.png' },
-  { name: '節制', position: '正位置', message: '調和が鍵。穏やかで柔軟な姿勢が物事を進展させます。', imageFile: 'major_14_temperance.png' },
-  { name: '節制', position: '逆位置', message: 'バランスが崩れている。まずは自分自身の調和を整えて。', imageFile: 'major_14_temperance.png' },
-  { name: '悪魔', position: '正位置', message: '誘惑や執着に囚われている。その鎖は自分で断ち切れます。', imageFile: 'major_15_devil.png' },
-  { name: '悪魔', position: '逆位置', message: '悪習慣や腐れ縁から解放される時。自由へと踏み出して。', imageFile: 'major_15_devil.png' },
-  { name: '塔', position: '正位置', message: '衝撃的な変化だが、偽りの基盤が壊れただけ。再出発の好機。', imageFile: 'major_16_tower.png' },
-  { name: '塔', position: '逆位置', message: '不安定な状況が続く。根本解決を先延ばしにしないこと。', imageFile: 'major_16_tower.png' },
-  { name: '星', position: '正位置', message: '希望の光が見えてきました。夢に向かって純粋な気持ちを。', imageFile: 'major_17_star.png' },
-  { name: '星', position: '逆位置', message: '理想が高すぎるかも。現実的な目標に修正してみては。', imageFile: 'major_17_star.png' },
-  { name: '月', position: '正位置', message: '先が見えず不安な時。直感を信じ、霧が晴れるのを待って。', imageFile: 'major_18_moon.png' },
-  { name: '月', position: '逆位置', message: '不安が晴れてきた。恐れていたことは大したことではなかったはず。', imageFile: 'major_18_moon.png' },
-  { name: '太陽', position: '正位置', message: '素晴らしい成功と喜び。ポジティブなエネルギーを享受して。', imageFile: 'major_19_sun.png' },
-  { name: '太陽', position: '逆位置', message: '少しエネルギー不足。初心に戻り、地道な努力を。', imageFile: 'major_19_sun.png' },
-  { name: '審判', position: '正位置', message: 'これまでの努力が報われ、復活や再生のチャンスが訪れます。', imageFile: 'major_20_judgment.png' },
-  { name: '審判', position: '逆位置', message: '過去の後悔に囚われている。教訓を未来に活かす決意を。', imageFile: 'major_20_judgment.png' },
-  { name: '世界', position: '正位置', message: '最高のハッピーエンド。一つの物語が完成し満足を得ます。', imageFile: 'major_
+  { name: "愚者", position: "正位置", message: "新しい旅の始まり。自由な心が武器。", imageFile: "major_0_fool.png" },
+  { name: "魔術師", position: "正位置", message: "準備万端。意志が現実を創る。", imageFile: "major_1_magician.png" },
+  { name: "女教皇", position: "正位置", message: "内なる声を聞く時。冷静さを大切に。", imageFile: "major_2_high_priestess.png" },
+  { name: "女帝", position: "正位置", message: "豊かさと愛に満ちている時期。", imageFile: "major_3_empress.png" },
+  { name: "皇帝", position: "正位置", message: "揺るぎない意志とリーダーシップが必要。", imageFile: "major_4_emperor.png" },
+  { name: "教皇", position: "正位置", message: "信頼できる助言に従うと道が開ける。", imageFile: "major_5_hierophant.png" },
+  { name: "恋人", position: "正位置", message: "素晴らしい選択。調和と喜びの時。", imageFile: "major_6_lovers.png" },
+  { name: "戦車", position: "正位置", message: "前進あるのみ。スピード感が鍵。", imageFile: "major_7_chariot.png" },
+  { name: "力", position: "正位置", message: "真の強さ。忍耐と慈愛で状況を制す。", imageFile: "major_8_strength.png" },
+  { name: "隠者", position: "正位置", message: "内省の時。自分自身の真実と向き合って。", imageFile: "major_9_hermit.png" },
+  { name: "運命の輪", position: "正位置", message: "運命の好転。チャンスを掴みなさい。", imageFile: "major_10_wheel_of_fortune.png" }
+];
+
+export async function onRequestPost(context) {
+  const { request, env } = context;
+  try {
+    const { text, history = [], cast_id = 1 } = await request.json();
+    const API_KEY = env.GEMINI_API_KEY;
+    const cast = casts[cast_id] || casts[1];
+
+    let divinationResult = "";
+    const isInfoProvided = (text.includes("年") || text.includes("/") || text.match(/\d/));
+    
+    if (isInfoProvided && history.length >= 1) {
+      if (cast.method === "tarot") {
+        const card = tarotData[Math.floor(Math.random() * tarotData.length)];
+        divinationResult = "\n\n【占断実行】結果:" + card.name + "(" + card.position + ")。意味:" + card.message + "。最後に必ず「画像:" + card.imageFile + "」と書きなさい。";
+      } else {
+        divinationResult = "\n\n【占断実行】あなたの運命に非常に良い流れがきています。";
+      }
+    }
+
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=" + API_KEY;
+    const body = {
+      contents: [
+        { role: "user", parts: [{ text: cast.systemPrompt + divinationResult }] },
+        ...history.map(h => ({ role: h.role === "user" ? "user" : "model", parts: [{ text: h.text }] })),
+        { role: "user", parts: [{ text: text }] }
+      ]
+    };
+
+    const response = await fetch(url, { 
+      method: "POST", 
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body) 
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || "API Error");
+    const aiReply = data.candidates[0].content.parts[0].text;
+
+    if (env.DB) {
+      try {
+        await env.DB.prepare("INSERT INTO ChatLogs (sender, content) VALUES (?, ?)").bind("user", text).run();
+        await env.DB.prepare("INSERT INTO ChatLogs (sender, content) VALUES (?, ?)").bind("asst", aiReply).run();
+      } catch (e) {}
+    }
+
+    return new Response(JSON.stringify({ reply: aiReply }), { headers: { "Content-Type": "application/json" } });
+
+  } catch (error) {
+    return new Response(JSON.stringify({ reply: "(使い魔):星の導きに乱れが生じました。もう一度お話しください。" }), { status: 500 });
+  }
+}
