@@ -1,22 +1,25 @@
-// 占い師の設定
 const casts = {
-  1: { name: "紫雲", method: "tarot", systemPrompt: "あなたは紫雲です。京都風の丁寧語を使い、威圧的ですが慈愛を持って接してください。一人称は「わたくし」、二人称は「お前さん」。名前と生年月日を聞くまでは絶対に占わないでください。" },
-  2: { name: "星川レオナ", method: "astrology", systemPrompt: "あなたは星川レオナです。論理的ですがノリが軽い理系女子です。宇宙の絵文字を多用します。データが揃うまで占いません。" },
-  3: { name: "琥珀", method: "pendulum", systemPrompt: "あなたは琥珀です。華やかな姉御肌です。本名と生年月日を聞くまでは占いません。直感的な話し方をします。" },
-  4: { name: "マリア", method: "candle", systemPrompt: "あなたはマリアです。神秘的で静かです。情報が揃うまで占いません。囁くような話し方をします。" },
+  1: { name: "紫雲", method: "tarot", systemPrompt: "あなたは紫雲です。京都弁を使い、威圧的だが慈愛を持って接してください。名前と生年月日を聞くまでは絶対に占わないでください。" },
+  2: { name: "星川レオナ", method: "astrology", systemPrompt: "あなたは星川レオナです。理系で宇宙の絵文字を多用します。データが揃うまで占いません。" },
+  3: { name: "琥珀", method: "pendulum", systemPrompt: "あなたは琥珀です。華やかな姉御肌です。本名と生年月日を聞くまでは占いません。" },
+  4: { name: "マリア", method: "candle", systemPrompt: "あなたはマリアです。神秘的で静かです。情報が揃うまで占いません。" },
   5: { name: "サナ", method: "rune", systemPrompt: "あなたはサナです。素朴な海辺の賢者です。名前と生年月日を聞くまでは占いません。" },
   6: { name: "イツキ", method: "sanmei", systemPrompt: "あなたはイツキです。知的な紳士です。情報が揃うまで占いません。" },
-  7: { name: "コウヤ", method: "oharai", systemPrompt: "あなたはコウヤです。厳格な神職です。名と生年月日を名乗るまで占いません。古風な物言いをします。" },
-  8: { name: "雪音", method: "dream", systemPrompt: "あなたは雪音です。包容力のある母親のような癒やしの占い師です。名前と生年月日を聞くまでは占いません。" }
+  7: { name: "コウヤ", method: "oharai", systemPrompt: "あなたはコウヤです。厳格な神職です。名と生年月日を名乗るまで占いません。" },
+  8: { name: "雪音", method: "dream", systemPrompt: "あなたは雪音です。癒やしの占い師です。名前と生年月日を聞くまでは占いません。" }
 };
 
-// タロットデータ（紫雲用）
+// タロット全データ（外部ファイルを使わず直接埋め込み）
 const tarotData = [
-  { name: '愚者', position: '正位置', message: 'ふふ、新しい旅の始まりですね。', imageFile: 'major_0_fool.png' },
-  { name: '魔術師', position: '正位置', message: '準備は整いました。', imageFile: 'major_1_magician.png' },
-  { name: '女教皇', position: '正位置', message: '答えはあなたの直感の中にあります。', imageFile: 'major_2_high_priestess.png' },
-  { name: '隠者', position: '正位置', message: '自分自身の真実と向き合う時です。', imageFile: 'major_9_hermit.png' }
-  // ※他のカードも同様ですが、一旦主要なものをサンプルとして入れています。
+  { name: '愚者', position: '正位置', message: '新しい旅の始まり。自由な心が最大の武器。', imageFile: 'major_0_fool.png' },
+  { name: '愚者', position: '逆位置', message: '少し足元がフワフワ。現実的な準備を。', imageFile: 'major_0_fool.png' },
+  { name: '魔術師', position: '正位置', message: '準備は整いました。あなたの意志が新しい現実を創造。', imageFile: 'major_1_magician.png' },
+  { name: '魔術師', position: '逆位置', message: '才能はあるが自信不足。地に足をつけて。', imageFile: 'major_1_magician.png' },
+  { name: '女教皇', position: '正位置', message: '内なる声に耳を傾けて。冷静さと知性を大切に。', imageFile: 'major_2_high_priestess.png' },
+  { name: '女教皇', position: '逆位置', message: '神経質になりすぎ。一度深呼吸を。', imageFile: 'major_2_high_priestess.png' },
+  { name: '隠者', position: '正位置', message: '一人静かに考える時間が必要。内面を探求して。', imageFile: 'major_9_hermit.png' },
+  { name: '隠者', position: '逆位置', message: '孤独感に苛まれている。少しだけ心の扉を開いて。', imageFile: 'major_9_hermit.png' }
+  // （※全78枚を同様の形式で定義可能。ここでは主要なものをサンプル化）
 ];
 
 export async function onRequestPost(context) {
@@ -26,17 +29,15 @@ export async function onRequestPost(context) {
     const API_KEY = env.GEMINI_API_KEY;
     const cast = casts[cast_id] || casts[1];
 
-    // 占い実行判定
     let divinationResult = "";
-    const isInfoProvided = (text.includes("年") || text.includes("/") || text.match(/\d{4}/));
+    const isInfoProvided = (text.includes("年") || text.includes("/") || text.match(/\d/));
     
-    // 会話が一定以上（挨拶の次）で、かつ情報が提供された場合
-    if (isInfoProvided) {
+    if (isInfoProvided && history.length >= 1) {
       if (cast.method === "tarot") {
         const card = tarotData[Math.floor(Math.random() * tarotData.length)];
-        divinationResult = `\n\n【システム：占断実行】結果：${card.name}（${card.position}）。メッセージ：${card.message}。最後に必ず「画像：${card.imageFile}」と書きなさい。`;
+        divinationResult = `\n\n【占断実行】結果：${card.name}（${card.position}）。メッセージ：${card.message}。最後に必ず「画像：${card.imageFile}」と書きなさい。`;
       } else {
-        divinationResult = `\n\n【システム：占断実行】結果：あなたの運命に吉兆が現れています。`;
+        divinationResult = `\n\n【占断実行】結果：あなたの運命に非常に良い流れがきています。`;
       }
     }
 
@@ -49,7 +50,6 @@ export async function onRequestPost(context) {
       ]
     };
 
-    // 500エラーを直すための重要な修正（headersを追加）
     const response = await fetch(url, { 
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' },
@@ -57,11 +57,8 @@ export async function onRequestPost(context) {
     });
 
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || "Gemini API Error");
-    
     const aiReply = data.candidates[0].content.parts[0].text;
 
-    // DB保存
     if (env.DB) {
       try {
         await env.DB.prepare("INSERT INTO ChatLogs (sender, content) VALUES (?, ?)").bind("user", text).run();
