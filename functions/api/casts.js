@@ -1,15 +1,29 @@
-export async function onRequestGet() {
-  const casts = [
-    { id: 1, name: "紫雲", role: "霊感タロット", img: "shiun.png", intro: "全てを見透かす冷徹な女将。" },
-    { id: 2, name: "星川レオナ", role: "理系占星術", img: "leona.png", intro: "星の配置から論理的に未来を演算します。" },
-    { id: 3, name: "琥珀", role: "宝石・ペンデュラム", img: "kohaku.png", intro: "あんたの運命、石の輝きで丸見えよ。" },
-    { id: 4, name: "マリア", role: "秘術・キャンドル", img: "maria.png", intro: "炎の揺らぎに、あなたの魂を映します。" },
-    { id: 5, name: "サナ", role: "ルーン・自然", img: "sana.png", intro: "波の音と石の文字が、道を教えてくれるわ。" },
-    { id: 6, name: "イツキ", role: "算命学・易", img: "itsuki.png", intro: "宿命の設計図を、誠実に紐解きましょう。" },
-    { id: 7, name: "コウヤ", role: "神道・お祓い", img: "koya.png", intro: "何用だ。不浄を払い、神の声を伝えるのみ。" },
-    { id: 8, name: "雪音", role: "夢占い・水晶", img: "yukine.png", intro: "あなたの夢の欠片を、優しく水晶に映します。" }
-  ];
-  return new Response(JSON.stringify(casts), {
-    headers: { "Content-Type": "application/json" }
-  });
+export async function onRequestGet(context) {
+  const { env } = context;
+  
+  // データベースから占い師一覧を取得する
+  try {
+    const { results } = await env.DB.prepare("SELECT * FROM Casts ORDER BY id ASC").all();
+    
+    // 画面表示に必要な画像名などを補完して返却する
+    const casts = results.map(c => ({
+      id: c.id,
+      name: c.name,
+      role: c.system_prompt.split(' / ')[0], // 「/」より前を役割にする
+      intro: c.system_prompt.split(' / ')[1], // 「/」より後を紹介文にする
+      img: getImgFileName(c.id)
+    }));
+
+    return new Response(JSON.stringify(casts), {
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+  }
+}
+
+// IDから画像ファイル名を決める補助機能
+function getImgFileName(id) {
+  const names = ["", "shiun.png", "leona.png", "kohaku.png", "maria.png", "sana.png", "itsuki.png", "koya.png", "yukine.png"];
+  return names[id] || "shiun.png";
 }
