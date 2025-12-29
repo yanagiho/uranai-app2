@@ -6,10 +6,10 @@
     <title>AI占いの館</title>
     <style>
         body { font-family: sans-serif; background: #000; color: #fff; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        #selection-screen { padding: 20px; overflow-y: auto; text-align: center; }
+        #selection-screen { padding: 20px; text-align: center; overflow-y: auto; }
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; }
-        .cast-card { background: #111; border: 1px solid #333; padding: 10px; border-radius: 15px; cursor: pointer; transition: 0.3s; }
-        .cast-card img { width: 100%; border-radius: 10px; margin-bottom: 10px; }
+        .cast-card { background: #111; border: 1px solid #333; padding: 10px; border-radius: 15px; cursor: pointer; }
+        .cast-card img { width: 100%; border-radius: 10px; }
         #chat-screen { display: none; flex-direction: column; height: 100vh; }
         #log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         .bubble { padding: 12px; border-radius: 15px; background: #1a0033; border: 1px solid #7c4dff; max-width: 85%; line-height: 1.6; }
@@ -18,7 +18,7 @@
         .tarot-img { width: 160px; border-radius: 10px; margin-top: 10px; display: block; border: 1px solid #9c27b0; }
         .input-bar { padding: 15px; display: flex; gap: 10px; background: #111; border-top: 1px solid #333; }
         input { flex: 1; padding: 12px; border-radius: 20px; border: none; background: #222; color: #fff; outline: none; }
-        button { background: #9c27b0; color: #fff; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        button { background: #9c27b0; color: #fff; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -52,7 +52,7 @@
             currentCastId = id;
             document.getElementById('selection-screen').style.display = 'none';
             document.getElementById('chat-screen').style.display = 'flex';
-            addMsg("いらっしゃい。まずはあなたの名前と生年月日を教えておくれ。", 'asst');
+            addMsg("いらっしゃい。名前と生年月日を教えておくれ。", 'asst');
         }
 
         async function send() {
@@ -61,7 +61,6 @@
             if(!txt) return;
             addMsg(txt, 'user');
             inp.value = "";
-            
             try {
                 const res = await fetch('/api/chat', {
                     method: 'POST',
@@ -72,7 +71,7 @@
                 addMsg(data.reply, 'asst');
                 history.push({ role: 'user', text: txt }, { role: 'model', text: data.reply });
             } catch (e) {
-                addMsg("(使い魔): 通信エラーです。もう一度お願いします。", 'asst');
+                addMsg("(使い魔): 通信エラー。もう一度お試しを。", 'asst');
             }
         }
 
@@ -82,9 +81,7 @@
             div.style.display = "flex";
             div.style.flexDirection = "column";
             div.className = r === 'user' ? 'user' : '';
-            
             let content = t.replace(/\n/g, '<br>');
-            // 「画像:〜.png」という文字を探して画像を表示する
             const imgMatch = t.match(/画像[:：](.*?\.png)/);
             if(imgMatch) {
                 content += '<img src="/img/' + imgMatch[1] + '" class="tarot-img" onerror="this.style.display=\'none\';">';
