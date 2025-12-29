@@ -8,17 +8,17 @@
         body { font-family: sans-serif; background: #000; color: #fff; margin: 0; display: flex; flex-direction: column; height: 100vh; }
         #selection-screen { padding: 20px; text-align: center; overflow-y: auto; }
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; }
-        .cast-card { background: #111; border: 1px solid #333; padding: 10px; border-radius: 15px; cursor: pointer; }
-        .cast-card img { width: 100%; border-radius: 10px; }
+        .cast-card { background: #111; border: 1px solid #333; padding: 15px; border-radius: 20px; cursor: pointer; }
+        .cast-card img { width: 100%; border-radius: 15px; margin-bottom: 10px; }
         #chat-screen { display: none; flex-direction: column; height: 100vh; }
         #log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .bubble { padding: 12px; border-radius: 15px; background: #1a0033; border: 1px solid #7c4dff; max-width: 85%; line-height: 1.6; }
+        .bubble { padding: 15px; border-radius: 20px; background: #1a0033; border: 1px solid #7c4dff; max-width: 85%; line-height: 1.6; }
         .user { align-self: flex-end; }
         .user .bubble { background: #fff; color: #000; border: none; }
-        .tarot-img { width: 160px; border-radius: 10px; margin-top: 10px; display: block; border: 1px solid #9c27b0; }
-        .input-bar { padding: 15px; display: flex; gap: 10px; background: #111; border-top: 1px solid #333; }
-        input { flex: 1; padding: 12px; border-radius: 20px; border: none; background: #222; color: #fff; outline: none; }
-        button { background: #9c27b0; color: #fff; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
+        .tarot-img { width: 180px; border-radius: 10px; margin-top: 10px; display: block; border: 1px solid #9c27b0; }
+        .input-bar { padding: 15px; display: flex; gap: 10px; background: #111; }
+        input { flex: 1; padding: 12px; border-radius: 25px; border: none; background: #222; color: #fff; outline: none; }
+        button { background: #9c27b0; color: #fff; border: none; padding: 10px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -35,12 +35,12 @@
     </div>
     <script>
         let history = [];
-        let currentCastId = null;
+        let currentId = null;
 
         async function loadCasts() {
             const res = await fetch('/api/casts');
-            const casts = await res.json();
-            document.getElementById('cast-list').innerHTML = casts.map(c => `
+            const data = await res.json();
+            document.getElementById('cast-list').innerHTML = data.map(c => `
                 <div class="cast-card" onclick="startChat(${c.id})">
                     <img src="/img/${c.img}">
                     <strong>${c.name}</strong>
@@ -49,10 +49,10 @@
         }
 
         function startChat(id) {
-            currentCastId = id;
+            currentId = id;
             document.getElementById('selection-screen').style.display = 'none';
             document.getElementById('chat-screen').style.display = 'flex';
-            addMsg("いらっしゃい。名前と生年月日を教えておくれ。", 'asst');
+            addMsg("いらっしゃい。まずはあなたの名前と生年月日を教えておくれ。", 'asst');
         }
 
         async function send() {
@@ -65,13 +65,13 @@
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: txt, history: history, cast_id: currentCastId })
+                    body: JSON.stringify({ text: txt, history: history, cast_id: currentId })
                 });
                 const data = await res.json();
                 addMsg(data.reply, 'asst');
                 history.push({ role: 'user', text: txt }, { role: 'model', text: data.reply });
             } catch (e) {
-                addMsg("(使い魔): 通信エラー。もう一度お試しを。", 'asst');
+                addMsg("(使い魔): 通信エラーが発生しました。再度お試しください。", 'asst');
             }
         }
 
@@ -84,9 +84,9 @@
             let content = t.replace(/\n/g, '<br>');
             const imgMatch = t.match(/画像[:：](.*?\.png)/);
             if(imgMatch) {
-                content += '<img src="/img/' + imgMatch[1] + '" class="tarot-img" onerror="this.style.display=\'none\';">';
+                content += `<br><img src="/img/${imgMatch[1].trim()}" class="tarot-img">`;
             }
-            div.innerHTML = '<div class="bubble">' + content + '</div>';
+            div.innerHTML = `<div class="bubble">${content}</div>`;
             log.appendChild(div);
             log.scrollTop = log.scrollHeight;
         }
