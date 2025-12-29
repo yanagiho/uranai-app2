@@ -1,6 +1,10 @@
 name = "uranai-app2"
-# 修正：複雑なビルドをせず、publicフォルダをそのまま公開します
 pages_build_output_dir = "public"
 
+[[d1_databases]]
+binding = "DB"
+database_name = "db"
+database_id = "c8f84e00-90c7-48e4-9149-cbe24985ca0d"
+
 [vars]
-# GEMINI_API_KEY は管理画面から設定してください
+# GEMINI_API_KEY などは管理画面の「変数」でも管理可能です
