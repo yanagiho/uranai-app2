@@ -71,11 +71,14 @@
             const log = document.getElementById('log');
             const div = document.createElement('div');
             div.className = r === 'user' ? 'user' : '';
-            // 画像キーワードを実際の<img>タグに変換
+            
             let content = t.replace(/\n/g, '<br>');
+            // AIが「画像：〜.png」と言った場合、それを検知する
             const imgMatch = t.match(/画像：(.*?\.png)/);
             if(imgMatch) {
-                content += `<img src="/img/${imgMatch[1]}" class="tarot-img">`;
+                // 実際のファイルは .jpg なので、拡張子を置換して img タグを作成する
+                const jpgName = imgMatch[1].replace('.png', '.jpg');
+                content += `<img src="/img/${jpgName}" class="tarot-img">`;
             }
             div.innerHTML = `<div class="bubble">${content}</div>`;
             log.appendChild(div);
