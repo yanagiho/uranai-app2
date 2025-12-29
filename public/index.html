@@ -8,21 +8,23 @@
         body { font-family: sans-serif; background: #000; color: #fff; margin: 0; display: flex; flex-direction: column; height: 100vh; }
         #selection-screen { padding: 20px; overflow-y: auto; text-align: center; }
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; }
-        .cast-card { background: #111; border: 1px solid #333; padding: 10px; border-radius: 15px; cursor: pointer; }
+        .cast-card { background: #111; border: 1px solid #333; padding: 10px; border-radius: 15px; cursor: pointer; transition: 0.3s; }
+        .cast-card:hover { background: #1a0033; border-color: #9c27b0; }
         #chat-screen { display: none; flex-direction: column; height: 100vh; }
         #log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .bubble { padding: 12px; border-radius: 15px; background: #1a0033; border: 1px solid #7c4dff; max-width: 85%; line-height: 1.6; }
+        .bubble { padding: 12px; border-radius: 15px; background: #1a0033; border: 1px solid #7c4dff; max-width: 85%; line-height: 1.6; font-size: 0.95rem; }
         .user { align-self: flex-end; }
         .user .bubble { background: #fff; color: #000; border: none; }
-        .tarot-img { width: 150px; border-radius: 10px; margin-top: 10px; display: block; }
-        .input-bar { padding: 15px; display: flex; gap: 10px; background: #111; }
-        input { flex: 1; padding: 12px; border-radius: 20px; border: none; background: #222; color: #fff; }
-        button { background: #9c27b0; color: #fff; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
+        .tarot-img { width: 160px; border-radius: 10px; margin-top: 10px; display: block; border: 1px solid #9c27b0; }
+        .input-bar { padding: 15px; display: flex; gap: 10px; background: #111; border-top: 1px solid #333; }
+        input { flex: 1; padding: 12px; border-radius: 20px; border: none; background: #222; color: #fff; outline: none; }
+        button { background: #9c27b0; color: #fff; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
     <div id="selection-screen">
         <h1>占いの館</h1>
+        <p>心惹かれる占い師をお選びください...</p>
         <div id="cast-list" class="cast-grid"></div>
     </div>
     <div id="chat-screen">
@@ -41,8 +43,9 @@
             const casts = await res.json();
             document.getElementById('cast-list').innerHTML = casts.map(c => `
                 <div class="cast-card" onclick="startChat(${c.id})">
-                    <img src="/img/${c.img}" style="width:100%; border-radius: 10px;">
-                    <h3>${c.name}</h3>
+                    <img src="/img/${c.img}" style="width:100%; border-radius: 10px; margin-bottom:10px;">
+                    <strong>${c.name}</strong>
+                    <div style="font-size:0.7rem; color:#aaa;">${c.role}</div>
                 </div>
             `).join('');
         }
@@ -56,7 +59,7 @@
 
         async function send() {
             const inp = document.getElementById('user-msg');
-            const txt = inp.value;
+            const txt = inp.value.trim();
             if(!txt) return;
             addMsg(txt, 'user');
             inp.value = "";
@@ -64,7 +67,7 @@
             try {
                 const res = await fetch('/api/chat', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }, // ←ここが重要です
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text: txt, history: history, cast_id: currentCastId })
                 });
                 const data = await res.json();
@@ -83,11 +86,11 @@
             div.className = r === 'user' ? 'user' : '';
             
             let content = t.replace(/\n/g, '<br>');
+            // 「画像：〜.png」という文字列を検知して、そのまま .png として表示する
             const imgMatch = t.match(/画像：(.*?\.png)/);
             if(imgMatch) {
-                // 画像ファイルが.jpgの場合の対策
-                const fileName = imgMatch[1].replace('.png', '.jpg');
-                content += `<img src="/img/${fileName}" class="tarot-img">`;
+                const fileName = imgMatch[1];
+                content += `<img src="/img/${fileName}" class="tarot-img" onerror="this.src='/img/shiun.png';">`;
             }
             div.innerHTML = `<div class="bubble">${content}</div>`;
             log.appendChild(div);
