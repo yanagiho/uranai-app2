@@ -4,33 +4,37 @@ export async function onRequestGet(context) {
   const date = url.searchParams.get("date");
   const castId = url.searchParams.get("castId");
 
-  // 基本の鑑定時間（10:00〜22:00まで30分刻み）
-  const times = [
-    "10:00", "10:30", "11:00", "11:30", "13:00", "13:30", 
-    "14:00", "14:30", "15:00", "15:30", "18:00", "18:30", 
-    "19:00", "19:30", "20:00", "20:30", "21:00", "21:30"
+  // 基本の鑑定スケジュール（10時〜22時）
+  const baseTimes = [
+    "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", 
+    "18:00", "19:00", "20:00", "21:00", "22:00"
   ];
 
   try {
-    // 実際にDBに入っている予約を取得
+    // 1. 実際にデータベースにある予約を検索
     const { results } = await env.DB.prepare(
       "SELECT scheduled_at FROM Reservations WHERE cast_id = ? AND scheduled_at LIKE ?"
     ).bind(castId, `${date}%`).all();
 
-    const bookedTimes = results.map(r => r.scheduled_at.split('T')[1]);
+    const actualBookedTimes = results.map(r => r.scheduled_at.split('T')[1]);
 
-    const slots = times.map(t => {
-      // 1. 実際に予約が入っているかチェック
-      if (bookedTimes.includes(t)) return { time: t, status: "booked" };
+    // 2. スロットを生成
+    const slots = baseTimes.map(time => {
+      // 実際に予約が入っている場合
+      if (actualBookedTimes.includes(time)) return { time, status: "booked" };
       
-      // 2. 「人間らしさ」の演出として、30%の確率でランダムに埋める（他のお客さん役）
-      const randomSeed = Math.sin(parseInt(date.replace(/-/g,'')) + parseInt(t.replace(':',''))) * 10000;
-      const isRandomlyBooked = (Math.abs(randomSeed) % 100) < 30;
+      // 3. 人間が占ってる体裁（演出）：ランダムに40%の確率で満席にする
+      // 日付と時間を混ぜて計算することで、その日その時間は常に同じ結果（満席か空きか）になるようにします
+      const seed = date.replace(/-/g,'') + time.replace(':','');
+      const randomValue = (Math.sin(parseInt(seed)) * 10000) % 100;
+      const isRandomlyBooked = Math.abs(randomValue) > 60; 
       
-      return { time: t, status: isRandomlyBooked ? "booked" : "available" };
+      return { time, status: isRandomlyBooked ? "booked" : "available" };
     });
 
-    return new Response(JSON.stringify({ slots }), { headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ slots }), {
+      headers: { "Content-Type": "application/json; charset=utf-8" }
+    });
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), { status: 500 });
   }
