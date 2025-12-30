@@ -3,76 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI占いの館</title>
+    <title>AI占いの館 - 運命の鑑定</title>
     <style>
-        :root { --bg: #0a0510; --accent: #9c27b0; --gold: #d4af37; }
-        body { font-family: serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        :root { --bg: #0a0510; --accent: #9c27b0; --gold: #d4af37; --card-bg: rgba(255,255,255,0.05); }
+        body { font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        /* 共通ボタン・入力 */
-        input, select { padding: 12px; border-radius: 10px; border: 1px solid #333; background: #000; color: #fff; width: 100%; box-sizing: border-box; margin-bottom: 15px; font-size: 1rem; }
-        button { background: var(--accent); color: #fff; border: none; padding: 10px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        button:hover { opacity: 0.8; transform: scale(1.02); }
+        /* ヘッダー・ナビ */
+        nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
+        .nav-item { background: rgba(0,0,0,0.6); border: 1px solid var(--gold); color: var(--gold); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; backdrop-filter: blur(5px); }
 
-        /* ヘッダー情報 */
-        #top-bar { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; pointer-events: none; }
-        #top-bar div, #top-bar button { pointer-events: auto; background: rgba(0,0,0,0.7); border: 1px solid var(--gold); color: var(--gold); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; }
+        /* 画面共通 */
+        .screen { display: none; padding: 60px 20px 20px; text-align: center; overflow-y: auto; flex: 1; }
+        h1, h2 { color: var(--gold); letter-spacing: 4px; text-shadow: 0 0 10px rgba(212,175,55,0.3); }
 
-        /* 画面切り替え */
-        #setup-screen, #selection-screen, #chat-screen, #history-screen { display: none; padding: 20px; text-align: center; overflow-y: auto; flex: 1; }
-        
-        /* 選択画面の修正（画像崩れ対策） */
-        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; max-width: 800px; margin: 50px auto; }
-        .cast-card { background: rgba(255,255,255,0.05); border: 1px solid #333; padding: 10px; border-radius: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
-        .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; margin-bottom: 8px; border: 1px solid #444; }
-        .cast-card strong { color: var(--gold); font-size: 0.85rem; }
+        /* 登録フォーム */
+        .form-box { max-width: 340px; margin: 40px auto; background: var(--card-bg); padding: 30px; border-radius: 20px; border: 1px solid #333; text-align: left; }
+        label { color: var(--gold); font-size: 0.8rem; display: block; margin-bottom: 5px; }
+        input, select { padding: 12px; border-radius: 10px; border: 1px solid #333; background: #000; color: #fff; width: 100%; box-sizing: border-box; margin-bottom: 20px; font-size: 1rem; }
+        .main-btn { background: var(--accent); color: #fff; border: none; padding: 14px; border-radius: 30px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; transition: 0.3s; }
+
+        /* 占い師選択グリッド（画像崩れ完全修正版） */
+        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; max-width: 900px; margin: 30px auto; }
+        .cast-card { background: var(--card-bg); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; transition: 0.3s; }
+        .cast-card:hover { border-color: var(--accent); transform: translateY(-5px); }
+        .cast-card .img-wrapper { width: 100%; aspect-ratio: 1/1; overflow: hidden; border-radius: 10px; margin-bottom: 10px; border: 1px solid #444; }
+        .cast-card img { width: 100%; height: 100%; object-fit: cover; }
+        .cast-card strong { color: var(--gold); font-size: 0.9rem; display: block; }
+        .cast-card small { color: #888; font-size: 0.7rem; }
 
         /* チャット画面 */
-        #chat-screen { padding: 0; flex-direction: column; background: #000; position: relative; overflow: hidden; }
-        #chat-bg { position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0.2; filter: blur(10px); z-index: 0; }
-        header { background: rgba(20, 10, 40, 0.9); padding: 15px; display: flex; align-items: center; border-bottom: 1px solid var(--accent); z-index: 1; }
-        #log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 1; }
-        .bubble { padding: 15px; border-radius: 20px; background: rgba(30, 30, 30, 0.9); border: 1px solid #444; max-width: 85%; text-align: left; font-size: 0.95rem; line-height: 1.6; }
+        #chat-screen { padding: 0; background: #000; position: relative; flex-direction: column; }
+        #chat-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.15; filter: blur(15px); pointer-events: none; }
+        header { background: rgba(20,10,40,0.9); padding: 15px; display: flex; align-items: center; border-bottom: 1px solid var(--accent); z-index: 10; }
+        #log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 5; }
+        .bubble { padding: 15px; border-radius: 20px; background: rgba(30,30,30,0.9); border: 1px solid #444; max-width: 85%; text-align: left; line-height: 1.6; }
         .user { align-self: flex-end; }
         .user .bubble { background: #eee; color: #111; border: none; }
-        .input-bar { padding: 20px; display: flex; gap: 10px; background: rgba(10, 10, 10, 0.95); z-index: 1; border-top: 1px solid #333; }
-        
-        /* 履歴（ギャラリー）画面 */
-        #history-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; max-width: 800px; margin: 20px auto; text-align: left; }
-        .history-card { background: #111; border: 1px solid var(--gold); border-radius: 15px; padding: 10px; font-size: 0.75rem; color: #ccc; }
-        .history-card img { width: 100%; border-radius: 8px; margin-bottom: 5px; }
-        .history-card strong { color: var(--gold); display: block; margin-top: 5px; }
+        .tarot-img { width: 160px; border-radius: 10px; margin-top: 10px; border: 1px solid var(--gold); box-shadow: 0 0 15px var(--gold); }
+        .input-bar { padding: 20px; display: flex; gap: 10px; background: rgba(10,10,10,0.95); z-index: 10; border-top: 1px solid #333; }
 
-        .reset-btn { color: #666; font-size: 0.7rem; background: none; border: none; text-decoration: underline; margin-top: 30px; }
+        /* 記録ギャラリー */
+        .history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; max-width: 800px; margin: 0 auto; }
+        .history-card { background: #111; border: 1px solid var(--gold); border-radius: 15px; padding: 10px; font-size: 0.75rem; text-align: left; }
+        .history-card img { width: 100%; border-radius: 8px; margin-bottom: 8px; }
     </style>
 </head>
 <body>
-    <div id="top-bar">
-        <div id="ticket-info" style="display:none">🎟 <span id="ticket-count">0</span> <button onclick="refillTickets()" style="padding:2px 8px; margin-left:5px; font-size:0.6rem; background:var(--gold); color:#000;">補充</button></div>
-        <button id="history-btn" onclick="showHistory()" style="display:none">📜 鑑定の記録</button>
-    </div>
+    <nav id="nav-bar" style="display:none">
+        <div class="nav-item">🎟 <span id="ticket-count">0</span> <span onclick="refill()" style="margin-left:8px; text-decoration:underline">補充</span></div>
+        <div class="nav-item" onclick="showHistory()">📜 記録</div>
+    </nav>
 
-    <div id="setup-screen">
-        <h1 style="color:var(--gold); margin-top:60px;">運命の登録</h1>
-        <div class="form-box" style="max-width:300px; margin:auto; background:rgba(255,255,255,0.05); padding:20px; border-radius:20px; border:1px solid #333;">
-            <input type="text" id="user-name" placeholder="氏名（フルネーム）">
+    <div id="setup-screen" class="screen">
+        <h1>運命の登録</h1>
+        <div class="form-box">
+            <label>氏名（フルネーム）</label>
+            <input type="text" id="user-name" placeholder="例：斉藤 太郎">
+            <label>生年月日</label>
             <input type="date" id="user-dob">
-            <button onclick="saveProfile()" style="width:100%">占いの館へ入る</button>
+            <button class="main-btn" onclick="saveProfile()">占いの館へ入る</button>
         </div>
     </div>
 
-    <div id="selection-screen">
-        <h1 style="color:var(--gold)">占いの館</h1>
+    <div id="selection-screen" class="screen">
+        <h1>占いの館</h1>
         <div id="cast-list" class="cast-grid"></div>
-        <button class="reset-btn" onclick="localStorage.clear(); location.reload();">情報をリセットする</button>
+        <div style="color:#666; font-size:0.7rem; text-decoration:underline; cursor:pointer; margin-top:40px;" onclick="localStorage.clear(); location.reload();">情報をリセットする</div>
     </div>
 
-    <div id="history-screen">
-        <header><button onclick="location.reload()" style="background:none; border:none; color:var(--gold); cursor:pointer;">◀戻る</button></header>
-        <h2 style="color:var(--gold)">鑑定の記憶</h2>
-        <div id="history-list"></div>
+    <div id="history-screen" class="screen">
+        <header style="background:none; border:none;"><button onclick="location.reload()" style="background:none; border:none; color:var(--gold); cursor:pointer; font-size:1.2rem;">◀戻る</button></header>
+        <h2>鑑定の記憶</h2>
+        <div id="history-list" class="history-grid"></div>
     </div>
 
-    <div id="chat-screen">
+    <div id="chat-screen" class="screen">
         <img id="chat-bg" src="">
         <header>
             <button onclick="location.reload()" style="background:none; border:none; color:var(--gold); cursor:pointer; font-size:1.2rem;">◀戻る</button>
@@ -80,8 +85,8 @@
         </header>
         <div id="log"></div>
         <div class="input-bar">
-            <input type="text" id="user-msg" style="flex:1; padding:12px; border-radius:20px; border:none; background:#222; color:#fff;" placeholder="占いたいことを入力...">
-            <button onclick="send()">送信</button>
+            <input type="text" id="user-msg" style="flex:1" placeholder="相談を入力...">
+            <button onclick="send()" style="width:auto">送信</button>
         </div>
     </div>
 
@@ -90,12 +95,10 @@
         localStorage.setItem('fortune_user_id', userId);
         let userProfile = JSON.parse(localStorage.getItem('fortune_user_profile'));
         let currentCast = null;
-        let history = [];
 
         window.onload = async () => {
             if (userProfile) {
-                document.getElementById('ticket-info').style.display = 'block';
-                document.getElementById('history-btn').style.display = 'block';
+                document.getElementById('nav-bar').style.display = 'flex';
                 await updateTicket();
                 showSelection();
             } else {
@@ -104,23 +107,21 @@
         };
 
         async function updateTicket() {
-            try {
-                const res = await fetch(`/api/user_info?userId=${userId}`);
-                const data = await res.json();
-                document.getElementById('ticket-count').innerText = data.ticket_balance;
-            } catch(e) {}
+            const res = await fetch(`/api/user_info?userId=${userId}`);
+            const data = await res.json();
+            document.getElementById('ticket-count').innerText = data.ticket_balance || 0;
         }
 
-        async function refillTickets() {
+        async function refill() {
             await fetch('/api/add_tickets', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId }) });
-            alert("チケットを補充しました");
+            alert("チケットを10枚補充しました");
             updateTicket();
         }
 
         async function saveProfile() {
             const name = document.getElementById('user-name').value.trim();
             const dob = document.getElementById('user-dob').value;
-            if(!name || !dob) return alert("お名前と生年月日を入力してください");
+            if(!name || !dob) return alert("情報を入力してください");
             userProfile = { name, dob, blood: "不明" };
             localStorage.setItem('fortune_user_profile', JSON.stringify(userProfile));
             await fetch('/api/save_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, ...userProfile }) });
@@ -128,22 +129,23 @@
         }
 
         async function showSelection() {
-            document.getElementById('setup-screen').style.display = 'none';
+            hideAll();
             document.getElementById('selection-screen').style.display = 'block';
             const res = await fetch('/api/casts');
             const data = await res.json();
             document.getElementById('cast-list').innerHTML = data.map(c => `
                 <div class="cast-card" onclick="startChat(${JSON.stringify(c).replace(/"/g, '&quot;')})">
-                    <img src="/img/${c.img}">
-                    <strong>${c.name}</strong><small style="color:#888; font-size:0.6rem;">${c.role}</small>
+                    <div class="img-wrapper"><img src="/img/${c.img}"></div>
+                    <strong>${c.name}</strong>
+                    <small>${c.role}</small>
                 </div>
             `).join('');
         }
 
         async function showHistory() {
-            document.getElementById('selection-screen').style.display = 'none';
+            hideAll();
             document.getElementById('history-screen').style.display = 'block';
-            const res = await fetch('/api/history');
+            const res = await fetch(`/api/history?userId=${userId}`);
             const data = await res.json();
             document.getElementById('history-list').innerHTML = data.map(h => `
                 <div class="history-card">
@@ -152,15 +154,16 @@
                     <span>${h.cast_name}</span><br>
                     <small>${h.time}</small>
                 </div>
-            `).join('') || "占いの記録はまだありません。";
+            `).join('') || "記録はまだありません。";
         }
 
         function startChat(cast) {
             currentCast = cast;
-            document.getElementById('selection-screen').style.display = 'none';
+            hideAll();
             document.getElementById('chat-screen').style.display = 'flex';
-            document.getElementById('header-name').innerText = cast.name + " 鑑定室";
+            document.getElementById('header-name').innerText = cast.name;
             document.getElementById('chat-bg').src = '/img/' + cast.img;
+            document.getElementById('log').innerHTML = "";
             addMsg(`（${cast.name}）お待ちしておりました、${userProfile.name}さん。あなたの宿命を読み解きましょう。`, 'asst');
         }
 
@@ -173,11 +176,10 @@
             const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: txt, history, cast_id: currentCast.id, userProfile, userId })
+                body: JSON.stringify({ text: txt, history: [], cast_id: currentCast.id, userProfile, userId })
             });
             const data = await res.json();
             addMsg(data.reply, 'asst');
-            history.push({ role: 'user', text: txt }, { role: 'model', text: data.reply });
             updateTicket();
         }
 
@@ -187,10 +189,14 @@
             div.className = r === 'user' ? 'user' : 'asst';
             let content = t.replace(/\n/g, '<br>');
             const imgMatch = t.match(/画像[:：](.*?\.png)/);
-            if(imgMatch) content += `<br><img src="/img/${imgMatch[1].trim()}" style="width:140px; border-radius:10px; border:1px solid var(--gold); margin-top:10px;">`;
+            if(imgMatch) content += `<br><img src="/img/${imgMatch[1].trim()}" class="tarot-img">`;
             div.innerHTML = `<div class="bubble">${content}</div>`;
             log.appendChild(div);
             log.scrollTop = log.scrollHeight;
+        }
+
+        function hideAll() {
+            document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
         }
     </script>
 </body>
