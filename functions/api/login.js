@@ -3,19 +3,17 @@ export async function onRequestPost(context) {
   try {
     const { email, auth_type, userId } = await request.json();
     
-    let user;
-    if (email) {
-      // メールログインの場合
-      user = await env.DB.prepare("SELECT id FROM Users WHERE email = ?").bind(email).first();
-    } else {
-      // SNSログインの場合（ブラウザ保存のIDで照合）
-      user = await env.DB.prepare("SELECT id FROM Users WHERE id = ? AND auth_type = ?").bind(userId, auth_type).first();
-    }
+    let user = await env.DB.prepare("SELECT * FROM Users WHERE id = ? OR email = ?")
+      .bind(userId, email).first();
 
     if (user) {
-      return new Response(JSON.stringify({ success: true, userId: user.id, isNew: false }));
+      // ユーザーが存在し、かつ名前と生年月日が埋まっているかチェック
+      const isComplete = !!(user.name && user.dob);
+      return new Response(JSON.stringify({ 
+        success: true, userId: user.id, isComplete, user 
+      }));
     } else {
-      return new Response(JSON.stringify({ success: true, isNew: true }));
+      return new Response(JSON.stringify({ success: true, isComplete: false }));
     }
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), { status: 500 });
