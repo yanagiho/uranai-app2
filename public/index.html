@@ -8,26 +8,20 @@
         :root { --bg: #0a0510; --accent: #9c27b0; --gold: #d4af37; }
         body { font-family: serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         .screen { display: none; padding: 60px 20px 20px; text-align: center; overflow-y: auto; flex: 1; }
-        
-        /* タイトル画面 */
         #title-screen { display: flex; flex-direction: column; justify-content: center; }
-        .logo { font-size: 3rem; color: var(--gold); margin-bottom: 40px; letter-spacing: 5px; }
-
-        /* フォーム類 */
+        .logo { font-size: 3rem; color: var(--gold); margin-bottom: 30px; letter-spacing: 5px; }
         .form-box { max-width: 320px; margin: 0 auto; text-align: left; background: rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; border: 1px solid #333; }
         input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; }
         .main-btn { background: var(--accent); color: #fff; border: none; padding: 14px; border-radius: 30px; cursor: pointer; font-weight: bold; width: 100%; }
-
-        /* カレンダー/グリッド */
+        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; color: #fff; }
+        nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
+        .nav-item { border: 1px solid var(--gold); color: var(--gold); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; }
         .day-scroller { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; margin-bottom: 20px; }
         .day-tab { min-width: 70px; padding: 10px; border: 1px solid #444; border-radius: 10px; cursor: pointer; font-size: 0.8rem; }
         .day-tab.active { border-color: var(--gold); color: var(--gold); background: rgba(212,175,55,0.1); }
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; max-width: 800px; margin: 20px auto; }
         .cast-card { background: rgba(255,255,255,0.05); border: 1px solid #333; padding: 10px; border-radius: 15px; cursor: pointer; }
         .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; }
-        
-        nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
-        .nav-item { border: 1px solid var(--gold); color: var(--gold); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -36,20 +30,23 @@
         <div class="nav-item">🎟 <span id="nav-ticket">0</span></div>
     </nav>
 
-    <div id="title-screen" class="screen" style="display:flex">
+    <div id="title-screen" class="screen">
         <h1 class="logo">占いの館</h1>
         <div class="form-box">
-            <label style="color:var(--gold); font-size:0.8rem;">ログイン用メールアドレス</label>
+            <button class="auth-btn" style="background:#000; border:1px solid #444;" onclick="handleSocialLogin('X')">X でログイン</button>
+            <button class="auth-btn" style="background:#06C755;" onclick="handleSocialLogin('LINE')">LINE でログイン</button>
+            <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
+            <label style="color:var(--gold); font-size:0.7rem; display:block; margin-bottom:5px;">メールアドレスでログイン</label>
             <input type="email" id="login-email" placeholder="example@mail.com">
-            <button class="main-btn" onclick="handleLogin()">館内へ入る</button>
+            <button class="main-btn" onclick="handleEmailLogin()">入館する</button>
         </div>
     </div>
 
     <div id="setup-screen" class="screen">
         <h1 style="color:var(--gold)">はじめての登録</h1>
         <div class="form-box">
-            <label>お名前（フルネーム）</label>
-            <input type="text" id="user-name">
+            <label>鑑定用のお名前（フルネーム）</label>
+            <input type="text" id="user-name" placeholder="斉藤 太郎">
             <label>生年月日</label>
             <input type="date" id="user-dob">
             <button class="main-btn" onclick="registerUser()">運命を登録する</button>
@@ -67,7 +64,7 @@
         <div style="max-width:400px; margin:0 auto; text-align:left;">
             <p style="color:var(--gold); font-size:0.8rem;">1. 日にちを選択</p>
             <div id="day-list" class="day-scroller"></div>
-            <p style="color:var(--gold); font-size:0.8rem;">2. 時間を選択（30分刻み）</p>
+            <p style="color:var(--gold); font-size:0.8rem;">2. 時間を選択</p>
             <div id="time-slots" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;"></div>
             <div id="selection-info" style="margin:20px 0; color:var(--gold); text-align:center; font-style:italic;"></div>
             <button id="confirm-btn" class="main-btn" style="display:none" onclick="submitBooking()">運命を刻む</button>
@@ -76,59 +73,62 @@
 
     <script>
         let userId = localStorage.getItem('fortune_user_id');
-        let currentCastId = null, selectedDate = null, selectedTime = null, tempEmail = "";
+        let currentCastId = null, selectedDate = null, selectedTime = null, currentAuthType = "";
 
-        async function handleLogin() {
+        async function handleEmailLogin() {
             const email = document.getElementById('login-email').value.trim();
             if (!email) return alert("メールアドレスを入力してください");
-            tempEmail = email;
+            currentAuthType = "Email";
+            loginProcess({ email, auth_type: "Email" });
+        }
 
+        async function handleSocialLogin(type) {
+            currentAuthType = type;
+            loginProcess({ auth_type: type, userId });
+        }
+
+        async function loginProcess(body) {
             const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ email })
+                body: JSON.stringify(body)
             });
             const data = await res.json();
-
             if (data.userId) {
-                // 既存ユーザー：IDを保存して進む
-                localStorage.setItem('fortune_user_id', data.userId);
                 userId = data.userId;
+                localStorage.setItem('fortune_user_id', userId);
                 initApp();
             } else {
-                // 新規ユーザー：登録画面へ
                 showScreen('setup-screen');
             }
         }
 
         async function registerUser() {
-            const name = document.getElementById('user-name').value;
+            const name = document.getElementById('user-name').value.trim();
             const dob = document.getElementById('user-dob').value;
-            if (!name || !dob) return alert("入力してください");
+            const email = document.getElementById('login-email')?.value || "";
+            if (!name || !dob) return alert("名前と生年月日を入力してください");
 
-            // 新しいIDを生成
-            const newId = 'u_' + Math.random().toString(36).substr(2, 9);
+            if(!userId) userId = 'u_' + Math.random().toString(36).substr(2, 9);
             const res = await fetch('/api/save_user', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ userId: newId, name, dob, email: tempEmail })
+                body: JSON.stringify({ userId, name, dob, email, auth_type: currentAuthType })
             });
-
             if (res.ok) {
-                localStorage.setItem('fortune_user_id', newId);
-                userId = newId;
+                localStorage.setItem('fortune_user_id', userId);
                 initApp();
+            } else {
+                alert("登録エラーが発生しました。もう一度お試しください。");
             }
         }
 
         async function initApp() {
             const res = await fetch(`/api/user_info?userId=${userId}`);
             const data = await res.json();
-            document.getElementById('nav-ticket').innerText = data.ticket_balance;
-            
+            document.getElementById('nav-ticket').innerText = data.ticket_balance || 0;
             showScreen('selection-screen');
             document.getElementById('main-nav').style.display = 'flex';
-            
             const cres = await fetch('/api/casts');
             const casts = await cres.json();
             document.getElementById('cast-list').innerHTML = casts.map(c => `
