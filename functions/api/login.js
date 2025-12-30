@@ -1,17 +1,20 @@
 export async function onRequestPost(context) {
   const { request, env } = context;
   try {
-    const { email } = await request.json();
+    const { email, auth_type, userId } = await request.json();
     
-    // メールアドレスでユーザーを検索
-    const user = await env.DB.prepare("SELECT id, name FROM Users WHERE email = ?")
-      .bind(email).first();
+    let user;
+    if (email) {
+      // メールログインの場合
+      user = await env.DB.prepare("SELECT id FROM Users WHERE email = ?").bind(email).first();
+    } else {
+      // SNSログインの場合（ブラウザ保存のIDで照合）
+      user = await env.DB.prepare("SELECT id FROM Users WHERE id = ? AND auth_type = ?").bind(userId, auth_type).first();
+    }
 
     if (user) {
-      // ユーザーがいた場合：ログイン成功としてIDを返す
       return new Response(JSON.stringify({ success: true, userId: user.id, isNew: false }));
     } else {
-      // ユーザーがいない場合：新規登録へ進ませる
       return new Response(JSON.stringify({ success: true, isNew: true }));
     }
   } catch (e) {
