@@ -10,51 +10,51 @@
         
         /* 共通ボタン・入力 */
         input, select { padding: 12px; border-radius: 10px; border: 1px solid #333; background: #000; color: #fff; width: 100%; box-sizing: border-box; margin-bottom: 15px; font-size: 1rem; }
-        button { background: var(--accent); color: #fff; border: none; padding: 10px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; }
-        
+        button { background: var(--accent); color: #fff; border: none; padding: 10px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { opacity: 0.8; transform: scale(1.02); }
+
         /* ヘッダー情報 */
-        #ticket-info { position: fixed; top: 15px; left: 15px; background: rgba(0,0,0,0.6); border: 1px solid var(--gold); color: var(--gold); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; z-index: 100; }
-        #history-btn { position: fixed; top: 15px; right: 15px; background: rgba(0,0,0,0.6); border: 1px solid var(--gold); color: var(--gold); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; z-index: 100; cursor: pointer; }
+        #top-bar { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; pointer-events: none; }
+        #top-bar div, #top-bar button { pointer-events: auto; background: rgba(0,0,0,0.7); border: 1px solid var(--gold); color: var(--gold); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; }
 
         /* 画面切り替え */
-        #setup-screen, #selection-screen, #chat-screen, #history-screen { display: none; padding: 20px; text-align: center; overflow-y: auto; flex: 1; position: relative; }
+        #setup-screen, #selection-screen, #chat-screen, #history-screen { display: none; padding: 20px; text-align: center; overflow-y: auto; flex: 1; }
         
-        /* 選択画面の修正（画像が崩れないように設定） */
-        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; max-width: 900px; margin: 40px auto; }
-        .cast-card { background: rgba(255,255,255,0.05); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; transition: 0.2s; }
-        .cast-card:hover { border-color: var(--accent); transform: translateY(-3px); }
-        .cast-card img { width: 100%; height: 120px; object-fit: cover; border-radius: 10px; margin-bottom: 8px; border: 1px solid #444; }
-        .cast-card strong { color: var(--gold); font-size: 0.9rem; }
+        /* 選択画面の修正（画像崩れ対策） */
+        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; max-width: 800px; margin: 50px auto; }
+        .cast-card { background: rgba(255,255,255,0.05); border: 1px solid #333; padding: 10px; border-radius: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+        .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; margin-bottom: 8px; border: 1px solid #444; }
+        .cast-card strong { color: var(--gold); font-size: 0.85rem; }
 
         /* チャット画面 */
         #chat-screen { padding: 0; flex-direction: column; background: #000; position: relative; overflow: hidden; }
-        #chat-bg { position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0.2; filter: blur(8px); pointer-events: none; z-index: 0; }
+        #chat-bg { position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0.2; filter: blur(10px); z-index: 0; }
         header { background: rgba(20, 10, 40, 0.9); padding: 15px; display: flex; align-items: center; border-bottom: 1px solid var(--accent); z-index: 1; }
         #log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 1; }
-        .bubble { padding: 15px; border-radius: 20px; background: rgba(30, 30, 30, 0.85); border: 1px solid #444; max-width: 80%; text-align: left; word-break: break-all; }
-        .asst .bubble { border-color: var(--accent); }
+        .bubble { padding: 15px; border-radius: 20px; background: rgba(30, 30, 30, 0.9); border: 1px solid #444; max-width: 85%; text-align: left; font-size: 0.95rem; line-height: 1.6; }
         .user { align-self: flex-end; }
         .user .bubble { background: #eee; color: #111; border: none; }
         .input-bar { padding: 20px; display: flex; gap: 10px; background: rgba(10, 10, 10, 0.95); z-index: 1; border-top: 1px solid #333; }
         
-        /* 履歴画面 */
-        #history-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; max-width: 800px; margin: 0 auto; text-align: left; }
-        .history-card { background: #111; border: 1px solid var(--gold); border-radius: 15px; padding: 10px; font-size: 0.8rem; }
+        /* 履歴（ギャラリー）画面 */
+        #history-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; max-width: 800px; margin: 20px auto; text-align: left; }
+        .history-card { background: #111; border: 1px solid var(--gold); border-radius: 15px; padding: 10px; font-size: 0.75rem; color: #ccc; }
         .history-card img { width: 100%; border-radius: 8px; margin-bottom: 5px; }
+        .history-card strong { color: var(--gold); display: block; margin-top: 5px; }
 
-        .reset-link { color: #666; font-size: 0.7rem; text-decoration: underline; cursor: pointer; margin-top: 30px; display: block; }
+        .reset-btn { color: #666; font-size: 0.7rem; background: none; border: none; text-decoration: underline; margin-top: 30px; }
     </style>
 </head>
 <body>
-    <div id="ticket-info" style="display:none">🎟 チケット: <span id="ticket-count">0</span></div>
-    <div id="history-btn" onclick="showHistory()" style="display:none">📜 鑑定の記憶</div>
+    <div id="top-bar">
+        <div id="ticket-info" style="display:none">🎟 <span id="ticket-count">0</span> <button onclick="refillTickets()" style="padding:2px 8px; margin-left:5px; font-size:0.6rem; background:var(--gold); color:#000;">補充</button></div>
+        <button id="history-btn" onclick="showHistory()" style="display:none">📜 鑑定の記録</button>
+    </div>
 
     <div id="setup-screen">
-        <h1 style="color:var(--gold); margin-top:50px;">運命の登録</h1>
-        <div style="max-width:300px; margin:auto; background:rgba(255,255,255,0.05); padding:20px; border-radius:20px;">
-            <label style="display:block; text-align:left; font-size:0.8rem; color:var(--gold);">氏名（フルネーム）</label>
-            <input type="text" id="user-name" placeholder="例：斉藤 太郎">
-            <label style="display:block; text-align:left; font-size:0.8rem; color:var(--gold);">生年月日</label>
+        <h1 style="color:var(--gold); margin-top:60px;">運命の登録</h1>
+        <div class="form-box" style="max-width:300px; margin:auto; background:rgba(255,255,255,0.05); padding:20px; border-radius:20px; border:1px solid #333;">
+            <input type="text" id="user-name" placeholder="氏名（フルネーム）">
             <input type="date" id="user-dob">
             <button onclick="saveProfile()" style="width:100%">占いの館へ入る</button>
         </div>
@@ -63,12 +63,12 @@
     <div id="selection-screen">
         <h1 style="color:var(--gold)">占いの館</h1>
         <div id="cast-list" class="cast-grid"></div>
-        <div class="reset-link" onclick="localStorage.clear(); location.reload();">情報をクリアして最初からやり直す</div>
+        <button class="reset-btn" onclick="localStorage.clear(); location.reload();">情報をリセットする</button>
     </div>
 
     <div id="history-screen">
         <header><button onclick="location.reload()" style="background:none; border:none; color:var(--gold); cursor:pointer;">◀戻る</button></header>
-        <h2 style="color:var(--gold)">過去の鑑定結果</h2>
+        <h2 style="color:var(--gold)">鑑定の記憶</h2>
         <div id="history-list"></div>
     </div>
 
@@ -111,10 +111,16 @@
             } catch(e) {}
         }
 
+        async function refillTickets() {
+            await fetch('/api/add_tickets', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ userId }) });
+            alert("チケットを補充しました");
+            updateTicket();
+        }
+
         async function saveProfile() {
             const name = document.getElementById('user-name').value.trim();
             const dob = document.getElementById('user-dob').value;
-            if(!name || !dob) return alert("氏名と生年月日を入力してください");
+            if(!name || !dob) return alert("お名前と生年月日を入力してください");
             userProfile = { name, dob, blood: "不明" };
             localStorage.setItem('fortune_user_profile', JSON.stringify(userProfile));
             await fetch('/api/save_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, ...userProfile }) });
@@ -122,13 +128,14 @@
         }
 
         async function showSelection() {
+            document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('selection-screen').style.display = 'block';
             const res = await fetch('/api/casts');
             const data = await res.json();
             document.getElementById('cast-list').innerHTML = data.map(c => `
                 <div class="cast-card" onclick="startChat(${JSON.stringify(c).replace(/"/g, '&quot;')})">
                     <img src="/img/${c.img}">
-                    <strong>${c.name}</strong><br><small style="color:#888">${c.role}</small>
+                    <strong>${c.name}</strong><small style="color:#888; font-size:0.6rem;">${c.role}</small>
                 </div>
             `).join('');
         }
@@ -141,20 +148,19 @@
             document.getElementById('history-list').innerHTML = data.map(h => `
                 <div class="history-card">
                     <img src="/img/${h.card_image}">
-                    <strong>${h.card_name}</strong><br>
-                    <small>${h.cast_name} / ${h.time}</small>
+                    <strong>${h.card_name}</strong>
+                    <span>${h.cast_name}</span><br>
+                    <small>${h.time}</small>
                 </div>
-            `).join('') || "まだ占いの記録がありません。";
+            `).join('') || "占いの記録はまだありません。";
         }
 
         function startChat(cast) {
             currentCast = cast;
-            history = [];
             document.getElementById('selection-screen').style.display = 'none';
             document.getElementById('chat-screen').style.display = 'flex';
-            document.getElementById('header-name').innerText = cast.name;
+            document.getElementById('header-name').innerText = cast.name + " 鑑定室";
             document.getElementById('chat-bg').src = '/img/' + cast.img;
-            document.getElementById('log').innerHTML = "";
             addMsg(`（${cast.name}）お待ちしておりました、${userProfile.name}さん。あなたの宿命を読み解きましょう。`, 'asst');
         }
 
@@ -164,19 +170,15 @@
             if(!txt) return;
             addMsg(txt, 'user');
             inp.value = "";
-            try {
-                const res = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: txt, history, cast_id: currentCast.id, userProfile, userId })
-                });
-                const data = await res.json();
-                addMsg(data.reply, 'asst');
-                history.push({ role: 'user', text: txt }, { role: 'model', text: data.reply });
-                updateTicket();
-            } catch (e) {
-                addMsg("（通信が途絶えました。もう一度送信してください）", 'asst');
-            }
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: txt, history, cast_id: currentCast.id, userProfile, userId })
+            });
+            const data = await res.json();
+            addMsg(data.reply, 'asst');
+            history.push({ role: 'user', text: txt }, { role: 'model', text: data.reply });
+            updateTicket();
         }
 
         function addMsg(t, r) {
@@ -185,7 +187,7 @@
             div.className = r === 'user' ? 'user' : 'asst';
             let content = t.replace(/\n/g, '<br>');
             const imgMatch = t.match(/画像[:：](.*?\.png)/);
-            if(imgMatch) content += `<br><img src="/img/${imgMatch[1].trim()}" style="width:160px; border-radius:10px; border:1px solid var(--gold); margin-top:10px; box-shadow:0 0 10px var(--gold);">`;
+            if(imgMatch) content += `<br><img src="/img/${imgMatch[1].trim()}" style="width:140px; border-radius:10px; border:1px solid var(--gold); margin-top:10px;">`;
             div.innerHTML = `<div class="bubble">${content}</div>`;
             log.appendChild(div);
             log.scrollTop = log.scrollHeight;
