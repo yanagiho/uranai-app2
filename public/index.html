@@ -9,90 +9,123 @@
         body { font-family: serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         .screen { display: none; padding: 60px 20px 20px; text-align: center; overflow-y: auto; flex: 1; }
         
-        /* 1週間カレンダーバー */
-        .day-scroller { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; border-bottom: 1px solid #333; margin-bottom: 20px; }
-        .day-tab { min-width: 70px; padding: 10px; border: 1px solid #444; border-radius: 10px; cursor: pointer; font-size: 0.8rem; flex-shrink: 0; }
-        .day-tab.active { border-color: var(--gold); background: rgba(212,175,55,0.1); color: var(--gold); }
-        
-        #time-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .slot-btn { padding: 12px 5px; border: 1px solid var(--gold); background: transparent; color: #fff; border-radius: 5px; cursor: pointer; }
-        .slot-btn:disabled { border-color: #333; color: #555; background: #111; cursor: not-allowed; }
-        .slot-btn.selected { background: var(--gold); color: #000; font-weight: bold; }
+        /* タイトル画面 */
+        #title-screen { display: flex; flex-direction: column; justify-content: center; }
+        .logo { font-size: 3rem; color: var(--gold); margin-bottom: 40px; letter-spacing: 5px; }
 
-        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin: 20px auto; max-width: 800px; }
-        .cast-card { background: rgba(255,255,255,0.05); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; }
-        .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; border: 1px solid #444; }
+        /* フォーム類 */
+        .form-box { max-width: 320px; margin: 0 auto; text-align: left; background: rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; border: 1px solid #333; }
+        input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; }
+        .main-btn { background: var(--accent); color: #fff; border: none; padding: 14px; border-radius: 30px; cursor: pointer; font-weight: bold; width: 100%; }
+
+        /* カレンダー/グリッド */
+        .day-scroller { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; margin-bottom: 20px; }
+        .day-tab { min-width: 70px; padding: 10px; border: 1px solid #444; border-radius: 10px; cursor: pointer; font-size: 0.8rem; }
+        .day-tab.active { border-color: var(--gold); color: var(--gold); background: rgba(212,175,55,0.1); }
+        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; max-width: 800px; margin: 20px auto; }
+        .cast-card { background: rgba(255,255,255,0.05); border: 1px solid #333; padding: 10px; border-radius: 15px; cursor: pointer; }
+        .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; }
         
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
-        .nav-item { border: 1px solid var(--gold); color: var(--gold); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
-        .main-btn { width: 100%; padding: 12px; border-radius: 30px; border: none; font-weight: bold; cursor: pointer; background: var(--accent); color: #fff; margin-top:10px; }
-        input { width: 100%; padding: 10px; background: #000; border: 1px solid #333; color: #fff; border-radius: 5px; box-sizing: border-box; margin-bottom: 10px; }
-        .no-slots-msg { color: #888; font-size: 0.9rem; padding: 20px; border: 1px dashed #444; border-radius: 10px; }
+        .nav-item { border: 1px solid var(--gold); color: var(--gold); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; }
     </style>
 </head>
 <body>
     <nav id="main-nav" style="display:none">
-        <div class="nav-item" onclick="location.reload()">鑑定師一覧</div>
+        <div class="nav-item" onclick="location.reload()">占いの館</div>
         <div class="nav-item">🎟 <span id="nav-ticket">0</span></div>
     </nav>
 
+    <div id="title-screen" class="screen" style="display:flex">
+        <h1 class="logo">占いの館</h1>
+        <div class="form-box">
+            <label style="color:var(--gold); font-size:0.8rem;">ログイン用メールアドレス</label>
+            <input type="email" id="login-email" placeholder="example@mail.com">
+            <button class="main-btn" onclick="handleLogin()">館内へ入る</button>
+        </div>
+    </div>
+
     <div id="setup-screen" class="screen">
-        <h1 style="color:var(--gold)">運命の登録</h1>
-        <div style="max-width:300px; margin:auto; text-align:left;">
-            <label style="font-size:0.8rem; color:var(--gold)">氏名</label>
-            <input type="text" id="user-name" placeholder="斉藤 太郎">
-            <label style="font-size:0.8rem; color:var(--gold)">生年月日</label>
+        <h1 style="color:var(--gold)">はじめての登録</h1>
+        <div class="form-box">
+            <label>お名前（フルネーム）</label>
+            <input type="text" id="user-name">
+            <label>生年月日</label>
             <input type="date" id="user-dob">
-            <label style="font-size:0.8rem; color:var(--gold)">通知用メールアドレス（必須）</label>
-            <input type="email" id="user-email" placeholder="mail@example.com">
-            <button class="main-btn" onclick="saveProfile()">館内へ入る</button>
+            <button class="main-btn" onclick="registerUser()">運命を登録する</button>
         </div>
     </div>
 
     <div id="selection-screen" class="screen">
         <h2>鑑定師をお選びください</h2>
         <div id="cast-list" class="cast-grid"></div>
+        <p style="color:#555; font-size:0.7rem; text-decoration:underline; cursor:pointer;" onclick="localStorage.clear(); location.reload();">ログアウト</p>
     </div>
 
     <div id="booking-screen" class="screen">
         <h2>鑑定予約 - <span id="book-cast-name"></span></h2>
         <div style="max-width:400px; margin:0 auto; text-align:left;">
-            <p style="color:var(--gold); font-size:0.8rem;">1. 日にちを選択（今日から1週間）</p>
+            <p style="color:var(--gold); font-size:0.8rem;">1. 日にちを選択</p>
             <div id="day-list" class="day-scroller"></div>
-            <p style="color:var(--gold); font-size:0.8rem;">2. 希望の時間を選択</p>
-            <div id="time-slots"></div>
-            <div id="selection-info" style="margin:20px 0; color:var(--gold); text-align:center; font-weight:bold; min-height:1.5rem; font-style:italic;"></div>
-            <button id="confirm-booking-btn" class="main-btn" style="display:none;" onclick="submitBooking()">運命を刻む</button>
+            <p style="color:var(--gold); font-size:0.8rem;">2. 時間を選択（30分刻み）</p>
+            <div id="time-slots" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;"></div>
+            <div id="selection-info" style="margin:20px 0; color:var(--gold); text-align:center; font-style:italic;"></div>
+            <button id="confirm-btn" class="main-btn" style="display:none" onclick="submitBooking()">運命を刻む</button>
         </div>
     </div>
 
     <script>
-        let userId = localStorage.getItem('fortune_user_id') || 'u_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('fortune_user_id', userId);
-        let currentCastId = null, selectedDate = null, selectedTime = null, hasPendingReservation = false;
+        let userId = localStorage.getItem('fortune_user_id');
+        let currentCastId = null, selectedDate = null, selectedTime = null, tempEmail = "";
 
-        async function saveProfile() {
-            const name = document.getElementById('user-name').value;
-            const dob = document.getElementById('user-dob').value;
-            const email = document.getElementById('user-email').value;
-            if(!name || !dob || !email) return alert("全ての項目を入力してください");
-            await fetch('/api/save_user', {
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value.trim();
+            if (!email) return alert("メールアドレスを入力してください");
+            tempEmail = email;
+
+            const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ userId, name, dob, email, blood: "不明" })
+                body: JSON.stringify({ email })
             });
-            location.reload();
+            const data = await res.json();
+
+            if (data.userId) {
+                // 既存ユーザー：IDを保存して進む
+                localStorage.setItem('fortune_user_id', data.userId);
+                userId = data.userId;
+                initApp();
+            } else {
+                // 新規ユーザー：登録画面へ
+                showScreen('setup-screen');
+            }
         }
 
-        async function init() {
+        async function registerUser() {
+            const name = document.getElementById('user-name').value;
+            const dob = document.getElementById('user-dob').value;
+            if (!name || !dob) return alert("入力してください");
+
+            // 新しいIDを生成
+            const newId = 'u_' + Math.random().toString(36).substr(2, 9);
+            const res = await fetch('/api/save_user', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId: newId, name, dob, email: tempEmail })
+            });
+
+            if (res.ok) {
+                localStorage.setItem('fortune_user_id', newId);
+                userId = newId;
+                initApp();
+            }
+        }
+
+        async function initApp() {
             const res = await fetch(`/api/user_info?userId=${userId}`);
             const data = await res.json();
-            if(!data.name || data.name === "ゲスト") {
-                showScreen('setup-screen');
-                return;
-            }
             document.getElementById('nav-ticket').innerText = data.ticket_balance;
-            hasPendingReservation = data.hasPendingReservation;
+            
             showScreen('selection-screen');
             document.getElementById('main-nav').style.display = 'flex';
             
@@ -107,7 +140,6 @@
         }
 
         function openBooking(id, name) {
-            if(hasPendingReservation) return alert("既に予約が入っています。鑑定が終了してから次をご予約ください。");
             currentCastId = id;
             document.getElementById('book-cast-name').innerText = name;
             const list = document.getElementById('day-list');
@@ -125,36 +157,26 @@
             selectedDate = date;
             document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
             el.classList.add('active');
-            const slotsDiv = document.getElementById('time-slots');
-            slotsDiv.innerHTML = "<div style='grid-column:1/4'>水晶玉に問いかけています...</div>";
             const res = await fetch(`/api/get_slots?castId=${currentCastId}&date=${date}`);
             const data = await res.json();
-            if (data.slots && data.slots.length > 0 && !data.message) {
-                slotsDiv.innerHTML = data.slots.map(s => 
-                    `<button class="slot-btn" ${s.status==='booked'?'disabled':''} onclick="selectTime('${s.time}', this)">${s.time}</button>`
-                ).join('');
-            } else {
-                slotsDiv.innerHTML = `<div class="no-slots-msg" style="grid-column:1/4">${data.message || "この日はお休みをいただいております。"}</div>`;
-            }
+            document.getElementById('time-slots').innerHTML = data.slots.map(s => 
+                `<button style="padding:10px; background:none; border:1px solid var(--gold); color:#fff; border-radius:5px;" ${s.status==='booked'?'disabled':''} onclick="selectTime('${s.time}', this)">${s.time}</button>`
+            ).join('');
         }
 
         function selectTime(time, el) {
             selectedTime = time;
-            document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
-            el.classList.add('selected');
-            document.getElementById('selection-info').innerText = `選択中：${selectedDate} ${selectedTime}`;
-            document.getElementById('confirm-booking-btn').style.display = 'block';
+            document.getElementById('selection-info').innerText = `${selectedDate} ${selectedTime}`;
+            document.getElementById('confirm-btn').style.display = 'block';
         }
 
         async function submitBooking() {
-            const btn = document.getElementById('confirm-booking-btn');
-            btn.disabled = true; btn.innerText = "運命を刻んでいます...";
             await fetch('/api/reserve', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ userId, castId: currentCastId, scheduledAt: `${selectedDate}T${selectedTime}` })
             });
-            alert(`【予約完了】\n\n星々の配置が整いました。${selectedDate} ${selectedTime}、鑑定室でお待ちしております。`);
+            alert("予約しました。お時間になったらお越しください。");
             location.reload();
         }
 
@@ -163,7 +185,7 @@
             document.getElementById(id).style.display = 'block';
         }
 
-        window.onload = init;
+        window.onload = () => { if(userId) initApp(); else showScreen('title-screen'); };
     </script>
 </body>
 </html>
