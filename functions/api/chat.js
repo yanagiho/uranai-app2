@@ -4,9 +4,9 @@ const casts = {
   3: { name: "琥珀", method: "pendulum", prompt: "あなたは琥珀。姉御肌。直感的でズバッと言い切る口調です。" },
   4: { name: "マリア", method: "candle", prompt: "あなたは神秘的なマリア。静謐な話し方。炎に映る幻影を読みます。" },
   5: { name: "サナ", method: "rune", prompt: "あなたは海辺のサナ。素朴な口調。名前の響きをルーン石に載せて占います。" },
-  6: { name: "イツキ", method: "onomancy", prompt: "あなたはイツキ。姓名判断の専門家。氏名の画数や漢字の意味を論理的に分析し解説してください。" },
+  6: { name: "イツキ", method: "onomancy", prompt: "あなたはイツキ。姓名判断の専門家。氏名の画数や漢字の意味を論理的に分析し、解説してください。" },
   7: { name: "コウヤ", method: "oharai", prompt: "あなたは神職のコウヤ。厳格で古風な物言い。邪気を払い、光明を示します。" },
-  8: { name: "雪音", method: "dream", prompt: "あなたは雪音。包容力のある母親のような癒やしの占い師。あなたの夢の記憶を辿ります。" }
+  8: { name: "雪音", method: "dream", prompt: "あなたは雪音。包容力のある癒やしの占い師。あなたの夢の記憶を辿ります。" }
 };
 
 const tarotData = [
@@ -26,7 +26,6 @@ export async function onRequestPost(context) {
     const { text, history, cast_id, userProfile, userId } = data;
     const cast = casts[cast_id] || casts[1];
 
-    // チケット確認
     const user = await env.DB.prepare("SELECT ticket_balance FROM Users WHERE id = ?").bind(userId).first();
     if (!user || user.ticket_balance <= 0) return new Response(JSON.stringify({ reply: "チケットが不足しています。" }));
 
@@ -43,13 +42,13 @@ export async function onRequestPost(context) {
 
     const userContext = `\n\n【相談者データ】氏名:${userProfile.name}、生年月日:${userProfile.dob}。\nこれらを踏まえ、熟練の占い師として接してください。`;
 
-    // 🌟 ご提供いただいたリストに基づき、確実に存在する「gemini-2.0-flash」を使用します 🌟
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GEMINI_API_KEY}`;
+    // 🌟 制限を回避するため、軽量で制限の緩い「gemini-2.0-flash-lite」に切り替えます 🌟
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${env.GEMINI_API_KEY}`;
     
     const body = {
       contents: [
         { role: "user", parts: [{ text: cast.prompt + userContext + divi + "\n\n鑑定を開始してください。" }] },
-        { role: "model", parts: [{ text: "承知いたしました。お客様の宿命を読み解き、私の言葉で語り始めます。" }] },
+        { role: "model", parts: [{ text: "承知いたしました。鑑定を開始いたします。" }] },
         ...history.map(h => ({ role: h.role === "user" ? "user" : "model", parts: [{ text: h.text }] })),
         { role: "user", parts: [{ text: text }] }
       ]
@@ -58,11 +57,13 @@ export async function onRequestPost(context) {
     const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const resJson = await res.json();
 
-    if (!res.ok) return new Response(JSON.stringify({ reply: "AI通信エラー：" + (resJson.error?.message || "接続失敗") }));
+    if (!res.ok) {
+        // エラーが出た場合、詳細を表示するようにしました
+        return new Response(JSON.stringify({ reply: "AI通信エラー（制限）：" + (resJson.error?.message || "現在AIが混み合っています。少し待ってからお試しください。") }));
+    }
 
     const reply = resJson.candidates[0].content.parts[0].text;
 
-    // 履歴保存
     if (drawnCard) {
       await env.DB.prepare(`INSERT INTO ChatLogs (reservation_id, sender, content, card_name, card_image, cast_name) VALUES (?, ?, ?, ?, ?, ?)`
       ).bind(Date.now(), "asst", reply, drawnCard.name, drawnCard.file, cast.name).run();
