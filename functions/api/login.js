@@ -3,16 +3,18 @@ export async function onRequestPost(context) {
   try {
     const { email, auth_type, userId } = await request.json();
     
-    let user = await env.DB.prepare("SELECT * FROM Users WHERE id = ? OR email = ?")
+    // IDまたはメールアドレスで既存ユーザーを検索
+    const user = await env.DB.prepare("SELECT * FROM Users WHERE id = ? OR email = ?")
       .bind(userId, email).first();
 
     if (user) {
-      // ユーザーが存在し、かつ名前と生年月日が埋まっているかチェック
+      // 名前と生年月日の両方が登録されているか確認
       const isComplete = !!(user.name && user.dob);
       return new Response(JSON.stringify({ 
         success: true, userId: user.id, isComplete, user 
       }));
     } else {
+      // 完全に新規のユーザー
       return new Response(JSON.stringify({ success: true, isComplete: false }));
     }
   } catch (e) {
