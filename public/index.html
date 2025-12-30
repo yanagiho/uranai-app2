@@ -7,15 +7,14 @@
     <style>
         :root { --bg: #0a0510; --accent: #9c27b0; --gold: #d4af37; }
         body { font-family: serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-        input, select { padding: 12px; border-radius: 10px; border: 1px solid #333; background: #000; color: #fff; width: 100%; box-sizing: border-box; margin-bottom: 15px; }
-        button { background: var(--accent); color: #fff; border: none; padding: 12px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        input, select { padding: 12px; border-radius: 10px; border: 1px solid #333; background: #000; color: #fff; width: 100%; box-sizing: border-box; margin-bottom: 15px; font-size: 1rem; }
+        button { background: var(--accent); color: #fff; border: none; padding: 12px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; }
         
         #ticket-info { position: fixed; top: 15px; right: 15px; background: rgba(156, 39, 176, 0.2); border: 1px solid var(--gold); color: var(--gold); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; z-index: 100; display: none; }
         #setup-screen, #selection-screen, #chat-screen { display: none; padding: 20px; text-align: center; overflow-y: auto; flex: 1; }
         .form-box { max-width: 320px; margin: 40px auto; text-align: left; background: rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; border: 1px solid #333; }
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; max-width: 900px; margin: 20px auto; }
         .cast-card { background: rgba(255,255,255,0.05); border: 1px solid #333; padding: 15px; border-radius: 15px; cursor: pointer; transition: 0.3s; }
-        .cast-card:hover { transform: translateY(-5px); border-color: var(--accent); }
         .cast-card img { width: 100%; border-radius: 10px; margin-bottom: 10px; }
 
         #chat-screen { padding: 0; flex-direction: column; background: #000; position: relative; }
@@ -27,8 +26,6 @@
         .user .bubble { background: #eee; color: #111; }
         .tarot-img { width: 180px; border-radius: 10px; margin-top: 10px; display: block; border: 1px solid var(--gold); }
         .input-bar { padding: 20px; display: flex; gap: 10px; background: rgba(17, 17, 17, 0.9); z-index: 1; }
-        
-        /* リセットボタンのスタイル */
         .reset-link { color: var(--gold); font-size: 0.8rem; text-decoration: underline; cursor: pointer; margin-top: 20px; display: inline-block; }
     </style>
 </head>
@@ -51,7 +48,7 @@
     <div id="selection-screen">
         <h1 style="color:var(--gold)">占いの館</h1>
         <div id="cast-list" class="cast-grid"></div>
-        <span class="reset-link" onclick="clearProfile()">別の名前で登録し直す</span>
+        <span class="reset-link" onclick="clearAllData()">別の情報で登録し直す</span>
     </div>
 
     <div id="chat-screen">
@@ -62,7 +59,7 @@
         </header>
         <div id="log"></div>
         <div class="input-bar">
-            <input type="text" id="user-msg" style="flex:1" placeholder="相談内容を入力...">
+            <input type="text" id="user-msg" style="flex:1; padding:12px; border-radius:20px; border:none; background:#222; color:#fff;" placeholder="相談内容を入力...">
             <button onclick="send()">送信</button>
         </div>
     </div>
@@ -83,15 +80,6 @@
             }
         };
 
-        // クリア機能の追加
-        function clearProfile() {
-            if(confirm("登録した情報をクリアしてよろしいですか？")) {
-                localStorage.removeItem('fortune_user_profile');
-                localStorage.removeItem('fortune_user_id');
-                location.reload();
-            }
-        }
-
         async function updateTicketDisplay() {
             const res = await fetch(`/api/user_info?userId=${userId}`);
             const data = await res.json();
@@ -102,14 +90,21 @@
         }
 
         async function saveProfile() {
-            const name = document.getElementById('user-name').value;
+            const name = document.getElementById('user-name').value.trim();
             const dob = document.getElementById('user-dob').value;
             const blood = document.getElementById('user-blood').value;
-            if(!name || !dob) return alert("情報を入力してください");
+            if(!name || !dob) return alert("お名前と生年月日を教えてください");
             userProfile = { name, dob, blood };
             localStorage.setItem('fortune_user_profile', JSON.stringify(userProfile));
             await fetch('/api/save_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, ...userProfile }) });
             location.reload();
+        }
+
+        function clearAllData() {
+            if(confirm("登録した情報をクリアしますか？")) {
+                localStorage.clear();
+                location.reload();
+            }
         }
 
         async function showSelection() {
@@ -131,10 +126,10 @@
             history = [];
             document.getElementById('selection-screen').style.display = 'none';
             document.getElementById('chat-screen').style.display = 'flex';
-            document.getElementById('header-name').innerText = cast.name;
+            document.getElementById('header-name').innerText = cast.name + " 鑑定室";
             document.getElementById('chat-bg').src = '/img/' + cast.img;
             document.getElementById('log').innerHTML = "";
-            addMsg(`（${cast.name}）お待ちしておりました、${userProfile.name}さん。鑑定を始めましょう。`, 'asst');
+            addMsg(`（${cast.name}）お待ちしておりました、${userProfile.name}さん。お前さんの運命、鑑定しましょう。`, 'asst');
         }
 
         async function send() {
