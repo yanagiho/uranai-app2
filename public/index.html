@@ -9,10 +9,9 @@
         body { font-family: serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         input, select { padding: 12px; border-radius: 10px; border: 1px solid #333; background: #000; color: #fff; outline: none; margin-bottom: 15px; width: 100%; box-sizing: border-box; }
         button { background: var(--accent); color: #fff; border: none; padding: 12px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; }
-        #setup-screen { padding: 40px 20px; text-align: center; overflow-y: auto; flex: 1; }
+        #setup-screen, #selection-screen, #chat-screen { display: none; padding: 20px; text-align: center; overflow-y: auto; flex: 1; }
         .form-box { max-width: 320px; margin: 0 auto; text-align: left; background: rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; border: 1px solid #333; }
         label { color: var(--gold); font-size: 0.85rem; display: block; margin-bottom: 5px; }
-        #selection-screen, #chat-screen { display: none; padding: 20px; text-align: center; overflow-y: auto; flex: 1; }
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; max-width: 900px; margin: 20px auto; }
         .cast-card { background: rgba(255,255,255,0.05); border: 1px solid #333; padding: 15px; border-radius: 15px; cursor: pointer; }
         .cast-card img { width: 100%; border-radius: 10px; margin-bottom: 10px; border: 1px solid #444; }
@@ -24,7 +23,6 @@
         .asst .bubble { border-color: var(--accent); background: #1a0b2e; }
         .user { align-self: flex-end; }
         .user .bubble { background: #eee; color: #111; }
-        .tarot-img { width: 180px; border-radius: 10px; margin-top: 10px; display: block; border: 1px solid var(--gold); }
         .input-bar { padding: 20px; display: flex; gap: 10px; background: #111; }
     </style>
 </head>
@@ -38,13 +36,9 @@
             <input type="date" id="user-dob">
             <label>血液型</label>
             <select id="user-blood">
-                <option value="A型">A型</option>
-                <option value="B型">B型</option>
-                <option value="O型">O型</option>
-                <option value="AB型">AB型</option>
-                <option value="不明">不明</option>
+                <option value="A型">A型</option><option value="B型">B型</option><option value="O型">O型</option><option value="AB型">AB型</option><option value="不明">不明</option>
             </select>
-            <button onclick="saveProfile()" style="width:100%">占い師を選ぶ</button>
+            <button onclick="saveProfile()" style="width:100%">保存して占い師を選ぶ</button>
         </div>
     </div>
 
@@ -66,22 +60,41 @@
     </div>
 
     <script>
-        let userProfile = null;
-        let currentCastId = null;
-        let history = [];
+        let userId = localStorage.getItem('fortune_user_id') || 'u_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('fortune_user_id', userId);
 
-        function saveProfile() {
+        let userProfile = JSON.parse(localStorage.getItem('fortune_user_profile'));
+
+        window.onload = () => {
+            if (userProfile) {
+                showSelection(); // すでに情報があれば選択画面へ
+            } else {
+                document.getElementById('setup-screen').style.display = 'block';
+            }
+        };
+
+        async function saveProfile() {
             const name = document.getElementById('user-name').value.trim();
             const dob = document.getElementById('user-dob').value;
             const blood = document.getElementById('user-blood').value;
-            if(!name || !dob) return alert("お名前と生年月日を入力してください");
+            if(!name || !dob) return alert("情報を入力してください");
+
             userProfile = { name, dob, blood };
-            document.getElementById('setup-screen').style.display = 'none';
-            document.getElementById('selection-screen').style.display = 'block';
-            loadCasts();
+            localStorage.setItem('fortune_user_profile', JSON.stringify(userProfile));
+
+            // データベースに保存
+            await fetch('/api/save_user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, ...userProfile })
+            });
+
+            showSelection();
         }
 
-        async function loadCasts() {
+        async function showSelection() {
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('selection-screen').style.display = 'block';
             const res = await fetch('/api/casts');
             const data = await res.json();
             document.getElementById('cast-list').innerHTML = data.map(c => `
@@ -98,7 +111,7 @@
             document.getElementById('selection-screen').style.display = 'none';
             document.getElementById('chat-screen').style.display = 'flex';
             document.getElementById('header-name').innerText = name + " 鑑定室";
-            addMsg(`（${name}）お待ちしておりました、${userProfile.name}さん。お前さんの宿命、既に視えておりますよ。`, 'asst');
+            addMsg(`（${name}）お待ちしておりました、${userProfile.name}さん。`, 'asst');
         }
 
         async function send() {
@@ -107,30 +120,20 @@
             if(!txt) return;
             addMsg(txt, 'user');
             inp.value = "";
-            try {
-                const res = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: txt, history: history, cast_id: currentCastId, userProfile: userProfile })
-                });
-                const data = await res.json();
-                addMsg(data.reply, 'asst');
-                history.push({ role: 'user', text: txt }, { role: 'model', text: data.reply });
-            } catch (e) {
-                addMsg("(使い魔): 通信が途絶えました。", 'asst');
-            }
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: txt, history: [], cast_id: currentCastId, userProfile })
+            });
+            const data = await res.json();
+            addMsg(data.reply, 'asst');
         }
 
         function addMsg(t, r) {
             const log = document.getElementById('log');
             const div = document.createElement('div');
             div.className = r === 'user' ? 'user' : 'asst';
-            let content = t.replace(/\n/g, '<br>');
-            const imgMatch = t.match(/画像[:：](.*?\.png)/);
-            if(imgMatch) {
-                content += `<br><img src="/img/${imgMatch[1].trim()}" class="tarot-img">`;
-            }
-            div.innerHTML = `<div class="bubble">${content}</div>`;
+            div.innerHTML = `<div class="bubble">${t.replace(/\n/g, '<br>')}</div>`;
             log.appendChild(div);
             log.scrollTop = log.scrollHeight;
         }
