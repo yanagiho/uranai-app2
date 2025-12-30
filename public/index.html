@@ -6,44 +6,46 @@
     <title>AI占いの館 - 神秘の導き</title>
     <style>
         :root { --bg: #0a0510; --accent: #9c27b0; --gold: #d4af37; --card-bg: rgba(255,255,255,0.05); }
-        body { font-family: 'Times New Roman', serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        body { font-family: 'Times New Roman', 'Hiragino Mincho ProN', serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         
-        /* タイトル・ログイン */
+        /* タイトル・ログイン画面 */
         .screen { display: none; padding: 60px 20px 20px; text-align: center; overflow-y: auto; flex: 1; }
         #title-screen { display: flex; flex-direction: column; justify-content: center; background: radial-gradient(circle, #1a0b2e 0%, #050208 100%); }
         .logo { font-size: 3rem; color: var(--gold); letter-spacing: 8px; margin-bottom: 40px; text-shadow: 0 0 20px rgba(212,175,55,0.5); }
-        .auth-btn { width: 260px; margin: 8px auto; padding: 12px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; }
+        .auth-btn { width: 260px; margin: 8px auto; padding: 12px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
 
-        /* 占い師グリッド（画像崩れ対策） */
+        /* 占い師グリッド（画像崩れ完全修正） */
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; max-width: 800px; margin: 30px auto; }
-        .cast-card { background: var(--card-bg); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; }
+        .cast-card { background: var(--card-bg); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; transition: 0.3s; }
+        .cast-card:hover { border-color: var(--accent); transform: translateY(-3px); }
         .cast-card .img-wrapper { width: 100%; aspect-ratio: 1/1; overflow: hidden; border-radius: 10px; border: 1px solid #444; margin-bottom: 8px; }
         .cast-card img { width: 100%; height: 100%; object-fit: cover; } /* 画像が伸びない設定 */
         .cast-card strong { color: var(--gold); display: block; font-size: 0.9rem; }
 
-        /* 予約カレンダー */
-        .booking-card { max-width: 400px; margin: 0 auto; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 20px; border: 1px solid #333; }
-        #time-slots { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 15px; }
-        .slot-btn { padding: 8px; border: 1px solid var(--gold); background: transparent; color: #fff; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
-        .slot-btn:disabled { border-color: #333; color: #555; cursor: not-allowed; }
-        .slot-btn.selected { background: var(--gold); color: #000; }
+        /* カレンダー予約エリア */
+        .booking-card { max-width: 400px; margin: 0 auto; background: rgba(255,255,255,0.03); padding: 25px; border-radius: 20px; border: 1px solid #333; }
+        #time-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+        .slot-btn { padding: 10px; border: 1px solid var(--gold); background: transparent; color: #fff; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
+        .slot-btn:disabled { border-color: #333; color: #555; cursor: not-allowed; background: #111; }
+        .slot-btn.selected { background: var(--gold); color: #000; font-weight: bold; }
 
-        /* チャット */
+        /* チャット画面 */
         #chat-screen { padding: 0; background: #000; position: relative; flex-direction: column; }
         #log { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 5; }
-        .bubble { padding: 15px; border-radius: 20px; background: rgba(30,30,30,0.9); border: 1px solid #444; max-width: 85%; text-align: left; }
+        .bubble { padding: 15px; border-radius: 20px; background: rgba(30,30,30,0.9); border: 1px solid #444; max-width: 85%; text-align: left; line-height: 1.6; }
         .user { align-self: flex-end; }
-        .user .bubble { background: #eee; color: #111; }
-        .input-bar { padding: 20px; display: flex; gap: 10px; background: #111; border-top: 1px solid var(--accent); z-index: 10; }
-        input[type="text"], input[type="date"], input[type="datetime-local"] { padding: 10px; background: #000; border: 1px solid #333; color: #fff; border-radius: 5px; }
-
-        nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); }
+        .user .bubble { background: #eee; color: #111; border: none; }
+        
+        /* 共通ナビ */
+        nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
         .nav-item { border: 1px solid var(--gold); color: var(--gold); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
+
+        input[type="date"] { padding: 12px; background: #000; border: 1px solid #333; color: #fff; border-radius: 5px; width: 100%; box-sizing: border-box; font-size: 1rem; }
     </style>
 </head>
 <body>
     <nav id="main-nav" style="display:none">
-        <div class="nav-item" onclick="showScreen('selection-screen')">鑑定師を選ぶ</div>
+        <div class="nav-item" onclick="showScreen('selection-screen')">館内</div>
         <div class="nav-item">🎟 <span id="nav-ticket">0</span></div>
     </nav>
 
@@ -55,18 +57,22 @@
     </div>
 
     <div id="selection-screen" class="screen">
-        <h2>鑑定師一覧</h2>
+        <h2>鑑定師をお選びください</h2>
         <div id="cast-list" class="cast-grid"></div>
+        <div style="color:#555; font-size:0.7rem; text-decoration:underline; cursor:pointer; margin-top:40px;" onclick="localStorage.clear(); location.reload();">情報をクリアする</div>
     </div>
 
     <div id="booking-screen" class="screen">
         <h2>鑑定予約 - <span id="book-cast-name"></span></h2>
         <div class="booking-card">
-            <label>1. 鑑定日を選択</label>
-            <input type="date" id="book-date" style="width:100%" onchange="loadTimeSlots()">
-            <div id="time-slots"></div>
-            <div id="selection-info" style="margin-top:15px; color:var(--gold); font-size:0.9rem;"></div>
-            <button id="confirm-booking-btn" class="auth-btn" style="display:none; width:100%; background:var(--accent); color:#fff; margin-top:15px;" onclick="submitBooking()">予約を確定する</button>
+            <label style="display:block; text-align:left; font-size:0.85rem; color:var(--gold); margin-bottom:10px;">鑑定希望日を選んでください</label>
+            <input type="date" id="book-date" onchange="loadTimeSlots()">
+            
+            <div id="time-slots">
+                </div>
+            
+            <div id="selection-info" style="margin-top:20px; color:var(--gold); font-size:1rem; min-height:1.5rem;"></div>
+            <button id="confirm-booking-btn" class="auth-btn" style="display:none; width:100%; background:var(--accent); color:#fff; margin-top:15px;" onclick="submitBooking()">この日時で予約を確定する</button>
         </div>
     </div>
 
@@ -76,16 +82,17 @@
             <strong id="chat-title" style="margin-left:20px; color:var(--gold)">鑑定室</strong>
         </header>
         <div id="log"></div>
-        <div class="input-bar">
-            <input type="text" id="user-msg" placeholder="占いたいことを入力...">
+        <div style="padding:20px; background:#111; display:flex; gap:10px; border-top:1px solid #333;">
+            <input type="text" id="user-msg" style="flex:1; padding:12px; background:#000; border:1px solid #333; color:#fff; border-radius:5px;" placeholder="相談内容を入力...">
             <button onclick="send()" style="background:var(--accent); color:#fff; border:none; padding:10px 20px; border-radius:5px;">送信</button>
         </div>
     </div>
 
     <script>
+        // グローバル変数の定義（エラー防止）
         let userId = localStorage.getItem('fortune_user_id');
         let currentCastId = null;
-        let selectedSlot = null;
+        let selectedTime = null;
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
@@ -120,7 +127,7 @@
         }
 
         function openBooking(id, name) {
-            currentCastId = id; // ここでグローバル変数に代入
+            currentCastId = id; // ここで確実にセット
             document.getElementById('book-cast-name').innerText = name;
             document.getElementById('time-slots').innerHTML = "";
             document.getElementById('book-date').value = "";
@@ -131,41 +138,41 @@
 
         async function loadTimeSlots() {
             const date = document.getElementById('book-date').value;
+            if(!date) return;
             const slotsDiv = document.getElementById('time-slots');
-            slotsDiv.innerHTML = "読込中...";
+            slotsDiv.innerHTML = "<div style='grid-column:1/4'>空き状況を確認中...</div>";
             
-            // APIから空き状況を取得（人間が占ってる体裁ロジック）
+            // APIから予約状況を取得（人間が占ってる体裁ロジック）
             const res = await fetch(`/api/get_slots?castId=${currentCastId}&date=${date}`);
             const data = await res.json();
             
             slotsDiv.innerHTML = data.slots.map(s => {
                 const isBooked = s.status === 'booked';
-                return `<button class="slot-btn" ${isBooked ? 'disabled' : ''} onclick="selectTime('${s.time}', this)">${s.time}</button>`;
+                return `<button class="slot-btn" ${isBooked ? 'disabled' : ''} onclick="selectTime('${s.time}', this)">${s.time}${isBooked ? '<br>×' : ''}</button>`;
             }).join('');
         }
 
         function selectTime(time, btn) {
-            selectedSlot = time;
+            selectedTime = time;
             document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
-            document.getElementById('selection-info').innerText = `選択日時: ${document.getElementById('book-date').value} ${time}`;
+            document.getElementById('selection-info').innerText = `${document.getElementById('book-date').value} ${time}`;
             document.getElementById('confirm-booking-btn').style.display = 'block';
         }
 
         async function submitBooking() {
             const date = document.getElementById('book-date').value;
-            const scheduledAt = `${date}T${selectedSlot}`;
+            const scheduledAt = `${date}T${selectedTime}`;
             
-            const res = await fetch('/api/reserve', {
+            await fetch('/api/reserve', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ userId, castId: currentCastId, scheduledAt })
             });
-            alert("予約が確定しました。時間になったら鑑定室へお入りください。");
+            alert("鑑定の予約を承りました。お時間になりましたら入室可能です。");
             location.reload();
         }
 
-        // --- チャット送信ロジック ---
         async function send() {
             const inp = document.getElementById('user-msg');
             const txt = inp.value.trim();
@@ -176,10 +183,10 @@
             const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ userId, text: txt, cast_id: currentCastId, userProfile: {name: "ゲスト"}, history: [] })
+                body: JSON.stringify({ userId, text: txt, cast_id: currentCastId, userProfile: {name: "鑑定中"}, history: [] })
             });
             const data = await res.json();
-            if(data.error) return addMsg(`(受付): ${data.error}`, 'asst');
+            if(data.error) return addMsg(`(案内): ${data.error}`, 'asst');
             addMsg(data.reply, 'asst');
         }
 
