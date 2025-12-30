@@ -27,6 +27,9 @@
         .user .bubble { background: #eee; color: #111; }
         .tarot-img { width: 180px; border-radius: 10px; margin-top: 10px; display: block; border: 1px solid var(--gold); }
         .input-bar { padding: 20px; display: flex; gap: 10px; background: rgba(17, 17, 17, 0.9); z-index: 1; }
+        
+        /* リセットボタンのスタイル */
+        .reset-link { color: var(--gold); font-size: 0.8rem; text-decoration: underline; cursor: pointer; margin-top: 20px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -46,8 +49,9 @@
     </div>
 
     <div id="selection-screen">
-        <h1 style="color:var(--gold)">占い師をお選びください</h1>
+        <h1 style="color:var(--gold)">占いの館</h1>
         <div id="cast-list" class="cast-grid"></div>
+        <span class="reset-link" onclick="clearProfile()">別の名前で登録し直す</span>
     </div>
 
     <div id="chat-screen">
@@ -79,6 +83,15 @@
             }
         };
 
+        // クリア機能の追加
+        function clearProfile() {
+            if(confirm("登録した情報をクリアしてよろしいですか？")) {
+                localStorage.removeItem('fortune_user_profile');
+                localStorage.removeItem('fortune_user_id');
+                location.reload();
+            }
+        }
+
         async function updateTicketDisplay() {
             const res = await fetch(`/api/user_info?userId=${userId}`);
             const data = await res.json();
@@ -108,7 +121,7 @@
                 <div class="cast-card" onclick="startChat(${JSON.stringify(c).replace(/"/g, '&quot;')})">
                     <img src="/img/${c.img}">
                     <strong>${c.name}</strong>
-                    <p style="font-size:0.7rem; color:#aaa;">${c.role}</p>
+                    <p style="font-size:0.75rem; color:#aaa;">${c.role}</p>
                 </div>
             `).join('');
         }
