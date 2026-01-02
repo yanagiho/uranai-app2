@@ -9,7 +9,7 @@
         body { font-family: 'Hiragino Mincho ProN', serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         .screen { display: none; padding: 40px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; }
         
-        /* タイトル画面 🎨 */
+        /* 1. タイトル画面 🎨 */
         #gateway-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle at center, #1a0b2e 0%, #0a0510 100%); gap: 20px; }
         .crystal-ball { width: 130px; height: 130px; background: radial-gradient(circle at 30% 30%, #fff, #9c27b0 80%); border-radius: 50%; box-shadow: 0 0 50px rgba(156, 39, 176, 0.6); animation: breathe 4s infinite alternate; }
         @keyframes breathe { from { transform: scale(1); } to { transform: scale(1.1); } }
@@ -23,22 +23,22 @@
         .dob-row { display: flex; gap: 5px; align-items: center; }
         .dob-row input { text-align: center; }
         
-        /* 点滅演出 ⚡ */
+        /* エラー点滅演出 ⚡ */
         @keyframes blink-red { 0%, 100% { border-color: #444; } 50% { border-color: var(--error); box-shadow: 0 0 10px var(--error); } }
         .error-blink { animation: blink-red 0.4s ease 3; border-width: 2px !important; }
 
-        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; }
-        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; color: #fff; cursor: pointer; }
+        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; transition: 0.3s; }
+        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
         
-        /* チャット画面の修正 💬 */
-        #chat-screen { flex-direction: column; height: 100vh; padding: 70px 10px 20px; }
-        #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; }
-        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; word-wrap: break-word; line-height: 1.5; }
+        /* チャット画面のデザイン修正 💬 */
+        #chat-screen { flex-direction: column; height: 100vh; padding: 70px 10px 20px; overflow: hidden; }
+        #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 15px; }
+        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; word-wrap: break-word; line-height: 1.5; font-size: 0.95rem; }
         .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; border-bottom-left-radius: 4px; text-align: left; }
-        .msg.user { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .msg.user { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; text-align: left; }
         
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
-        .cast-list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -62,7 +62,8 @@
             <button class="auth-btn" style="background:#ff0033" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
             <button class="auth-btn" style="background:#06C755" onclick="handleAuth('LINE')">LINE で入館</button>
             <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
-            <input type="email" id="login-email" placeholder="メールアドレス">
+            <p style="font-size:0.75rem; color:var(--gold); margin-bottom:10px;">Basic認証（メールアドレス）</p>
+            <input type="email" id="login-email" placeholder="example@mail.com">
             <button class="main-btn" style="margin-top:0" onclick="handleAuth('Email')">入館する</button>
         </div>
     </div>
@@ -90,25 +91,25 @@
 
     <div id="selection-screen" class="screen">
         <h2 style="color:var(--gold)">鑑定師をお選びください</h2>
-        <div id="cast-list" class="cast-list-grid"></div>
+        <div id="cast-list" class="cast-grid"></div>
         <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:40px;" onclick="logout()">ログアウト</p>
     </div>
 
     <div id="chat-screen" class="screen">
         <h2 id="chat-cast-name" style="color:var(--gold)"></h2>
         <div id="chat-box"></div>
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="chat-input" placeholder="尋ねたいことを入力...">
+        <div style="display:flex; gap:10px; padding-bottom:10px;">
+            <input type="text" id="chat-input" placeholder="尋ねたいことを入力..." style="margin-bottom:0;">
             <button class="main-btn" style="width:80px; margin-top:0;" onclick="sendMessage()">送信</button>
         </div>
     </div>
 
     <script>
         let userId = localStorage.getItem('fortune_user_id');
-        let currentCastId = null, castsData = [];
+        let currentCastId = null, castsData = [], currentAuthType = "";
 
         window.onload = async () => { 
-            // ログイン済みなら直接進むが、そうでなければゲートを表示
+            // ログイン済みチェック（エラー時はゲートへ戻す）
             if (userId) {
                 try {
                     const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId, auth_type: 'Session' }) });
@@ -121,6 +122,7 @@
         };
 
         async function handleAuth(type) {
+            currentAuthType = type;
             const email = document.getElementById('login-email').value.trim();
             const simId = type === 'Email' ? 'e_' + btoa(email) : (userId || 's_' + Math.random().toString(36).substr(2, 9));
             const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ email: email||'', auth_type: type, userId: simId }) });
@@ -151,8 +153,8 @@
         }
 
         async function register(lastName, firstName, dob) {
-            await fetch('/api/save_user', { method: 'POST', body: JSON.stringify({ userId, lastName, firstName, dob }) });
-            initApp();
+            const res = await fetch('/api/save_user', { method: 'POST', body: JSON.stringify({ userId, lastName, firstName, dob, auth_type: currentAuthType }) });
+            if (res.ok) initApp(); else alert("保存に失敗しました");
         }
 
         async function initApp() {
@@ -187,13 +189,13 @@
         async function sendMessage(manualText = null) {
             const input = document.getElementById('chat-input');
             const text = (manualText !== null) ? manualText : input.value;
-            const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, text }) });
-            const data = await res.json();
             const box = document.getElementById('chat-box');
             if (text && manualText === null) {
                 box.innerHTML += `<div class="msg user">${text}</div>`;
                 input.value = "";
             }
+            const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, text }) });
+            const data = await res.json();
             box.innerHTML += `<div class="msg ai">${data.reply}</div>`;
             box.scrollTop = box.scrollHeight;
         }
