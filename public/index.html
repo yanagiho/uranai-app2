@@ -1,114 +1,162 @@
-<script>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI占いの館 - 神秘の導き</title>
+    <style>
+        :root { --bg: #0a0510; --accent: #9c27b0; --gold: #d4af37; }
+        body { font-family: serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        .screen { display: none; padding: 60px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; }
+        
+        /* ゲート画面 */
+        #gateway-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle, #1a0b2e 0%, #0a0510 100%); }
+        .crystal-ball { width: 120px; height: 120px; background: white; border-radius: 50%; box-shadow: 0 0 40px #9c27b0; margin-bottom: 30px; }
+
+        .logo { font-size: 2.2rem; color: var(--gold); margin-bottom: 25px; letter-spacing: 5px; }
+        .form-box { max-width: 320px; margin: 0 auto; text-align: left; background: rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; border: 1px solid #333; }
+        input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; }
+        .main-btn { background: var(--accent); color: #fff; border: none; padding: 14px; border-radius: 30px; cursor: pointer; font-weight: bold; width: 100%; }
+        
+        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; color: #fff; font-size: 0.9rem; }
+        nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
+        
+        .day-tab { min-width: 70px; padding: 10px; border: 1px solid #444; border-radius: 10px; cursor: pointer; font-size: 0.8rem; flex-shrink: 0; }
+        .day-tab.active { border-color: var(--gold); color: var(--gold); background: rgba(212,175,55,0.1); }
+        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin: 20px auto; max-width: 800px; }
+        .cast-card { background: rgba(255,255,255,0.05); border: 1px solid #333; padding: 10px; border-radius: 15px; cursor: pointer; }
+        .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <nav id="main-nav" style="display:none">
+        <div style="color:var(--gold); font-weight:bold; cursor:pointer;" onclick="location.reload()">占いの館</div>
+        <div style="color:var(--gold)">🎟 <span id="nav-ticket">0</span></div>
+    </nav>
+
+    <div id="gateway-screen" class="screen">
+        <div class="crystal-ball"></div>
+        <h1 class="logo">AI 占いの館</h1>
+        <button class="main-btn" style="width:200px" onclick="showScreen('title-screen')">館に入る</button>
+    </div>
+
+    <div id="title-screen" class="screen">
+        <h1 class="logo">入館の儀</h1>
+        <div class="form-box">
+            <button class="auth-btn" style="background:#000; border:1px solid #444;" onclick="handleAuth('X')">X でログイン</button>
+            <button class="auth-btn" style="background:#06C755;" onclick="handleAuth('LINE')">LINE でログイン</button>
+            <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
+            <input type="email" id="login-email" placeholder="メールアドレス">
+            <button class="main-btn" onclick="handleAuth('Email')">入館する</button>
+        </div>
+    </div>
+
+    <div id="setup-screen" class="screen">
+        <h1 style="color:var(--gold)">運命のカルテ登録</h1>
+        <div class="form-box">
+            <label>お名前（フルネーム）</label>
+            <input type="text" id="user-name">
+            <label>生年月日</label>
+            <input type="date" id="user-dob">
+            <button class="main-btn" onclick="register()">運命を刻む</button>
+        </div>
+    </div>
+
+    <div id="selection-screen" class="screen">
+        <h2>鑑定師をお選びください</h2>
+        <div id="cast-list" class="cast-grid"></div>
+        <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:30px;" onclick="logout()">ログアウト</p>
+    </div>
+
+    <div id="booking-screen" class="screen">
+        <h2 id="book-cast-name"></h2>
+        <div style="max-width:400px; margin:0 auto;">
+            <div id="day-list" style="display:flex; gap:10px; overflow-x:auto; padding:10px 0;"></div>
+            <div id="time-slots" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:15px;"></div>
+            <button id="confirm-btn" class="main-btn" style="display:none; margin-top:20px;" onclick="submitBooking()">予約を確定する</button>
+        </div>
+    </div>
+
+    <script>
         let userId = localStorage.getItem('fortune_user_id');
         let currentCastId = null, selectedDate = null, selectedTime = null, currentAuthType = "", tempEmail = "";
 
-        // ページ読み込み時の処理
         window.onload = async () => { 
             if (userId) {
-                // すでにIDがある場合、サーバーに「登録が完了しているか」を確認する
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ userId: userId, auth_type: 'Session' })
-                });
-                const data = await res.json();
-                
-                if (data.isComplete) {
-                    initApp(); // 登録済みなら占い師一覧へ
-                } else {
-                    showScreen('setup-screen'); // 未登録なら登録画面へ強制移動
-                }
+                try {
+                    const res = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ userId: userId, auth_type: 'Session' })
+                    });
+                    const data = await res.json();
+                    if (data.isComplete) initApp();
+                    else showScreen('setup-screen');
+                } catch (e) { showScreen('gateway-screen'); }
             } else {
                 showScreen('gateway-screen'); 
             }
         };
 
-        // SNS/メール 認証処理
         async function handleAuth(type) {
             currentAuthType = type;
             const email = document.getElementById('login-email').value.trim();
             if (type === 'Email' && !email) return alert("メールアドレスを入力してください");
-
-            // 新規または既存のIDを決定
             const simId = type === 'Email' ? 'e_' + btoa(email) : (userId || 's_' + Math.random().toString(36).substr(2, 9));
             tempEmail = email;
-
             const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ email: type==='Email'?email:'', auth_type: type, userId: simId })
             });
             const data = await res.json();
-            
             userId = simId;
             localStorage.setItem('fortune_user_id', userId);
-
-            if (data.isComplete) {
-                initApp();
-            } else {
-                showScreen('setup-screen');
-            }
+            if (data.isComplete) initApp();
+            else showScreen('setup-screen');
         }
 
         async function register() {
             const name = document.getElementById('user-name').value.trim();
             const dob = document.getElementById('user-dob').value;
-            if (!name || !dob) return alert("お名前と生年月日を入力してください");
-
-            const res = await fetch('/api/save_user', {
+            if (!name || !dob) return alert("入力してください");
+            await fetch('/api/save_user', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ userId, name, dob, email: tempEmail, auth_type: currentAuthType })
             });
-            
-            if (res.ok) {
-                initApp();
-            } else {
-                alert("登録に失敗しました。");
-            }
+            initApp();
         }
 
         async function initApp() {
             const res = await fetch(`/api/user_info?userId=${userId}`);
             const data = await res.json();
-            
-            // ユーザーが存在しない（DBリセット後など）場合は登録画面へ
-            if (data.name === "ゲスト") {
-                showScreen('setup-screen');
-                return;
-            }
-
+            if (data.name === "ゲスト") { showScreen('setup-screen'); return; }
             document.getElementById('nav-ticket').innerText = data.ticket_balance || 0;
             showScreen('selection-screen');
-            document.getElementById('main-nav').style.display = 'flex';
-            
             const cres = await fetch('/api/casts');
             const casts = await cres.json();
             document.getElementById('cast-list').innerHTML = casts.map(c => `
                 <div class="cast-card" onclick="openBooking(${c.id}, '${c.name}')">
                     <img src="/img/${c.img}">
-                    <strong>${c.name}</strong><br><small style="color:#888">${c.role}</small>
+                    <strong>${c.name}</strong><br><small>${c.role}</small>
                 </div>
             `).join('');
         }
 
-        // --- 画面切り替え ---
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
             const target = document.getElementById(id);
-            if (target) target.style.display = 'flex'; // gatewayはflex、他はblockなど調整が必要ならここで行う
-            
-            if (id === 'gateway-screen' || id === 'title-screen' || id === 'setup-screen') {
-                document.getElementById('main-nav').style.display = 'none';
-            } else {
-                document.getElementById('main-nav').style.display = 'flex';
+            if (target) {
+                target.style.display = (id === 'gateway-screen') ? 'flex' : 'block';
             }
+            document.getElementById('main-nav').style.display = 
+                (id === 'gateway-screen' || id === 'title-screen' || id === 'setup-screen') ? 'none' : 'flex';
         }
 
-        // --- 予約関連の既存ロジック ---
         function openBooking(id, name) {
             currentCastId = id;
-            document.getElementById('book-cast-name').innerText = name + " 鑑定予約";
+            document.getElementById('book-cast-name').innerText = name + " 予約";
             const list = document.getElementById('day-list');
             list.innerHTML = "";
             for (let i = 0; i < 7; i++) {
@@ -117,18 +165,15 @@
                 list.innerHTML += `<div class="day-tab" onclick="selectDay('${dateStr}', this)">${i===0?'今日':(d.getMonth()+1)+'/'+d.getDate()}</div>`;
             }
             showScreen('booking-screen');
-            document.getElementById('booking-screen').style.display = 'block'; // bookingは中央寄せのためblock
         }
 
         async function selectDay(date, el) {
             selectedDate = date;
             document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
             el.classList.add('active');
-            const slotsDiv = document.getElementById('time-slots');
-            slotsDiv.innerHTML = "<div style='grid-column:1/4; padding:20px;'>星に聞いています...</div>";
             const res = await fetch(`/api/get_slots?castId=${currentCastId}&date=${date}`);
             const data = await res.json();
-            slotsDiv.innerHTML = data.slots.map(s => 
+            document.getElementById('time-slots').innerHTML = data.slots.map(s => 
                 `<button style="padding:10px; background:none; border:1px solid var(--gold); color:#fff; border-radius:5px; opacity:${s.status==='available'?'1':'0.3'}" ${s.status!=='available'?'disabled':''} onclick="selectTime('${s.time}', this)">${s.status==='booked'?'予約済':s.time}</button>`
             ).join('');
         }
@@ -146,9 +191,11 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ userId, castId: currentCastId, scheduledAt: `${selectedDate}T${selectedTime}` })
             });
-            alert("予約が完了しました。メールをご確認ください。");
+            alert("予約しました。");
             location.reload();
         }
 
         function logout() { localStorage.clear(); location.reload(); }
     </script>
+</body>
+</html>
