@@ -7,38 +7,39 @@
     <style>
         :root { --bg: #0a0510; --accent: #9c27b0; --gold: #d4af37; --glass: rgba(255,255,255,0.07); }
         body { font-family: serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-        .screen { display: none; padding: 60px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; animation: fadeIn 0.5s ease; }
+        .screen { display: none; padding: 40px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .crystal-ball { width: 120px; height: 120px; background: radial-gradient(circle at 30% 30%, #fff, #9c27b0 80%); border-radius: 50%; box-shadow: 0 0 40px rgba(156, 39, 176, 0.6); margin-bottom: 30px; animation: breathe 4s infinite alternate; }
-        @keyframes breathe { from { transform: scale(1); } to { transform: scale(1.05); filter: brightness(1.2); } }
+        /* ゲート画面のレイアウト修正 🎨 */
+        #gateway-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle at center, #1a0b2e 0%, #0a0510 100%); gap: 20px; }
+        .crystal-ball { width: 140px; height: 140px; background: radial-gradient(circle at 30% 30%, #fff, #9c27b0 80%); border-radius: 50%; box-shadow: 0 0 50px rgba(156, 39, 176, 0.6); animation: breathe 4s infinite alternate; }
+        @keyframes breathe { from { transform: scale(1); box-shadow: 0 0 40px rgba(156, 39, 176, 0.6); } to { transform: scale(1.1); box-shadow: 0 0 70px rgba(156, 39, 176, 0.8); } }
 
-        .logo { font-size: 2.2rem; color: var(--gold); margin-bottom: 25px; letter-spacing: 5px; }
-        .form-box { max-width: 320px; margin: 0 auto; text-align: left; background: var(--glass); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
-        input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; }
-        .main-btn { background: var(--accent); color: #fff; border: none; padding: 14px; border-radius: 30px; cursor: pointer; font-weight: bold; width: 100%; }
+        .logo { font-size: 2.5rem; color: var(--gold); margin: 0; letter-spacing: 8px; text-shadow: 0 0 15px rgba(212,175,55,0.4); }
+        .form-box { width: 100%; max-width: 340px; margin: 0 auto; text-align: left; background: var(--glass); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
+        input { width: 100%; padding: 14px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
+        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; }
+        .main-btn:hover { background: #7b1fa2; transform: translateY(-2px); }
         
-        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; color: #fff; font-size: 0.9rem; }
+        /* SNSボタンの強化 🔐 */
+        .auth-btn { width: 100%; margin-bottom: 12px; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; color: #fff; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-x { background: #000; border: 1px solid #333; }
+        .btn-fb { background: #1877F2; }
+        .btn-yahoo { background: #ff0033; }
+        .btn-line { background: #06C755; }
+        
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
-        
-        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin: 20px auto; max-width: 800px; }
-        .cast-card { background: var(--glass); border: 1px solid #333; padding: 10px; border-radius: 15px; cursor: pointer; }
-        .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; }
+        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px; margin: 20px auto; max-width: 800px; }
+        .cast-card { background: var(--glass); border: 1px solid #333; padding: 15px; border-radius: 20px; cursor: pointer; transition: 0.3s; }
+        .cast-card:hover { border-color: var(--gold); background: rgba(212,175,55,0.05); }
+        .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 12px; margin-bottom: 10px; }
 
-        /* ポップアップ */
-        #cast-modal { display: none; position: fixed; bottom: 0; left: 0; right: 0; top: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: flex-end; }
-        .modal-content { width: 100%; max-width: 500px; margin: 0 auto; background: #1a0b2e; border-top: 2px solid var(--gold); border-radius: 20px 20px 0 0; padding: 25px; transform: translateY(100%); transition: 0.3s ease; }
-        #cast-modal.active .modal-content { transform: translateY(0); }
-
-        #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 15px; text-align: left; }
-        .msg { margin-bottom: 10px; padding: 10px; border-radius: 10px; max-width: 80%; }
-        .msg.ai { background: var(--glass); border-left: 3px solid var(--gold); }
-        .msg.user { background: var(--accent); margin-left: auto; }
+        #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 15px; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; line-height: 1.5; font-size: 0.95rem; }
+        .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .msg.user { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
         
-        .day-tab { min-width: 70px; padding: 10px; border: 1px solid #444; border-radius: 10px; cursor: pointer; font-size: 0.8rem; }
-        .day-tab.active { border-color: var(--gold); color: var(--gold); }
-        .slot-btn { padding: 10px; border: 1px solid var(--gold); color: #fff; background: none; border-radius: 5px; cursor: pointer; }
-        .slot-btn:disabled { opacity: 0.2; }
+        #ai-thinking { display: none; color: var(--gold); font-style: italic; font-size: 0.85rem; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -50,16 +51,20 @@
     <div id="gateway-screen" class="screen" style="display:flex">
         <div class="crystal-ball"></div>
         <h1 class="logo">AI 占いの館</h1>
-        <button class="main-btn" style="width:180px" onclick="showScreen('title-screen')">館に入る</button>
+        <p style="color:var(--gold); font-style:italic; margin: 0 0 20px;">〜 運命の扉が今、開く 〜</p>
+        <button class="main-btn" style="width:200px" onclick="showScreen('title-screen')">館に入る</button>
     </div>
 
     <div id="title-screen" class="screen">
-        <h1 class="logo">入館の儀</h1>
+        <h1 class="logo" style="font-size:1.8rem; margin-bottom:30px;">入館の儀</h1>
         <div class="form-box">
-            <button class="auth-btn" style="background:#000;" onclick="handleAuth('X')">X でログイン</button>
-            <button class="auth-btn" style="background:#06C755;" onclick="handleAuth('LINE')">LINE</button>
-            <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
-            <input type="email" id="login-email" placeholder="メールアドレス">
+            <button class="auth-btn btn-x" onclick="handleAuth('X')">X で入館</button>
+            <button class="auth-btn btn-fb" onclick="handleAuth('Facebook')">Facebook で入館</button>
+            <button class="auth-btn btn-yahoo" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
+            <button class="auth-btn btn-line" onclick="handleAuth('LINE')">LINE で入館</button>
+            <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
+            <p style="font-size:0.75rem; color:var(--gold); margin-bottom:10px;">Basic認証（メールアドレス）</p>
+            <input type="email" id="login-email" placeholder="example@mail.com">
             <button class="main-btn" onclick="handleAuth('Email')">入館する</button>
         </div>
     </div>
@@ -67,41 +72,43 @@
     <div id="setup-screen" class="screen">
         <h1 style="color:var(--gold)">運命のカルテ登録</h1>
         <div class="form-box">
-            <label style="font-size:0.8rem">鑑定に使うお名前</label>
-            <input type="text" id="user-name">
-            <label style="font-size:0.8rem">生年月日</label>
+            <label style="font-size:0.8rem; color:var(--gold)">鑑定に使うお名前</label>
+            <input type="text" id="user-name" placeholder="斉藤 太郎">
+            <label style="font-size:0.8rem; color:var(--gold)">生年月日</label>
             <input type="date" id="user-dob">
             <button class="main-btn" onclick="register()">運命を刻む</button>
         </div>
     </div>
 
     <div id="selection-screen" class="screen">
-        <h2>鑑定師をお選びください</h2>
+        <h2 style="color:var(--gold)">鑑定師をお選びください</h2>
         <div id="cast-list" class="cast-grid"></div>
-        <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:30px;" onclick="logout()">ログアウト</p>
+        <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:40px; font-size:0.8rem;" onclick="logout()">ログアウト</p>
     </div>
 
     <div id="cast-modal" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <img id="modal-img" src="" style="width:80px; height:80px; border-radius:50%; margin-bottom:10px;">
+            <img id="modal-img" src="" style="width:90px; height:90px; border-radius:50%; border:2px solid var(--gold); margin-bottom:15px;">
             <h2 id="modal-name" style="color:var(--gold); margin:5px 0;"></h2>
-            <p id="modal-intro" style="font-size:0.9rem; margin-bottom:20px; text-align:left;"></p>
-            <button class="main-btn" onclick="goToBooking()">この先生を予約する</button>
+            <p id="modal-intro" style="font-size:0.95rem; margin-bottom:25px; text-align:left; color:#ccc;"></p>
+            <button class="main-btn" onclick="goToBooking()">この先生に予約する</button>
+            <p style="margin-top:15px; color:#666; cursor:pointer; font-size:0.85rem;" onclick="closeModal()">戻る</p>
         </div>
     </div>
 
     <div id="booking-screen" class="screen">
         <h2 id="book-cast-name"></h2>
-        <div id="day-list" style="display:flex; gap:10px; overflow-x:auto; padding:10px 0;"></div>
-        <div id="time-slots" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:15px;"></div>
-        <button id="confirm-btn" class="main-btn" style="display:none; margin-top:20px;" onclick="submitBooking()">予約を確定する</button>
+        <div id="day-list" style="display:flex; gap:10px; overflow-x:auto; padding:10px 0; justify-content:center;"></div>
+        <div id="time-slots" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:20px; max-width:400px; margin-left:auto; margin-right:auto;"></div>
+        <button id="confirm-btn" class="main-btn" style="display:none; margin-top:30px; max-width:300px; margin-left:auto; margin-right:auto;" onclick="submitBooking()">予約を確定する</button>
     </div>
 
     <div id="chat-screen" class="screen">
-        <h2 id="chat-cast-name"></h2>
-        <div id="chat-box" style="display:flex; flex-direction:column;"></div>
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="chat-input" placeholder="入室して待つ..." style="margin-bottom:0;">
+        <h2 id="chat-cast-name" style="color:var(--gold)"></h2>
+        <div id="chat-box"></div>
+        <div id="ai-thinking">星々のささやきを聞いています...</div>
+        <div style="display:flex; gap:10px; max-width:500px; margin:0 auto;">
+            <input type="text" id="chat-input" placeholder="尋ねたいことを入力..." style="margin-bottom:0;">
             <button class="main-btn" style="width:80px;" onclick="sendMessage()">送信</button>
         </div>
     </div>
@@ -121,6 +128,7 @@
         async function handleAuth(type) {
             currentAuthType = type;
             const email = document.getElementById('login-email').value.trim();
+            if (type === 'Email' && !email) return alert("メールアドレスを入力してください");
             const simId = type === 'Email' ? 'e_' + btoa(email) : (userId || 's_' + Math.random().toString(36).substr(2, 9));
             tempEmail = email;
             const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ email: email||'', auth_type: type, userId: simId }) });
@@ -132,7 +140,7 @@
         async function register() {
             const name = document.getElementById('user-name').value.trim();
             const dob = document.getElementById('user-dob').value;
-            if (!name || !dob) return alert("入力してください");
+            if (!name || !dob) return alert("名前と生年月日を入力してください");
             await fetch('/api/save_user', { method: 'POST', body: JSON.stringify({ userId, name, dob, email: tempEmail||null, auth_type: currentAuthType }) });
             initApp();
         }
@@ -147,7 +155,7 @@
             document.getElementById('cast-list').innerHTML = castsData.map(c => `
                 <div class="cast-card" onclick="openIntro(${c.id})">
                     <img src="/img/${c.img}">
-                    <strong>${c.name}</strong><br><small>${c.role}</small>
+                    <strong>${c.name}</strong><br><small style="color:#888">${c.role}</small>
                 </div>
             `).join('');
         }
@@ -215,11 +223,17 @@
         }
 
         async function sendMessage(manualText = null) {
-            const text = (manualText !== null) ? manualText : document.getElementById('chat-input').value;
-            const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, text }) });
-            const data = await res.json();
+            const input = document.getElementById('chat-input');
+            const text = (manualText !== null) ? manualText : input.value;
             const chatBox = document.getElementById('chat-box');
-            if (text) chatBox.innerHTML += `<div class="msg user">${text}</div>`;
+            if (text && manualText === null) {
+                chatBox.innerHTML += `<div class="msg user">${text}</div>`;
+                input.value = "";
+            }
+            document.getElementById('ai-thinking').style.display = 'block';
+            const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ userId, cast_id: currentCastId, text }) });
+            const data = await res.json();
+            document.getElementById('ai-thinking').style.display = 'none';
             chatBox.innerHTML += `<div class="msg ai">${data.reply}</div>`;
             chatBox.scrollTop = chatBox.scrollHeight;
         }
@@ -227,7 +241,7 @@
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
             const target = document.getElementById(id);
-            if (target) target.style.display = (id === 'gateway-screen') ? 'flex' : 'block';
+            if (target) target.style.display = (id === 'gateway-screen' || id === 'chat-screen') ? 'flex' : 'block';
             document.getElementById('main-nav').style.display = (['gateway-screen','title-screen','setup-screen'].includes(id)) ? 'none' : 'flex';
         }
 
