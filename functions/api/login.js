@@ -8,16 +8,17 @@ export async function onRequestPost(context) {
       .bind(userId, email).first();
 
     if (user) {
-      // 名前と生年月日の両方が登録されていれば「完了」とみなす
+      // データベースにある名前と誕生日が埋まっているか確認
       const isComplete = !!(user.name && user.dob);
       return new Response(JSON.stringify({ 
         success: true, userId: user.id, isComplete 
       }));
     } else {
-      // 新規ユーザー
+      // 新規ユーザー（まだ登録が済んでいない状態）
       return new Response(JSON.stringify({ success: true, isComplete: false }));
     }
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+    console.error("Login Error:", e.message);
+    return new Response(JSON.stringify({ error: "ログイン処理でエラーが発生しました。" }), { status: 500 });
   }
 }
