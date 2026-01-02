@@ -10,7 +10,7 @@
         .screen { display: none; padding: 40px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* タイトル画面 */
+        /* タイトル画面のデザイン 🎨 */
         #gateway-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle at center, #1a0b2e 0%, #0a0510 100%); gap: 20px; }
         .crystal-ball { width: 130px; height: 130px; background: radial-gradient(circle at 30% 30%, #fff, #9c27b0 80%); border-radius: 50%; box-shadow: 0 0 50px rgba(156, 39, 176, 0.6); animation: breathe 4s infinite alternate; }
         @keyframes breathe { from { transform: scale(1); } to { transform: scale(1.1); } }
@@ -19,7 +19,7 @@
         .form-box { width: 100%; max-width: 340px; margin: 0 auto; text-align: left; background: var(--glass); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
         input { width: 100%; padding: 14px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 15px; box-sizing: border-box; font-size: 1rem; }
         .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.3s; }
-        .auth-btn { width: 100%; margin-bottom: 12px; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; color: #fff; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .auth-btn { width: 100%; margin-bottom: 12px; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; color: #fff; font-size: 0.95rem; }
         .btn-x { background: #000; } .btn-fb { background: #1877F2; } .btn-yahoo { background: #ff0033; } .btn-line { background: #06C755; }
         
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
@@ -27,15 +27,13 @@
         /* チャット画面 💬 */
         #chat-screen { flex-direction: column; height: 100vh; padding: 70px 10px 20px; box-sizing: border-box; }
         #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 15px; }
-        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; line-height: 1.6; font-size: 0.95rem; word-wrap: break-word; }
+        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; line-height: 1.6; word-wrap: break-word; }
         .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; border-bottom-left-radius: 4px; text-align: left; }
         .msg.user { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; text-align: left; }
-        #ai-thinking { display: none; color: var(--gold); font-style: italic; font-size: 0.85rem; margin-bottom: 10px; text-align: left; }
-
+        
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin: 20px auto; max-width: 800px; }
         .cast-card { background: var(--glass); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; }
-        .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; margin-bottom: 8px; }
-        
+        .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; }
         #cast-modal { display: none; position: fixed; bottom: 0; left: 0; right: 0; top: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: flex-end; }
         .modal-content { width: 100%; max-width: 500px; margin: 0 auto; background: #1a0b2e; border-top: 3px solid var(--gold); border-radius: 30px 30px 0 0; padding: 30px; box-sizing: border-box; transform: translateY(100%); transition: 0.4s ease; }
         #cast-modal.active { display: flex; }
@@ -105,7 +103,7 @@
     <div id="chat-screen" class="screen">
         <h2 id="chat-cast-name" style="color:var(--gold); margin-top:0;"></h2>
         <div id="chat-box"></div>
-        <div id="ai-thinking">鑑定中...</div>
+        <div id="ai-thinking" style="display:none; color:var(--gold); font-style:italic;">星々のささやきを聞いています...</div>
         <div style="display:flex; gap:10px; max-width:600px; margin:0 auto; width:100%;">
             <input type="text" id="chat-input" placeholder="尋ねたいことを入力..." style="margin-bottom:0;">
             <button class="main-btn" style="width:80px;" onclick="sendMessage()">送信</button>
@@ -118,9 +116,11 @@
 
         window.onload = async () => { 
             if (userId) {
-                const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId, auth_type: 'Session' }) });
-                const data = await res.json();
-                if (data.isComplete) initApp(); else showScreen('setup-screen');
+                try {
+                    const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId, auth_type: 'Session' }) });
+                    const data = await res.json();
+                    if (data.isComplete) initApp(); else showScreen('setup-screen');
+                } catch (e) { showScreen('gateway-screen'); }
             }
         };
 
@@ -139,7 +139,7 @@
         async function register() {
             const name = document.getElementById('user-name').value.trim();
             const dob = document.getElementById('user-dob').value;
-            if (!name || !dob) return alert("入力してください");
+            if (!name || !dob) return alert("名前と生年月日を入力してください");
             await fetch('/api/save_user', { method: 'POST', body: JSON.stringify({ userId, name, dob, email: tempEmail||null, auth_type: currentAuthType }) });
             initApp();
         }
