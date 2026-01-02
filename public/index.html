@@ -1,27 +1,227 @@
-async function register() {
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI占いの館 - 神秘の導き</title>
+    <style>
+        :root { --bg: #0a0510; --accent: #9c27b0; --gold: #d4af37; --glass: rgba(255,255,255,0.07); }
+        body { font-family: serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        .screen { display: none; padding: 60px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* タイトル演出 */
+        #gateway-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle at center, #1a0b2e 0%, #0a0510 100%); }
+        .crystal-ball { width: 120px; height: 120px; background: radial-gradient(circle at 30% 30%, #fff, #9c27b0 80%); border-radius: 50%; box-shadow: 0 0 40px rgba(156, 39, 176, 0.6); margin-bottom: 30px; animation: breathe 4s infinite alternate; }
+        @keyframes breathe { from { transform: scale(1); } to { transform: scale(1.05); filter: brightness(1.2); } }
+
+        .logo { font-size: 2.2rem; color: var(--gold); margin-bottom: 25px; letter-spacing: 5px; text-shadow: 0 0 10px rgba(212,175,55,0.4); }
+        .form-box { max-width: 320px; margin: 0 auto; text-align: left; background: var(--glass); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
+        input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 15px; box-sizing: border-box; }
+        .main-btn { background: var(--accent); color: #fff; border: none; padding: 14px; border-radius: 30px; cursor: pointer; font-weight: bold; width: 100%; }
+        
+        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; color: #fff; font-size: 0.9rem; }
+        nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
+        
+        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin: 20px auto; max-width: 800px; }
+        .cast-card { background: var(--glass); border: 1px solid #333; padding: 10px; border-radius: 15px; cursor: pointer; }
+        .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; }
+
+        /* ポップアップ */
+        #cast-modal { display: none; position: fixed; bottom: 0; left: 0; right: 0; top: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: flex-end; }
+        .modal-content { width: 100%; max-width: 500px; margin: 0 auto; background: #1a0b2e; border-top: 2px solid var(--gold); border-radius: 20px 20px 0 0; padding: 25px; transform: translateY(100%); transition: 0.3s ease; }
+        #cast-modal.active .modal-content { transform: translateY(0); }
+
+        .day-tab { min-width: 70px; padding: 10px; border: 1px solid #444; border-radius: 10px; cursor: pointer; font-size: 0.8rem; flex-shrink: 0; }
+        .day-tab.active { border-color: var(--gold); color: var(--gold); background: rgba(212,175,55,0.1); }
+        .slot-btn { padding: 10px; background: none; border: 1px solid var(--gold); color: #fff; border-radius: 5px; opacity: 1; cursor: pointer; }
+        .slot-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <nav id="main-nav" style="display:none">
+        <div style="color:var(--gold); font-weight:bold; cursor:pointer;" onclick="location.reload()">占いの館</div>
+        <div style="color:var(--gold)">🎟 <span id="nav-ticket">0</span></div>
+    </nav>
+
+    <div id="gateway-screen" class="screen" style="display:flex">
+        <div class="crystal-ball"></div>
+        <h1 class="logo">AI 占いの館</h1>
+        <button class="main-btn" style="width:180px" onclick="showScreen('title-screen')">館に入る</button>
+    </div>
+
+    <div id="title-screen" class="screen">
+        <h1 class="logo">入館の儀</h1>
+        <div class="form-box">
+            <button class="auth-btn" style="background:#000;" onclick="handleAuth('X')">X で入館</button>
+            <button class="auth-btn" style="background:#1877F2;" onclick="handleAuth('Facebook')">Facebook</button>
+            <button class="auth-btn" style="background:#ff0033;" onclick="handleAuth('Yahoo')">Yahoo!</button>
+            <button class="auth-btn" style="background:#06C755;" onclick="handleAuth('LINE')">LINE</button>
+            <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
+            <input type="email" id="login-email" placeholder="メールアドレス">
+            <button class="main-btn" onclick="handleAuth('Email')">Basic認証で入館</button>
+        </div>
+    </div>
+
+    <div id="setup-screen" class="screen">
+        <h1 style="color:var(--gold)">運命のカルテ登録</h1>
+        <div class="form-box">
+            <label style="font-size:0.8rem">鑑定に使うお名前</label>
+            <input type="text" id="user-name">
+            <label style="font-size:0.8rem">生年月日</label>
+            <input type="date" id="user-dob">
+            <button class="main-btn" onclick="register()">運命を刻む</button>
+        </div>
+    </div>
+
+    <div id="selection-screen" class="screen">
+        <h2>鑑定師をお選びください</h2>
+        <div id="cast-list" class="cast-grid"></div>
+        <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:30px;" onclick="logout()">ログアウト</p>
+    </div>
+
+    <div id="cast-modal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <img id="modal-img" src="" style="width:80px; height:80px; border-radius:50%; margin-bottom:10px;">
+            <h2 id="modal-name" style="color:var(--gold); margin:5px 0;"></h2>
+            <p id="modal-intro" style="font-size:0.9rem; margin-bottom:20px;"></p>
+            <button class="main-btn" onclick="goToBooking()">この先生を予約する</button>
+        </div>
+    </div>
+
+    <div id="booking-screen" class="screen">
+        <h2 id="book-cast-name"></h2>
+        <div id="day-list" style="display:flex; gap:10px; overflow-x:auto; padding:10px 0;"></div>
+        <div id="time-slots" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:15px;"></div>
+        <button id="confirm-btn" class="main-btn" style="display:none; margin-top:20px;" onclick="submitBooking()">予約を確定する</button>
+    </div>
+
+    <script>
+        let userId = localStorage.getItem('fortune_user_id');
+        let currentCastId = null, selectedDate = null, selectedTime = null, currentAuthType = "", tempEmail = "", castsData = [];
+
+        window.onload = async () => { 
+            if (userId) {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ userId: userId, auth_type: 'Session' })
+                });
+                const data = await res.json();
+                if (data.isComplete) initApp(); else showScreen('setup-screen');
+            }
+        };
+
+        async function handleAuth(type) {
+            currentAuthType = type;
+            const email = document.getElementById('login-email').value.trim();
+            const simId = type === 'Email' ? 'e_' + btoa(email) : (userId || 's_' + Math.random().toString(36).substr(2, 9));
+            tempEmail = email;
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ email: type==='Email'?email:'', auth_type: type, userId: simId })
+            });
+            const data = await res.json();
+            userId = simId; localStorage.setItem('fortune_user_id', userId);
+            if (data.isComplete) initApp(); else showScreen('setup-screen');
+        }
+
+        async function register() {
             const name = document.getElementById('user-name').value.trim();
             const dob = document.getElementById('user-dob').value;
             if (!name || !dob) return alert("入力してください");
-            
-            // メールが空の場合は "" ではなく null を送るように調整
-            const emailToSend = tempEmail || null;
-
-            const res = await fetch('/api/save_user', {
+            await fetch('/api/save_user', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ 
-                    userId, 
-                    name, 
-                    dob, 
-                    email: emailToSend, 
-                    auth_type: currentAuthType 
-                })
+                body: JSON.stringify({ userId, name, dob, email: tempEmail || null, auth_type: currentAuthType })
             });
-
-            if (res.ok) {
-                initApp();
-            } else {
-                const data = await res.json();
-                alert("登録エラー: " + (data.error || "サーバーで問題が発生しました"));
-            }
+            initApp();
         }
+
+        async function initApp() {
+            const res = await fetch(`/api/user_info?userId=${userId}`);
+            const data = await res.json();
+            document.getElementById('nav-ticket').innerText = data.ticket_balance || 0;
+            showScreen('selection-screen');
+            const cres = await fetch('/api/casts');
+            castsData = await cres.json();
+            document.getElementById('cast-list').innerHTML = castsData.map(c => `
+                <div class="cast-card" onclick="openIntro(${c.id})">
+                    <img src="/img/${c.img}">
+                    <strong>${c.name}</strong><br><small>${c.role}</small>
+                </div>
+            `).join('');
+        }
+
+        function openIntro(id) {
+            const cast = castsData.find(c => c.id === id);
+            currentCastId = id;
+            document.getElementById('modal-img').src = `/img/${cast.img}`;
+            document.getElementById('modal-name').innerText = cast.name;
+            document.getElementById('modal-intro').innerText = cast.intro;
+            const modal = document.getElementById('cast-modal');
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('active'), 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('cast-modal');
+            modal.classList.remove('active');
+            setTimeout(() => modal.style.display = 'none', 300);
+        }
+
+        function goToBooking() {
+            closeModal();
+            const cast = castsData.find(c => c.id === currentCastId);
+            document.getElementById('book-cast-name').innerText = cast.name + " 予約";
+            const list = document.getElementById('day-list');
+            list.innerHTML = "";
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(); d.setDate(d.getDate() + i);
+                const dateStr = d.toISOString().split('T')[0];
+                list.innerHTML += `<div class="day-tab" onclick="selectDay('${dateStr}', this)">${i===0?'今日':(d.getMonth()+1)+'/'+d.getDate()}</div>`;
+            }
+            showScreen('booking-screen');
+        }
+
+        async function selectDay(date, el) {
+            selectedDate = date;
+            document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            const res = await fetch(`/api/get_slots?castId=${currentCastId}&date=${date}`);
+            const data = await res.json();
+            document.getElementById('time-slots').innerHTML = data.slots.map(s => 
+                `<button class="slot-btn" ${s.status!=='available'?'disabled':''} onclick="selectTime('${s.time}', this)">${s.status==='booked'?'予約済':s.time}</button>`
+            ).join('');
+        }
+
+        function selectTime(time, el) {
+            selectedTime = time;
+            document.querySelectorAll('.slot-btn').forEach(b => { b.style.background = 'none'; b.style.color = '#fff'; });
+            el.style.background = 'var(--gold)'; el.style.color = '#000';
+            document.getElementById('confirm-btn').style.display = 'block';
+        }
+
+        async function submitBooking() {
+            await fetch('/api/reserve', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ userId, castId: currentCastId, scheduledAt: `${selectedDate}T${selectedTime}` })
+            });
+            alert("予約しました。");
+            location.reload();
+        }
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+            const target = document.getElementById(id);
+            if (target) target.style.display = (id === 'gateway-screen') ? 'flex' : 'block';
+            document.getElementById('main-nav').style.display = 
+                (id === 'gateway-screen' || id === 'title-screen' || id === 'setup-screen') ? 'none' : 'flex';
+        }
+
+        function logout() { localStorage.clear(); location.reload(); }
+    </script>
+</body>
+</html>
