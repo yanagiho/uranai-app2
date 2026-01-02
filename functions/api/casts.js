@@ -1,7 +1,6 @@
 import { casts } from "../../src/casts.js";
 
 export async function onRequestGet() {
-  // 画面表示用に、占い師のデータを整理して送ります
   const list = Object.keys(casts).map(id => ({
     id: parseInt(id),
     name: casts[id].name,
