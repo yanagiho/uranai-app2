@@ -25,17 +25,13 @@
         
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
         
-        /* 3. 占い師選択 & 紹介ポップアップ */
-        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin: 20px auto; max-width: 800px; }
-        .cast-card { background: var(--glass); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; }
-        .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; margin-bottom: 8px; }
-        
+        /* 3. 紹介ポップアップ */
         #cast-modal { display: none; position: fixed; bottom: 0; left: 0; right: 0; top: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: flex-end; }
         .modal-content { width: 100%; max-width: 500px; margin: 0 auto; background: #1a0b2e; border-top: 3px solid var(--gold); border-radius: 30px 30px 0 0; padding: 30px; box-sizing: border-box; transform: translateY(100%); transition: 0.4s ease; }
         #cast-modal.active { display: flex; }
         #cast-modal.active .modal-content { transform: translateY(0); }
 
-        /* 4. チャット画面（修復版）💬 */
+        /* 4. チャット画面 💬 */
         #chat-screen { flex-direction: column; height: 100vh; padding: 70px 10px 20px; box-sizing: border-box; }
         #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; }
         .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; line-height: 1.6; font-size: 0.95rem; word-wrap: break-word; }
@@ -44,6 +40,10 @@
         #ai-thinking { display: none; color: var(--gold); font-style: italic; font-size: 0.85rem; margin-bottom: 10px; text-align: left; }
         .chat-input-area { display: flex; gap: 8px; max-width: 600px; margin: 0 auto; width: 100%; }
 
+        /* 5. キャストカード & 予約 */
+        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin: 20px auto; max-width: 800px; }
+        .cast-card { background: var(--glass); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; }
+        .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; margin-bottom: 8px; }
         .day-tab { min-width: 70px; padding: 10px; border: 1px solid #444; border-radius: 10px; cursor: pointer; font-size: 0.8rem; }
         .day-tab.active { border-color: var(--gold); color: var(--gold); }
         .slot-btn { padding: 12px; border: 1px solid var(--gold); color: #fff; background: none; border-radius: 8px; cursor: pointer; }
@@ -71,9 +71,8 @@
             <button class="auth-btn btn-yahoo" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
             <button class="auth-btn btn-line" onclick="handleAuth('LINE')">LINE で入館</button>
             <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
-            <p style="font-size:0.75rem; color:var(--gold); margin-bottom:10px;">Basic認証（メールアドレス）</p>
-            <input type="email" id="login-email" placeholder="example@mail.com">
-            <button class="main-btn" onclick="handleAuth('Email')">入館する</button>
+            <input type="email" id="login-email" placeholder="メールアドレス">
+            <button class="main-btn" onclick="handleAuth('Email')">Basic認証で入館</button>
         </div>
     </div>
 
@@ -248,9 +247,7 @@
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
             const target = document.getElementById(id);
-            if (target) {
-                target.style.display = (id === 'gateway-screen' || id === 'chat-screen') ? 'flex' : 'block';
-            }
+            if (target) target.style.display = (id === 'gateway-screen' || id === 'chat-screen') ? 'flex' : 'block';
             document.getElementById('main-nav').style.display = (['gateway-screen','title-screen','setup-screen'].includes(id)) ? 'none' : 'flex';
             closeModal();
         }
