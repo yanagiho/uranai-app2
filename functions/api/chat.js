@@ -19,8 +19,8 @@ export async function onRequestPost(context) {
 
 【重要指示】
 1. 初回（textが空の場合）は、相手の名前と誕生日を既に知っているという神秘的な挨拶から始めてください。
-2. 占いの結果は、必ずあなたのキャラクターに合った威厳や慈愛のある言葉で伝えてください。
-3. 会話の最後には、ユーザーの未来を祝福する「締めの言葉」を必ず添えてください。`;
+2. 占いの結果は、必ずキャラクターに合った言葉で伝えてください。
+3. 会話の最後には、相談者の未来を祝福する「締めの言葉」を添えてください。`;
 
     // 3. AI（Gemini）へ送信
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${env.GEMINI_API_KEY}`;
