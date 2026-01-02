@@ -1,33 +1,44 @@
+import { casts } from "../../src/casts.js";
+
 export async function onRequestPost(context) {
   const { request, env } = context;
   try {
-    const { userId, cast_id, text } = await request.json();
+    const { userId, castId, text } = await request.json();
 
-    // 🌟 時間チェックロジック 🌟
-    const reservation = await env.DB.prepare(
-      "SELECT scheduled_at FROM Reservations WHERE user_id = ? AND cast_id = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 1"
-    ).bind(userId, cast_id).first();
+    // 1. ユーザー情報と鑑定師の基本情報を取得
+    const user = await env.DB.prepare("SELECT name, dob FROM Users WHERE id = ?").bind(userId).first();
+    const cast = casts[castId];
 
-    if (!reservation) {
-      return new Response(JSON.stringify({ error: "予約が見つかりません。" }));
-    }
+    if (!user || !cast) return new Response(JSON.stringify({ error: "情報が見つかりません" }));
 
-    const now = new Date();
-    const reservedTime = new Date(reservation.scheduled_at);
-    const diffMin = (now - reservedTime) / (1000 * 60);
+    // 2. AIへの命令を強化（名前と誕生日を最初から教える）
+    const systemPrompt = `${cast.systemPrompt}
+【相談者のプロフィール】
+氏名：${user.name}
+生年月日：${user.dob}
 
-    // 予約時間の前後10分以内のみ許可
-    if (Math.abs(diffMin) > 10) {
-      return new Response(JSON.stringify({ error: `現在は鑑定時間外です。予約時刻：${reservation.scheduled_at}` }));
-    }
+【重要指示】
+1. 初回（textが空の場合）は、相手の名前と誕生日を既に知っているという神秘的な挨拶から始めてください。
+2. 占いの結果は、必ずあなたのキャラクターに合った威厳や慈愛のある言葉で伝えてください。
+3. 会話の最後には、ユーザーの未来を祝福する「締めの言葉」を必ず添えてください。`;
 
-    // --- AI通信処理（以前の安定版モデルを使用） ---
+    // 3. AI（Gemini）へ送信
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${env.GEMINI_API_KEY}`;
-    // ...以降、AIへの送信・返信処理...
     
-    return new Response(JSON.stringify({ reply: "（AIからの鑑定結果...）" }));
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: text || "（静かに入室して、鑑定を待っている）" }] }],
+        system_instruction: { parts: [{ text: systemPrompt }] }
+      })
+    });
 
+    const data = await response.json();
+    const reply = data.candidates[0].content.parts[0].text;
+
+    return new Response(JSON.stringify({ reply }));
   } catch (err) {
-    return new Response(JSON.stringify({ error: "システムエラー" }));
+    return new Response(JSON.stringify({ error: "星々の巡りが乱れ、返答が得られません" }), { status: 500 });
   }
 }
