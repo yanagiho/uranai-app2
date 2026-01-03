@@ -3,7 +3,7 @@ export async function onRequestPost(context) {
   try {
     const { userId, lastName, firstName, dob, auth_type } = await request.json();
 
-    // 初回登録なら10枚付与、すでにチケット（購入分）があれば合算 🎁
+    // 新規登録なら10枚、すでに購入分があれば合算 🎁
     await env.DB.prepare(`
       INSERT INTO Users (id, last_name, first_name, dob, auth_type, ticket_balance) 
       VALUES (?, ?, ?, ?, ?, 10)
@@ -16,7 +16,5 @@ export async function onRequestPost(context) {
     `).bind(userId, lastName, firstName, dob, auth_type).run();
 
     return new Response(JSON.stringify({ success: true }));
-  } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
-  }
+  } catch (e) { return new Response(JSON.stringify({ error: e.message }), { status: 500 }); }
 }
