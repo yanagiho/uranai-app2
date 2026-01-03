@@ -49,7 +49,7 @@
             <button class="auth-btn" style="background:#ff0033; width:100%; color:#fff;" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
             <button class="auth-btn" style="background:#06C755; width:100%; color:#fff;" onclick="handleAuth('LINE')">LINE で入館</button>
             <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
-            <input type="email" id="login-email" placeholder="example@mail.com">
+            <input type="email" id="login-email" placeholder="メールアドレス">
             <button class="main-btn" style="margin-top:0" onclick="handleAuth('Email')">Basic認証で入館</button>
         </div>
     </div>
@@ -86,11 +86,28 @@
     <div id="ticket-modal" onclick="closeTicketModal()">
         <div class="ticket-box" onclick="event.stopPropagation()">
             <h2 style="color:var(--gold)">チケット購入</h2>
-            <p style="font-size:0.9rem; color:#ccc; margin-bottom:20px;">鑑定1回につきチケット1枚が必要です。</p>
             <button class="main-btn" onclick="buyTickets(1)">1枚購入 (¥3,000)</button>
             <button class="main-btn" style="background:var(--gold); color:#000;" onclick="buyTickets(10)">10枚セット (¥27,000)</button>
             <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="closeTicketModal()">閉じる</p>
         </div>
+    </div>
+
+    <div id="cast-modal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <img id="modal-img" src="" style="width:100px; height:100px; border-radius:50%; border:2px solid var(--gold); margin-bottom:15px; object-fit:cover;">
+            <h2 id="modal-name" style="color:var(--gold); margin:5px 0;"></h2>
+            <p id="modal-intro" style="font-size:0.95rem; margin-bottom:25px; text-align:left; color:#ccc; line-height:1.6;"></p>
+            <button class="main-btn" onclick="goToBooking()">この先生に予約する</button>
+            <p style="margin-top:15px; color:#666; cursor:pointer; font-size:0.85rem;" onclick="closeModal()">戻る</p>
+        </div>
+    </div>
+
+    <div id="booking-screen" class="screen">
+        <h2 id="book-cast-name" style="color:var(--gold)"></h2>
+        <div id="day-list" style="display:flex; gap:10px; overflow-x:auto; padding:10px 0; justify-content:center;"></div>
+        <div id="time-slots" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:15px;"></div>
+        <button id="confirm-btn" class="main-btn" style="display:none; margin-top:30px;" onclick="submitBooking()">予約を確定する</button>
+        <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="showScreen('selection-screen')">鑑定師選びに戻る</p>
     </div>
 
     <script>
@@ -98,13 +115,9 @@
         let castsData = [], currentAuthType = "";
 
         window.onload = async () => { 
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('payment') === 'success') alert("チケットの購入が完了しました！");
-
             if (userId) {
-                const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId, auth_type: 'Session' }) });
+                const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId }) });
                 const data = await res.json();
-                // 購入後、名前があれば占い師選択へ直行 🚀
                 if (data.isComplete) initApp(); else showScreen('setup-screen');
             } else { showScreen('gateway-screen'); }
         };
@@ -183,12 +196,6 @@
             const res = await fetch('/api/stripe_checkout', { method: 'POST', body: JSON.stringify({ userId, amount }) });
             const data = await res.json();
             if (data.url) window.location.href = data.url;
-        }
-
-        async function cancelReservation() {
-            if (!confirm("予約をキャンセルしてチケットを戻しますか？")) return;
-            await fetch('/api/cancel_reservation', { method: 'POST', body: JSON.stringify({ userId }) });
-            initApp();
         }
 
         function logout() { localStorage.clear(); location.reload(); }
