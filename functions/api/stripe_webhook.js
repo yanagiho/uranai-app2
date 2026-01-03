@@ -7,7 +7,8 @@ export async function onRequestPost(context) {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const userId = session.client_reference_id;
-      // 27,000円以上なら10枚、それ以外は1枚 💰
+      
+      // 価格判定：27,000円（27000）以上なら10枚加算、それ以外は1枚 💰
       const amount = session.amount_total >= 27000 ? 10 : 1;
 
       await env.DB.prepare(`
