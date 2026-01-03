@@ -17,10 +17,10 @@
         .cast-card { background: var(--glass); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; }
         .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; margin-bottom: 8px; }
         #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; }
-        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; line-height: 1.5; font-size: 0.95rem; }
+        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; line-height: 1.5; font-size: 0.95rem; position: relative; }
         .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; text-align: left; }
         .msg.user { background: var(--accent); color: #fff; align-self: flex-end; }
-        nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
+        nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; }
         @keyframes fade-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         #cast-modal, #ticket-modal { display: none; position: fixed; bottom: 0; left: 0; right: 0; top: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: flex-end; }
         .modal-content, .ticket-box { width: 100%; max-width: 500px; margin: 0 auto; background: #1a0b2e; border-top: 3px solid var(--gold); border-radius: 30px 30px 0 0; padding: 30px; box-sizing: border-box; transform: translateY(100%); transition: 0.4s; }
@@ -29,12 +29,12 @@
 </head>
 <body>
     <nav id="main-nav" style="display:none">
-        <div style="color:var(--gold); font-weight:bold;" onclick="location.reload()">占いの館</div>
-        <div style="color:var(--gold);" onclick="openTicketModal()">🎟 <span id="nav-ticket">0</span> ＋</div>
+        <div style="color:var(--gold); font-weight:bold; cursor:pointer;" onclick="location.reload()">占いの館</div>
+        <div style="color:var(--gold); cursor:pointer;" onclick="openTicketModal()">🎟 <span id="nav-ticket">0</span> ＋</div>
     </nav>
 
     <div id="gateway-screen" class="screen" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <div style="width:130px; height:130px; background:radial-gradient(circle, #fff, #9c27b0); border-radius:50%; box-shadow:0 0 50px var(--accent); animation: breathe 4s infinite alternate;"></div>
+        <div style="width:130px; height:130px; background:radial-gradient(circle, #fff, #9c27b0); border-radius:50%; box-shadow:0 0 50px var(--accent);"></div>
         <h1 class="logo">AI 占いの館</h1>
         <button class="main-btn" style="width:200px" onclick="showScreen('title-screen')">館に入る</button>
     </div>
@@ -43,10 +43,11 @@
         <h1 class="logo" style="font-size:1.8rem; margin-bottom:30px;">入館の儀</h1>
         <div class="form-box">
             <button class="auth-btn" style="background:#000; width:100%;" onclick="handleAuth('X')">X で入館</button>
-            <button class="auth-btn" style="background:#ff0033; width:100%;" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
-            <button class="auth-btn" style="background:#06C755; width:100%;" onclick="handleAuth('LINE')">LINE で入館</button>
+            <button class="auth-btn" style="background:#1877F2; width:100%; color:#fff;" onclick="handleAuth('Facebook')">Facebook で入館</button>
+            <button class="auth-btn" style="background:#ff0033; width:100%; color:#fff;" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
+            <button class="auth-btn" style="background:#06C755; width:100%; color:#fff;" onclick="handleAuth('LINE')">LINE で入館</button>
             <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
-            <input type="email" id="login-email" placeholder="example@mail.com">
+            <input type="email" id="login-email" placeholder="メールアドレス">
             <button class="main-btn" style="margin-top:0" onclick="handleAuth('Email')">Basic認証で入館</button>
         </div>
     </div>
@@ -54,13 +55,8 @@
     <div id="setup-screen" class="screen">
         <h1 style="color:var(--gold)">運命のカルテ登録</h1>
         <div class="form-box">
-            <input type="text" id="user-last-name" placeholder="姓">
-            <input type="text" id="user-first-name" placeholder="名">
-            <div style="display:flex; gap:5px;">
-                <input type="text" id="dob-year" placeholder="年">
-                <input type="text" id="dob-month" placeholder="月">
-                <input type="text" id="dob-day" placeholder="日">
-            </div>
+            <div class="name-row"><input type="text" id="user-last-name" placeholder="姓"><input type="text" id="user-first-name" placeholder="名"></div>
+            <div style="display:flex; gap:5px;"><input type="text" id="dob-year" placeholder="年"><input type="text" id="dob-month" placeholder="月"><input type="text" id="dob-day" placeholder="日"></div>
             <button class="main-btn" onclick="validateAndRegister()">運命を刻む</button>
         </div>
     </div>
@@ -73,10 +69,7 @@
     <div id="chat-screen" class="screen" style="display:none; flex-direction:column; height:100vh; padding:70px 10px 20px;">
         <h2 id="chat-cast-name" style="color:var(--gold); margin:0;"></h2>
         <div id="chat-box"></div>
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="chat-input" placeholder="尋ねたいことを入力...">
-            <button class="main-btn" style="width:80px; margin-top:0;" onclick="sendMessage()">送信</button>
-        </div>
+        <div style="display:flex; gap:10px;"><input type="text" id="chat-input" placeholder="尋ねたいことを入力..."><button class="main-btn" style="width:80px; margin-top:0;" onclick="sendMessage()">送信</button></div>
     </div>
 
     <div id="cast-modal" onclick="closeModal()">
@@ -93,11 +86,10 @@
         let castsData = [], currentCastId = null;
 
         window.onload = async () => {
-            const urlParams = new URLSearchParams(window.location.search);
             if (userId) {
                 const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId }) });
                 const data = await res.json();
-                if (data.isComplete || urlParams.get('payment') === 'success') initApp(); else showScreen('setup-screen');
+                if (data.isComplete) initApp(); else showScreen('setup-screen');
             } else { showScreen('gateway-screen'); }
         };
 
@@ -117,7 +109,6 @@
         async function validateAndRegister() {
             const ln = document.getElementById('user-last-name').value, fn = document.getElementById('user-first-name').value;
             const y = document.getElementById('dob-year').value, m = document.getElementById('dob-month').value, d = document.getElementById('dob-day').value;
-            if(!ln || !fn || !y || !m || !d) return alert("入力してください");
             await fetch('/api/save_user', { method: 'POST', body: JSON.stringify({ userId, lastName: ln, firstName: fn, dob: `${y}-${m}-${d}` }) });
             initApp();
         }
