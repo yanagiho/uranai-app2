@@ -15,29 +15,25 @@
         @keyframes breathe { from { transform: scale(1); } to { transform: scale(1.1); } }
         .logo { font-size: 2.4rem; color: var(--gold); margin: 0; letter-spacing: 8px; text-shadow: 0 0 15px rgba(212,175,55,0.4); }
 
-        /* ログインフォーム & 入力ウィザード 🔐 */
         .form-box { width: 100%; max-width: 360px; margin: 0 auto; text-align: left; background: var(--glass); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
-        label { display: block; font-size: 1.1rem; color: var(--gold); margin-bottom: 15px; text-align: center; }
-        input { width: 100%; padding: 14px; background: #000; border: 1px solid #444; color: #fff; border-radius: 10px; margin-bottom: 10px; box-sizing: border-box; font-size: 1.2rem; text-align: center; outline: none; }
+        label { display: block; font-size: 0.8rem; color: var(--gold); margin-bottom: 5px; margin-top: 10px; }
+        input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; font-size: 1rem; outline: none; }
+        .name-row { display: flex; gap: 10px; }
+        .dob-row { display: flex; gap: 5px; align-items: center; }
         
-        /* エラー点滅演出 ⚡ */
         @keyframes blink-red { 0%, 100% { border-color: #444; } 50% { border-color: var(--error); box-shadow: 0 0 10px var(--error); } }
         .error-blink { animation: blink-red 0.4s ease 3; border-width: 2px !important; }
 
-        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; transition: 0.3s; }
-        .auth-btn { width: 100%; margin-bottom: 12px; padding: 14px; border-radius: 12px; border: none; font-weight: bold; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; }
+        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; color: #fff; cursor: pointer; }
         
-        /* チャット画面 💬 */
-        #chat-screen { flex-direction: column; height: 100vh; padding: 70px 10px 20px; overflow: hidden; }
-        #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 15px; }
+        #chat-screen { flex-direction: column; height: 100vh; padding: 70px 10px 20px; }
+        #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; }
         .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; word-wrap: break-word; line-height: 1.5; font-size: 0.95rem; }
         .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; text-align: left; }
-        .msg.user { background: var(--accent); color: #fff; align-self: flex-end; }
+        .msg.user { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
         
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
-        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; }
-        .setup-step { display: none; }
-        .setup-step.active { display: block; }
     </style>
 </head>
 <body>
@@ -61,45 +57,34 @@
             <button class="auth-btn" style="background:#ff0033" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
             <button class="auth-btn" style="background:#06C755" onclick="handleAuth('LINE')">LINE で入館</button>
             <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
-            <input type="email" id="login-email" placeholder="メールアドレスを入力">
-            <button class="main-btn" style="margin-top:0" onclick="handleAuth('Email')">Basic認証で入館</button>
+            <p style="font-size:0.75rem; color:var(--gold); margin-bottom:10px;">Basic認証（メールアドレス）</p>
+            <input type="email" id="login-email" placeholder="example@mail.com">
+            <button class="main-btn" style="margin-top:0" onclick="handleAuth('Email')">入館する</button>
         </div>
     </div>
 
     <div id="setup-screen" class="screen">
         <h1 style="color:var(--gold)">運命のカルテ登録</h1>
         <div class="form-box">
-            <div id="step-1" class="setup-step active">
-                <label>あなたの「姓」をお教えください</label>
-                <input type="text" id="user-last-name" placeholder="（例：斉藤）">
-                <button class="main-btn" onclick="nextStep(1)">次へ進む</button>
+            <label>鑑定に使うお名前</label>
+            <div class="name-row">
+                <input type="text" id="user-last-name" placeholder="姓">
+                <input type="text" id="user-first-name" placeholder="名">
             </div>
-            <div id="step-2" class="setup-step">
-                <label>あなたの「名」をお教えください</label>
-                <input type="text" id="user-first-name" placeholder="（例：太郎）">
-                <button class="main-btn" onclick="nextStep(2)">次へ進む</button>
+            <label>生年月日</label>
+            <div class="dob-row">
+                <input type="number" id="dob-year" placeholder="年" min="1900">
+                <input type="number" id="dob-month" placeholder="月" min="1" max="12">
+                <input type="number" id="dob-day" placeholder="日" min="1" max="31">
             </div>
-            <div id="step-3" class="setup-step">
-                <label>お生まれになった「年」を西暦で</label>
-                <input type="number" id="dob-year" placeholder="（例：1990）" min="1900">
-                <button class="main-btn" onclick="nextStep(3)">次へ進む</button>
-            </div>
-            <div id="step-4" class="setup-step">
-                <label>お生まれになった「月」を</label>
-                <input type="number" id="dob-month" placeholder="1 〜 12" min="1" max="12">
-                <button class="main-btn" onclick="nextStep(4)">次へ進む</button>
-            </div>
-            <div id="step-5" class="setup-step">
-                <label>お生まれになった「日」を</label>
-                <input type="number" id="dob-day" placeholder="1 〜 31" min="1" max="31">
-                <button class="main-btn" onclick="validateFinal()">運命を刻む</button>
-            </div>
+            <p id="dob-error" style="color:var(--error); font-size:0.7rem; display:none; text-align:center;">正しい日付を刻んでください</p>
+            <button class="main-btn" onclick="validateAndRegister()">運命を刻む</button>
         </div>
     </div>
 
     <div id="selection-screen" class="screen">
         <h2 style="color:var(--gold)">鑑定師をお選びください</h2>
-        <div id="cast-list" class="cast-grid"></div>
+        <div id="cast-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:15px;"></div>
         <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:40px;" onclick="logout()">ログアウト</p>
     </div>
 
@@ -107,7 +92,7 @@
         <h2 id="chat-cast-name" style="color:var(--gold)"></h2>
         <div id="chat-box"></div>
         <div style="display:flex; gap:10px;">
-            <input type="text" id="chat-input" placeholder="尋ねたいことを入力..." style="margin-bottom:0; text-align:left;">
+            <input type="text" id="chat-input" placeholder="尋ねたいことを入力...">
             <button class="main-btn" style="width:80px; margin-top:0;" onclick="sendMessage()">送信</button>
         </div>
     </div>
@@ -123,9 +108,7 @@
                     const data = await res.json();
                     if (data.isComplete) initApp(); else showScreen('setup-screen');
                 } catch (e) { showScreen('gateway-screen'); }
-            } else {
-                showScreen('gateway-screen');
-            }
+            } else { showScreen('gateway-screen'); }
         };
 
         function showScreen(id) {
@@ -145,48 +128,30 @@
             if (data.isComplete) initApp(); else showScreen('setup-screen');
         }
 
-        function nextStep(current) {
-            const inputs = {
-                1: document.getElementById('user-last-name'),
-                2: document.getElementById('user-first-name'),
-                3: document.getElementById('dob-year'),
-                4: document.getElementById('dob-month')
-            };
+        function validateAndRegister() {
+            const ln = document.getElementById('user-last-name'), fn = document.getElementById('user-first-name');
+            const y = document.getElementById('dob-year'), m = document.getElementById('dob-month'), d = document.getElementById('dob-day');
+            const err = document.getElementById('dob-error');
             const currentYear = new Date().getFullYear();
-            let val = inputs[current].value;
             
-            if (!val || (current === 3 && (val < 1900 || val > currentYear)) || (current === 4 && (val < 1 || val > 12))) {
-                inputs[current].classList.add('error-blink');
-                setTimeout(() => inputs[current].classList.remove('error-blink'), 1500);
-                return;
-            }
-            
-            document.getElementById(`step-${current}`).classList.remove('active');
-            document.getElementById(`step-${current + 1}`).classList.add('active');
+            [ln, fn, y, m, d].forEach(el => el.classList.remove('error-blink'));
+            err.style.display = 'none';
+
+            let hasError = false;
+            if (!ln.value) { ln.classList.add('error-blink'); hasError = true; }
+            if (!fn.value) { fn.classList.add('error-blink'); hasError = true; }
+            if (y.value < 1900 || y.value > currentYear) { y.classList.add('error-blink'); hasError = true; }
+            if (m.value < 1 || m.value > 12) { m.classList.add('error-blink'); hasError = true; }
+            const daysInMonth = new Date(y.value, m.value, 0).getDate();
+            if (d.value < 1 || d.value > daysInMonth) { d.classList.add('error-blink'); hasError = true; }
+
+            if (hasError) { err.style.display = 'block'; return; }
+            register(ln.value, fn.value, `${y.value}-${m.value}-${d.value}`);
         }
 
-        async function validateFinal() {
-            const dInput = document.getElementById('dob-day');
-            const y = document.getElementById('dob-year').value, m = document.getElementById('dob-month').value, d = dInput.value;
-            const daysInMonth = new Date(y, m, 0).getDate();
-
-            if (!d || d < 1 || d > daysInMonth) {
-                dInput.classList.add('error-blink');
-                setTimeout(() => dInput.classList.remove('error-blink'), 1500);
-                return;
-            }
-
-            const res = await fetch('/api/save_user', {
-                method: 'POST',
-                body: JSON.stringify({
-                    userId, 
-                    lastName: document.getElementById('user-last-name').value,
-                    firstName: document.getElementById('user-first-name').value,
-                    dob: `${y}-${m}-${d}`,
-                    auth_type: currentAuthType
-                })
-            });
-            if (res.ok) initApp(); else alert("保存に失敗しました");
+        async function register(lastName, firstName, dob) {
+            await fetch('/api/save_user', { method: 'POST', body: JSON.stringify({ userId, lastName, firstName, dob, auth_type: currentAuthType }) });
+            initApp();
         }
 
         async function initApp() {
@@ -212,12 +177,11 @@
         }
 
         async function sendMessage(manualText = null) {
-            const input = document.getElementById('chat-input');
-            const text = (manualText !== null) ? manualText : input.value;
+            const text = (manualText !== null) ? manualText : document.getElementById('chat-input').value;
             const box = document.getElementById('chat-box');
             if (text && manualText === null) {
                 box.innerHTML += `<div class="msg user">${text}</div>`;
-                input.value = "";
+                document.getElementById('chat-input').value = "";
             }
             const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, text }) });
             const data = await res.json();
