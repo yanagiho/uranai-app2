@@ -3,7 +3,7 @@ export async function onRequestPost(context) {
   try {
     const { userId, lastName, firstName, dob, auth_type } = await request.json();
 
-    // ユーザー情報の保存：すでにStripeでチケットが増えていた場合、その枚数を維持します
+    // 初回登録なら10枚付与、すでにチケット（購入分）があれば合算 🎁
     await env.DB.prepare(`
       INSERT INTO Users (id, last_name, first_name, dob, auth_type, ticket_balance) 
       VALUES (?, ?, ?, ?, ?, 10)
@@ -11,7 +11,8 @@ export async function onRequestPost(context) {
         last_name = excluded.last_name, 
         first_name = excluded.first_name, 
         dob = excluded.dob,
-        auth_type = excluded.auth_type
+        auth_type = excluded.auth_type,
+        ticket_balance = Users.ticket_balance + excluded.ticket_balance
     `).bind(userId, lastName, firstName, dob, auth_type).run();
 
     return new Response(JSON.stringify({ success: true }));
