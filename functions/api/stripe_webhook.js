@@ -8,10 +8,10 @@ export async function onRequestPost(context) {
       const session = event.data.object;
       const userId = session.client_reference_id;
       
-      // 価格判定の修正：27,000円以上なら10枚、それ以外は1枚 💰
+      // 価格判定：27,000円以上（27000）なら10枚、それ以外は1枚 💰
       const amount = session.amount_total >= 27000 ? 10 : 1;
 
-      // ユーザーが存在しない場合でもレコードを作成し、チケットを加算します（UPSERT）
+      // チケットをデータベースに加算（ユーザーが未登録でもレコードを作成して枚数を保持します）
       await env.DB.prepare(`
         INSERT INTO Users (id, ticket_balance) 
         VALUES (?, ?)
