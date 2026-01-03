@@ -1,9 +1,32 @@
 DROP TABLE IF EXISTS Users;
-DROP TABLE IF EXISTS Casts;
 DROP TABLE IF EXISTS Reservations;
 DROP TABLE IF EXISTS ChatLogs;
 
-CREATE TABLE Users (id TEXT PRIMARY KEY, email TEXT, ticket_balance INTEGER DEFAULT 0);
-CREATE TABLE Casts (id INTEGER PRIMARY KEY, name TEXT, system_prompt TEXT, status TEXT DEFAULT 'standby');
-CREATE TABLE Reservations (id INTEGER PRIMARY KEY, user_id TEXT, cast_id INTEGER, status TEXT);
-CREATE TABLE ChatLogs (id INTEGER PRIMARY KEY, reservation_id INTEGER, sender TEXT, content TEXT, created_at INTEGER DEFAULT (unixepoch()));
+CREATE TABLE Users (
+    id TEXT PRIMARY KEY, 
+    last_name TEXT,
+    first_name TEXT,
+    dob TEXT, 
+    email TEXT, 
+    auth_type TEXT, 
+    ticket_balance INTEGER DEFAULT 10,
+    created_at INTEGER DEFAULT (unixepoch())
+);
+
+CREATE TABLE Reservations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, 
+    user_id TEXT UNIQUE, 
+    cast_id INTEGER, 
+    scheduled_at TEXT, 
+    status TEXT DEFAULT 'pending',
+    created_at INTEGER DEFAULT (unixepoch())
+);
+
+CREATE TABLE ChatLogs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT,
+    reservation_id INTEGER,
+    sender TEXT,
+    content TEXT,
+    created_at INTEGER DEFAULT (unixepoch())
+);
