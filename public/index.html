@@ -38,7 +38,6 @@
     <div id="gateway-screen" class="screen" style="display:flex">
         <div class="crystal-ball"></div>
         <h1 class="logo">AI 占いの館</h1>
-        <p style="color:var(--gold); font-style:italic;">〜 運命の扉が今、開く 〜</p>
         <button class="main-btn" style="width:200px" onclick="showScreen('title-screen')">館に入る</button>
     </div>
 
@@ -94,24 +93,6 @@
         </div>
     </div>
 
-    <div id="cast-modal" onclick="closeModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <img id="modal-img" src="" style="width:100px; height:100px; border-radius:50%; border:2px solid var(--gold); margin-bottom:15px; object-fit:cover;">
-            <h2 id="modal-name" style="color:var(--gold); margin:5px 0;"></h2>
-            <p id="modal-intro" style="font-size:0.95rem; margin-bottom:25px; text-align:left; color:#ccc; line-height:1.6;"></p>
-            <button class="main-btn" onclick="goToBooking()">この先生に予約する</button>
-            <p style="margin-top:15px; color:#666; cursor:pointer; font-size:0.85rem;" onclick="closeModal()">戻る</p>
-        </div>
-    </div>
-
-    <div id="booking-screen" class="screen">
-        <h2 id="book-cast-name" style="color:var(--gold)"></h2>
-        <div id="day-list" style="display:flex; gap:10px; overflow-x:auto; padding:10px 0; justify-content:center;"></div>
-        <div id="time-slots" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:15px;"></div>
-        <button id="confirm-btn" class="main-btn" style="display:none; margin-top:30px;" onclick="submitBooking()">予約を確定する</button>
-        <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="showScreen('selection-screen')">鑑定師選びに戻る</p>
-    </div>
-
     <script>
         let userId = localStorage.getItem('fortune_user_id');
         let castsData = [], currentAuthType = "";
@@ -123,7 +104,7 @@
             if (userId) {
                 const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId, auth_type: 'Session' }) });
                 const data = await res.json();
-                // 修正：チケット購入後などで情報が揃っている場合は占い師選択へ進む 🚀
+                // 購入後、名前があれば占い師選択へ直行 🚀
                 if (data.isComplete) initApp(); else showScreen('setup-screen');
             } else { showScreen('gateway-screen'); }
         };
@@ -195,7 +176,6 @@
         }
 
         function closeModal() { document.getElementById('cast-modal').classList.remove('active'); setTimeout(() => document.getElementById('cast-modal').style.display = 'none', 300); }
-
         function openTicketModal() { document.getElementById('ticket-modal').style.display = 'flex'; setTimeout(() => document.getElementById('ticket-modal').classList.add('active'), 10); }
         function closeTicketModal() { document.getElementById('ticket-modal').classList.remove('active'); setTimeout(() => document.getElementById('ticket-modal').style.display = 'none', 300); }
         
