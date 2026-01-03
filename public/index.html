@@ -26,11 +26,6 @@
         #cast-modal, #ticket-modal { display: none; position: fixed; bottom: 0; left: 0; right: 0; top: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: flex-end; }
         .modal-content, .ticket-box { width: 100%; max-width: 500px; margin: 0 auto; background: #1a0b2e; border-top: 3px solid var(--gold); border-radius: 30px 30px 0 0; padding: 30px; box-sizing: border-box; transform: translateY(100%); transition: 0.4s; }
         .active .modal-content, .active .ticket-box { transform: translateY(0); }
-        #chat-screen { flex-direction: column; height: 100vh; padding: 70px 10px 20px; }
-        #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; }
-        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; word-wrap: break-word; line-height: 1.5; }
-        .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; text-align: left; }
-        .msg.user { background: var(--accent); color: #fff; align-self: flex-end; }
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; }
         .day-tab { min-width: 60px; padding: 8px; border: 1px solid #444; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
         .day-tab.active { border-color: var(--gold); color: var(--gold); }
@@ -53,10 +48,10 @@
     <div id="title-screen" class="screen">
         <h1 class="logo" style="font-size:1.8rem; margin-bottom:30px;">入館の儀</h1>
         <div class="form-box">
-            <button class="auth-btn" style="background:#000; width:100%;" onclick="handleAuth('X')">X で入館</button>
-            <button class="auth-btn" style="background:#1877F2; width:100%;" onclick="handleAuth('Facebook')">Facebook で入館</button>
-            <button class="auth-btn" style="background:#ff0033; width:100%;" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
-            <button class="auth-btn" style="background:#06C755; width:100%;" onclick="handleAuth('LINE')">LINE で入館</button>
+            <button class="auth-btn" style="background:#000; width:100%; color:#fff;" onclick="handleAuth('X')">X で入館</button>
+            <button class="auth-btn" style="background:#1877F2; width:100%; color:#fff;" onclick="handleAuth('Facebook')">Facebook で入館</button>
+            <button class="auth-btn" style="background:#ff0033; width:100%; color:#fff;" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
+            <button class="auth-btn" style="background:#06C755; width:100%; color:#fff;" onclick="handleAuth('LINE')">LINE で入館</button>
             <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
             <input type="email" id="login-email" placeholder="example@mail.com">
             <button class="main-btn" style="margin-top:0" onclick="handleAuth('Email')">Basic認証で入館</button>
@@ -111,12 +106,6 @@
         <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="showScreen('selection-screen')">戻る</p>
     </div>
 
-    <div id="chat-screen" class="screen">
-        <h2 id="chat-cast-name" style="color:var(--gold); margin:0;"></h2>
-        <div id="chat-box"></div>
-        <div style="display:flex; gap:10px;"><input type="text" id="chat-input" placeholder="入力..."><button class="main-btn" style="width:80px; margin-top:0;" onclick="sendMessage()">送信</button></div>
-    </div>
-
     <script>
         let userId = localStorage.getItem('fortune_user_id');
         let castsData = [], currentCastId = null, selectedDate = null, selectedTime = null;
@@ -127,7 +116,6 @@
             if (userId) {
                 const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId }) });
                 const data = await res.json();
-                // 支払い後はとにかく占い師選択画面へ誘導 🚀
                 if (data.isComplete || urlParams.get('payment') === 'success') initApp(); else showScreen('setup-screen');
             } else { showScreen('gateway-screen'); }
         };
@@ -135,7 +123,7 @@
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
             const target = document.getElementById(id);
-            target.style.display = (id === 'gateway-screen' || id === 'chat-screen') ? 'flex' : 'block';
+            target.style.display = (id === 'gateway-screen') ? 'flex' : 'block';
             document.getElementById('main-nav').style.display = (['gateway-screen','title-screen','setup-screen'].includes(id)) ? 'none' : 'flex';
         }
 
@@ -216,24 +204,7 @@
             const data = await res.json();
             if (data.error) return alert(data.error);
             alert("予約しました。鑑定を開始します。");
-            startChat();
-        }
-
-        function startChat() {
-            const cast = castsData.find(c => c.id === currentCastId);
-            document.getElementById('chat-cast-name').innerText = cast.name + " 鑑定室";
-            showScreen('chat-screen');
-            sendMessage(""); 
-        }
-
-        async function sendMessage(manualText = null) {
-            const input = document.getElementById('chat-input'), box = document.getElementById('chat-box');
-            const text = manualText !== null ? manualText : input.value;
-            if (text && manualText === null) { box.innerHTML += `<div class="msg user">${text}</div>`; input.value = ""; }
-            const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, text }) });
-            const data = await res.json();
-            box.innerHTML += `<div class="msg ai">${data.reply}</div>`;
-            box.scrollTop = box.scrollHeight;
+            // チャットへ進むロジック（後ほど実装）
         }
 
         function closeModal() { document.getElementById('cast-modal').classList.remove('active'); setTimeout(() => document.getElementById('cast-modal').style.display = 'none', 300); }
