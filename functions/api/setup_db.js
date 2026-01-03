@@ -1,12 +1,11 @@
 export async function onRequestGet(context) {
   const { env } = context;
   try {
-    // 1. 古いテーブルを削除
     await env.DB.prepare("DROP TABLE IF EXISTS Users").run();
     await env.DB.prepare("DROP TABLE IF EXISTS Reservations").run();
     await env.DB.prepare("DROP TABLE IF EXISTS ChatLogs").run();
 
-    // 2. 最新の構造（姓名分割・チケット・認証対応）で作成 👤
+    // 初期チケットを 0 に変更 🎟
     await env.DB.prepare(`
       CREATE TABLE Users (
         id TEXT PRIMARY KEY, 
@@ -15,7 +14,7 @@ export async function onRequestGet(context) {
         dob TEXT, 
         email TEXT, 
         auth_type TEXT, 
-        ticket_balance INTEGER DEFAULT 10,
+        ticket_balance INTEGER DEFAULT 0,
         created_at INTEGER DEFAULT (unixepoch())
       )
     `).run();
@@ -42,7 +41,7 @@ export async function onRequestGet(context) {
       )
     `).run();
 
-    return new Response("✨ データベースの自動修復が完了しました！サイトに戻ってリロードしてください。");
+    return new Response("✨ データベースの初期化（チケット0枚版）が完了しました。URLをサイトに戻してリロードしてください。");
   } catch (e) {
     return new Response("❌ 修復失敗: " + e.message, { status: 500 });
   }
