@@ -9,29 +9,27 @@
         body { font-family: 'Hiragino Mincho ProN', serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         .screen { display: none; padding: 40px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; }
         
-        /* 1. 共通パーツ */
+        /* 共通UI */
         .logo { font-size: 2.4rem; color: var(--gold); margin: 0; letter-spacing: 8px; text-shadow: 0 0 15px rgba(212,175,55,0.4); }
         .form-box { width: 100%; max-width: 360px; margin: 0 auto; text-align: left; background: var(--glass); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
         label { display: block; font-size: 0.8rem; color: var(--gold); margin-bottom: 5px; margin-top: 10px; }
         input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; font-size: 1rem; outline: none; transition: 0.3s; }
         .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; transition: 0.3s; }
-        .auth-btn { width: 100%; margin-bottom: 12px; padding: 12px; border-radius: 12px; border: none; font-weight: bold; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-        /* 2. 入力欄の横並び設定 💎 */
+        /* 横並び設定 */
         .name-row, .dob-row { display: flex; gap: 8px; align-items: center; }
         .name-row input, .dob-row input { width: 100%; flex: 1; text-align: center; }
         #dob-year { flex: 2; }
 
-        /* 3. タイトル画面演出 */
+        /* タイトル画面・演出 */
         #gateway-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle at center, #1a0b2e 0%, #0a0510 100%); gap: 20px; }
         .crystal-ball { width: 130px; height: 130px; background: radial-gradient(circle at 30% 30%, #fff, #9c27b0 80%); border-radius: 50%; box-shadow: 0 0 50px rgba(156, 39, 176, 0.6); animation: breathe 4s infinite alternate; }
         @keyframes breathe { from { transform: scale(1); } to { transform: scale(1.1); } }
-
-        /* 4. エラー点滅 ⚡ */
         @keyframes blink-red { 0%, 100% { border-color: #444; } 50% { border-color: var(--error); box-shadow: 0 0 10px var(--error); } }
         .error-blink { animation: blink-red 0.4s ease 3; border-width: 2px !important; }
 
-        /* 5. 鑑定師カード & ポップアップ */
+        /* 鑑定師選択・モーダル */
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; }
         .cast-card { background: var(--glass); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; }
         .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; margin-bottom: 8px; }
@@ -40,7 +38,7 @@
         #cast-modal.active { display: flex; }
         #cast-modal.active .modal-content { transform: translateY(0); }
 
-        /* 6. 予約UI 📅 */
+        /* 予約・スロット */
         .day-list { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; margin-bottom: 15px; justify-content: center; }
         .day-tab { min-width: 60px; padding: 8px; border: 1px solid #444; border-radius: 8px; cursor: pointer; font-size: 0.8rem; color: #888; }
         .day-tab.active { border-color: var(--gold); color: var(--gold); background: rgba(212, 175, 55, 0.1); }
@@ -49,20 +47,26 @@
         .slot-btn:disabled { opacity: 0.15; border-color: #444; color: #444; cursor: default; }
         .slot-btn.selected { background: var(--gold); color: #000; }
 
-        /* 7. チャット */
+        /* チケット購入モーダル */
+        #ticket-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 3000; justify-content: center; align-items: center; }
+        .ticket-box { background: #1a0b2e; padding: 30px; border-radius: 20px; border: 1px solid var(--gold); width: 90%; max-width: 400px; text-align: center; }
+
+        /* チャット */
         #chat-screen { flex-direction: column; height: 100vh; padding: 70px 10px 20px; }
         #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; }
         .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; word-wrap: break-word; line-height: 1.5; font-size: 0.95rem; }
         .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; text-align: left; }
         .msg.user { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
         
-        nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
+        nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; }
     </style>
 </head>
 <body>
     <nav id="main-nav" style="display:none">
         <div style="color:var(--gold); font-weight:bold; cursor:pointer;" onclick="location.reload()">占いの館</div>
-        <div style="color:var(--gold)">🎟 <span id="nav-ticket">0</span></div>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div style="color:var(--gold); cursor:pointer;" onclick="openTicketModal()">🎟 <span id="nav-ticket">0</span> ＋</div>
+        </div>
     </nav>
 
     <div id="gateway-screen" class="screen" style="display:flex">
@@ -93,7 +97,7 @@
                 <input type="text" id="user-last-name" placeholder="姓">
                 <input type="text" id="user-first-name" placeholder="名">
             </div>
-            <label>生年月日（全角変換対応）</label>
+            <label>生年月日</label>
             <div class="dob-row">
                 <input type="text" id="dob-year" placeholder="年" inputmode="numeric">
                 <input type="text" id="dob-month" placeholder="月" inputmode="numeric">
@@ -105,6 +109,10 @@
     </div>
 
     <div id="selection-screen" class="screen">
+        <div id="reservation-status" style="display:none; background:rgba(156, 39, 176, 0.2); padding:15px; border-radius:15px; margin-bottom:20px; border:1px solid var(--accent);">
+            <p style="margin:0; font-size:0.9rem;">現在、鑑定の予約があります。</p>
+            <button class="main-btn" style="padding:10px; margin-top:10px; font-size:0.8rem; background:#444;" onclick="cancelReservation()">予約をキャンセルして返金</button>
+        </div>
         <h2 style="color:var(--gold)">鑑定師をお選びください</h2>
         <div id="cast-list" class="cast-grid"></div>
         <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:40px;" onclick="logout()">ログアウト</p>
@@ -135,6 +143,16 @@
         <div style="display:flex; gap:10px;">
             <input type="text" id="chat-input" placeholder="尋ねたいことを入力...">
             <button class="main-btn" style="width:80px; margin-top:0;" onclick="sendMessage()">送信</button>
+        </div>
+    </div>
+
+    <div id="ticket-modal" onclick="closeTicketModal()">
+        <div class="ticket-box" onclick="event.stopPropagation()">
+            <h2 style="color:var(--gold)">チケット購入</h2>
+            <p style="font-size:0.9rem; color:#ccc; margin-bottom:20px;">鑑定1回につきチケット1枚が必要です。</p>
+            <button class="main-btn" onclick="buyTickets(1)">1枚購入 (¥1,000)</button>
+            <button class="main-btn" style="background:var(--gold); color:#000;" onclick="buyTickets(10)">10枚セット (¥8,000)</button>
+            <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="closeTicketModal()">閉じる</p>
         </div>
     </div>
 
@@ -207,6 +225,8 @@
             const res = await fetch(`/api/user_info?userId=${userId}`);
             const data = await res.json();
             document.getElementById('nav-ticket').innerText = data.ticket_balance || 0;
+            document.getElementById('reservation-status').style.display = data.hasPendingReservation ? 'block' : 'none';
+            
             showScreen('selection-screen');
             const cres = await fetch('/api/casts');
             castsData = await cres.json();
@@ -274,9 +294,26 @@
         }
 
         async function submitBooking() {
-            await fetch('/api/reserve', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, scheduledAt: `${selectedDate}T${selectedTime}` }) });
-            alert("予約しました。鑑定を開始します。");
-            startChat();
+            const res = await fetch('/api/reserve', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, scheduledAt: `${selectedDate}T${selectedTime}` }) });
+            const data = await res.json();
+            if (data.error) return alert(data.error);
+            alert("予約しました。メールをご確認ください。");
+            initApp();
+        }
+
+        async function cancelReservation() {
+            if (!confirm("予約をキャンセルしてチケットを戻しますか？")) return;
+            const res = await fetch('/api/cancel_reservation', { method: 'POST', body: JSON.stringify({ userId }) });
+            if (res.ok) { alert("キャンセルしました。"); initApp(); }
+        }
+
+        function openTicketModal() { document.getElementById('ticket-modal').style.display = 'flex'; }
+        function closeTicketModal() { document.getElementById('ticket-modal').style.display = 'none'; }
+        
+        async function buyTickets(amount) {
+            const res = await fetch('/api/stripe_checkout', { method: 'POST', body: JSON.stringify({ userId, amount }) });
+            const { url } = await res.json();
+            window.location.href = url; // Stripeの支払いページへ
         }
 
         function startChat() {
