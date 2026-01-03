@@ -26,17 +26,11 @@
         #cast-modal, #ticket-modal { display: none; position: fixed; bottom: 0; left: 0; right: 0; top: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: flex-end; }
         .modal-content, .ticket-box { width: 100%; max-width: 500px; margin: 0 auto; background: #1a0b2e; border-top: 3px solid var(--gold); border-radius: 30px 30px 0 0; padding: 30px; box-sizing: border-box; transform: translateY(100%); transition: 0.4s; }
         .active .modal-content, .active .ticket-box { transform: translateY(0); }
-        .day-list { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; justify-content: center; }
-        .day-tab { min-width: 60px; padding: 8px; border: 1px solid #444; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
-        .day-tab.active { border-color: var(--gold); color: var(--gold); }
-        .slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
-        .slot-btn { padding: 12px; border: 1px solid var(--gold); color: #fff; background: none; border-radius: 8px; cursor: pointer; }
-        .slot-btn:disabled { opacity: 0.15; border-color: #444; }
         #chat-screen { flex-direction: column; height: 100vh; padding: 70px 10px 20px; }
         #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; }
         .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; word-wrap: break-word; line-height: 1.5; }
         .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; text-align: left; }
-        .msg.user { background: var(--accent); color: #fff; align-self: flex-end; }
+        .msg.user { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; }
     </style>
 </head>
@@ -56,12 +50,13 @@
     <div id="title-screen" class="screen">
         <h1 class="logo" style="font-size:1.8rem; margin-bottom:30px;">入館の儀</h1>
         <div class="form-box">
-            <button class="auth-btn" style="background:#000; width:100%; color:#fff; border:none; padding:12px; border-radius:10px; margin-bottom:10px;" onclick="handleAuth('X')">X で入館</button>
-            <button class="auth-btn" style="background:#1877F2; width:100%; color:#fff; border:none; padding:12px; border-radius:10px; margin-bottom:10px;" onclick="handleAuth('Facebook')">Facebook で入館</button>
-            <button class="auth-btn" style="background:#06C755; width:100%; color:#fff; border:none; padding:12px; border-radius:10px; margin-bottom:10px;" onclick="handleAuth('LINE')">LINE で入館</button>
+            <button class="auth-btn" style="background:#000; width:100%; color:#fff; border:none; padding:12px; border-radius:10px; margin-bottom:10px; font-weight:bold; cursor:pointer;" onclick="handleAuth('X')">X で入館</button>
+            <button class="auth-btn" style="background:#1877F2; width:100%; color:#fff; border:none; padding:12px; border-radius:10px; margin-bottom:10px; font-weight:bold; cursor:pointer;" onclick="handleAuth('Facebook')">Facebook で入館</button>
+            <button class="auth-btn" style="background:#ff0033; width:100%; color:#fff; border:none; padding:12px; border-radius:10px; margin-bottom:10px; font-weight:bold; cursor:pointer;" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
+            <button class="auth-btn" style="background:#06C755; width:100%; color:#fff; border:none; padding:12px; border-radius:10px; margin-bottom:10px; font-weight:bold; cursor:pointer;" onclick="handleAuth('LINE')">LINE で入館</button>
             <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
-            <input type="email" id="login-email" placeholder="example@mail.com">
-            <button class="main-btn" style="margin-top:0" onclick="handleAuth('Email')">入館する</button>
+            <input type="email" id="login-email" placeholder="メールアドレス">
+            <button class="main-btn" style="margin-top:0" onclick="handleAuth('Email')">Basic認証で入館</button>
         </div>
     </div>
 
@@ -106,8 +101,8 @@
 
     <div id="booking-screen" class="screen">
         <h2 id="book-cast-name" style="color:var(--gold)"></h2>
-        <div id="day-list" class="day-list"></div>
-        <div id="time-slots" class="slot-grid"></div>
+        <div id="day-list" style="display:flex; gap:10px; overflow-x:auto; padding:10px 0; justify-content:center;"></div>
+        <div id="time-slots" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:15px;"></div>
         <button id="confirm-btn" class="main-btn" style="display:none; margin-top:30px;" onclick="submitBooking()">予約を確定する</button>
         <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="showScreen('selection-screen')">鑑定師選びに戻る</p>
     </div>
@@ -143,7 +138,6 @@
                 try {
                     const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId, auth_type: 'Session' }) });
                     const data = await res.json();
-                    // 修正：支払直後に戻った場合も、情報が揃っていれば占い師選択画面へ
                     if (data.isComplete) initApp(); else showScreen('setup-screen');
                 } catch (e) { showScreen('gateway-screen'); }
             } else { showScreen('gateway-screen'); }
@@ -255,8 +249,8 @@
             const res = await fetch('/api/reserve', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, scheduledAt: `${selectedDate}T${selectedTime}` }) });
             const data = await res.json();
             if (data.error) return alert(data.error);
-            alert("予約完了しました。鑑定を開始します。");
-            startChat();
+            alert("予約完了しました。メールをご確認ください。");
+            initApp();
         }
 
         async function cancelReservation() {
@@ -269,34 +263,12 @@
         function closeTicketModal() { document.getElementById('ticket-modal').classList.remove('active'); setTimeout(() => document.getElementById('ticket-modal').style.display = 'none', 300); }
         
         async function buyTickets(amount) {
-            try {
-                const res = await fetch('/api/stripe_checkout', { method: 'POST', body: JSON.stringify({ userId, amount }) });
-                const data = await res.json();
-                if (data.url) window.location.href = data.url;
-                else alert("決済の準備に失敗しました: " + (data.error || "Unknown Error"));
-            } catch (e) { alert("ネットワークエラーが発生しました。"); }
-        }
-
-        function startChat() {
-            document.getElementById('chat-cast-name').innerText = castsData.find(c => c.id === currentCastId).name + " 鑑定室";
-            showScreen('chat-screen');
-            sendMessage(""); 
-        }
-
-        async function sendMessage(manualText = null) {
-            const input = document.getElementById('chat-input');
-            const text = (manualText !== null) ? manualText : input.value;
-            const box = document.getElementById('chat-box');
-            if (text && manualText === null) {
-                box.innerHTML += `<div class="msg user">${text}</div>`;
-                input.value = "";
-            }
-            const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, text }) });
+            const res = await fetch('/api/stripe_checkout', { method: 'POST', body: JSON.stringify({ userId, amount }) });
             const data = await res.json();
-            box.innerHTML += `<div class="msg ai">${data.reply}</div>`;
-            box.scrollTop = box.scrollHeight;
+            if (data.url) window.location.href = data.url;
         }
 
+        function sendMessage() { /* チャット機能は後回し */ }
         function logout() { localStorage.clear(); location.reload(); }
     </script>
 </body>
