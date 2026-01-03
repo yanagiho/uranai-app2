@@ -26,7 +26,16 @@
         #cast-modal, #ticket-modal { display: none; position: fixed; bottom: 0; left: 0; right: 0; top: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: flex-end; }
         .modal-content, .ticket-box { width: 100%; max-width: 500px; margin: 0 auto; background: #1a0b2e; border-top: 3px solid var(--gold); border-radius: 30px 30px 0 0; padding: 30px; box-sizing: border-box; transform: translateY(100%); transition: 0.4s; }
         .active .modal-content, .active .ticket-box { transform: translateY(0); }
+        #chat-screen { flex-direction: column; height: 100vh; padding: 70px 10px 20px; }
+        #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; }
+        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; word-wrap: break-word; line-height: 1.5; }
+        .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; text-align: left; }
+        .msg.user { background: var(--accent); color: #fff; align-self: flex-end; }
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; }
+        .day-tab { min-width: 60px; padding: 8px; border: 1px solid #444; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
+        .day-tab.active { border-color: var(--gold); color: var(--gold); }
+        .slot-btn { padding: 12px; border: 1px solid var(--gold); color: #fff; background: none; border-radius: 8px; cursor: pointer; }
+        .slot-btn:disabled { opacity: 0.15; border-color: #444; }
     </style>
 </head>
 <body>
@@ -58,25 +67,17 @@
         <h1 style="color:var(--gold)">運命のカルテ登録</h1>
         <div class="form-box">
             <label>鑑定に使うお名前</label>
-            <div class="name-row">
-                <input type="text" id="user-last-name" placeholder="姓">
-                <input type="text" id="user-first-name" placeholder="名">
-            </div>
+            <div class="name-row"><input type="text" id="user-last-name" placeholder="姓"><input type="text" id="user-first-name" placeholder="名"></div>
             <label>生年月日</label>
-            <div class="dob-row">
-                <input type="text" id="dob-year" placeholder="年" inputmode="numeric">
-                <input type="text" id="dob-month" placeholder="月" inputmode="numeric">
-                <input type="text" id="dob-day" placeholder="日" inputmode="numeric">
-            </div>
-            <p id="dob-error" style="color:var(--error); font-size:0.75rem; display:none; text-align:center;">正しい運命の日付を刻んでください</p>
+            <div class="dob-row"><input type="text" id="dob-year" placeholder="年"><input type="text" id="dob-month" placeholder="月"><input type="text" id="dob-day" placeholder="日"></div>
+            <p id="dob-error" style="color:var(--error); font-size:0.75rem; display:none; text-align:center;">正しい日付を刻んでください</p>
             <button class="main-btn" onclick="validateAndRegister()">運命を刻む</button>
         </div>
     </div>
 
     <div id="selection-screen" class="screen">
         <div id="reservation-status" style="display:none; background:rgba(156, 39, 176, 0.2); padding:15px; border-radius:15px; margin-bottom:20px; border:1px solid var(--accent);">
-            <p style="margin:0; font-size:0.9rem;">現在、鑑定の予約があります。</p>
-            <button class="main-btn" style="padding:10px; margin-top:10px; font-size:0.8rem; background:#444;" onclick="cancelReservation()">予約をキャンセル</button>
+            <p>予約があります。</p><button class="main-btn" style="padding:10px;" onclick="cancelReservation()">キャンセル</button>
         </div>
         <h2 style="color:var(--gold)">鑑定師をお選びください</h2>
         <div id="cast-list" class="cast-grid"></div>
@@ -107,61 +108,50 @@
         <div id="day-list" style="display:flex; gap:10px; overflow-x:auto; padding:10px 0; justify-content:center;"></div>
         <div id="time-slots" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:15px;"></div>
         <button id="confirm-btn" class="main-btn" style="display:none; margin-top:30px;" onclick="submitBooking()">予約を確定する</button>
-        <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="showScreen('selection-screen')">鑑定師選びに戻る</p>
+        <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="showScreen('selection-screen')">戻る</p>
+    </div>
+
+    <div id="chat-screen" class="screen">
+        <h2 id="chat-cast-name" style="color:var(--gold); margin:0;"></h2>
+        <div id="chat-box"></div>
+        <div style="display:flex; gap:10px;"><input type="text" id="chat-input" placeholder="入力..."><button class="main-btn" style="width:80px; margin-top:0;" onclick="sendMessage()">送信</button></div>
     </div>
 
     <script>
         let userId = localStorage.getItem('fortune_user_id');
-        let castsData = [], currentAuthType = "";
+        let castsData = [], currentCastId = null, selectedDate = null, selectedTime = null;
 
         window.onload = async () => { 
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('payment') === 'success') alert("チケットの購入が完了しました！");
-
             if (userId) {
                 const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId }) });
                 const data = await res.json();
-                if (data.isComplete) initApp(); else showScreen('setup-screen');
+                // 支払い後はとにかく占い師選択画面へ誘導 🚀
+                if (data.isComplete || urlParams.get('payment') === 'success') initApp(); else showScreen('setup-screen');
             } else { showScreen('gateway-screen'); }
         };
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
             const target = document.getElementById(id);
-            target.style.display = (id === 'gateway-screen') ? 'flex' : 'block';
+            target.style.display = (id === 'gateway-screen' || id === 'chat-screen') ? 'flex' : 'block';
             document.getElementById('main-nav').style.display = (['gateway-screen','title-screen','setup-screen'].includes(id)) ? 'none' : 'flex';
         }
 
         async function handleAuth(type) {
-            currentAuthType = type;
             const email = document.getElementById('login-email').value.trim();
             const simId = type === 'Email' ? 'e_' + btoa(email) : (userId || 's_' + Math.random().toString(36).substr(2, 9));
-            const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ email: email||'', auth_type: type, userId: simId }) });
-            const data = await res.json();
+            await fetch('/api/login', { method: 'POST', body: JSON.stringify({ email: email||'', auth_type: type, userId: simId }) });
             userId = simId; localStorage.setItem('fortune_user_id', userId);
-            if (data.isComplete) initApp(); else showScreen('setup-screen');
+            showScreen('setup-screen');
         }
 
-        function validateAndRegister() {
-            const ln = document.getElementById('user-last-name'), fn = document.getElementById('user-first-name');
-            const yIn = document.getElementById('dob-year'), mIn = document.getElementById('dob-month'), dIn = document.getElementById('dob-day');
-            const toHalfWidth = (str) => str.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, '');
-            const y = toHalfWidth(yIn.value), m = toHalfWidth(mIn.value), d = toHalfWidth(dIn.value);
-            [ln, fn, yIn, mIn, dIn].forEach(el => el.classList.remove('error-blink'));
-            let hasError = false;
-            const triggerError = (el) => { void el.offsetWidth; el.classList.add('error-blink'); hasError = true; };
-            if (!ln.value) triggerError(ln);
-            if (!fn.value) triggerError(fn);
-            if (!y || y < 1900) triggerError(yIn);
-            if (!m || m < 1 || m > 12) triggerError(mIn);
-            const daysInMonth = new Date(y, m, 0).getDate();
-            if (!d || d < 1 || d > daysInMonth) triggerError(dIn);
-            if (hasError) { document.getElementById('dob-error').style.display = 'block'; return; }
-            register(ln.value, fn.value, `${y}-${m}-${d}`);
-        }
-
-        async function register(lastName, firstName, dob) {
-            await fetch('/api/save_user', { method: 'POST', body: JSON.stringify({ userId, lastName, firstName, dob, auth_type: currentAuthType }) });
+        async function validateAndRegister() {
+            const ln = document.getElementById('user-last-name').value, fn = document.getElementById('user-first-name').value;
+            const y = document.getElementById('dob-year').value, m = document.getElementById('dob-month').value, d = document.getElementById('dob-day').value;
+            if (!ln || !fn || !y || !m || !d) return alert("全て入力してください。");
+            await fetch('/api/save_user', { method: 'POST', body: JSON.stringify({ userId, lastName: ln, firstName: fn, dob: `${y}-${m}-${d}` }) });
             initApp();
         }
 
@@ -174,10 +164,7 @@
             const cres = await fetch('/api/casts');
             castsData = await cres.json();
             document.getElementById('cast-list').innerHTML = castsData.map(c => `
-                <div class="cast-card" onclick="openIntro(${c.id})">
-                    <img src="/img/${c.img}">
-                    <strong>${c.name}</strong><br><small style="color:#888">${c.role}</small>
-                </div>
+                <div class="cast-card" onclick="openIntro(${c.id})"><img src="/img/${c.img}"><strong>${c.name}</strong><br><small>${c.role}</small></div>
             `).join('');
         }
 
@@ -187,26 +174,77 @@
             document.getElementById('modal-img').src = `/img/${cast.img}`;
             document.getElementById('modal-name').innerText = cast.name;
             document.getElementById('modal-intro').innerText = cast.intro;
-            document.getElementById('cast-modal').classList.add('active');
             document.getElementById('cast-modal').style.display = 'flex';
+            setTimeout(() => document.getElementById('cast-modal').classList.add('active'), 10);
+        }
+
+        function goToBooking() {
+            closeModal();
+            const cast = castsData.find(c => c.id === currentCastId);
+            document.getElementById('book-cast-name').innerText = cast.name + " 予約";
+            const list = document.getElementById('day-list');
+            list.innerHTML = "";
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(); d.setDate(d.getDate() + i);
+                const dateStr = d.toISOString().split('T')[0];
+                list.innerHTML += `<div class="day-tab" onclick="selectDay('${dateStr}', this)">${i===0?'今日':(d.getMonth()+1)+'/'+d.getDate()}</div>`;
+            }
+            showScreen('booking-screen');
+            selectDay(new Date().toISOString().split('T')[0], null);
+        }
+
+        async function selectDay(date, el) {
+            selectedDate = date;
+            document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
+            if (el) el.classList.add('active');
+            const res = await fetch(`/api/get_slots?castId=${currentCastId}&date=${date}`);
+            const data = await res.json();
+            document.getElementById('time-slots').innerHTML = data.slots.map(s => `
+                <button class="slot-btn" ${s.status!=='available'?'disabled':''} onclick="selectTime('${s.time}', this)">${s.time}</button>
+            `).join('');
+        }
+
+        function selectTime(time, el) {
+            selectedTime = time;
+            document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+            el.classList.add('selected');
+            document.getElementById('confirm-btn').style.display = 'block';
+        }
+
+        async function submitBooking() {
+            const res = await fetch('/api/reserve', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, scheduledAt: `${selectedDate}T${selectedTime}` }) });
+            const data = await res.json();
+            if (data.error) return alert(data.error);
+            alert("予約しました。鑑定を開始します。");
+            startChat();
+        }
+
+        function startChat() {
+            const cast = castsData.find(c => c.id === currentCastId);
+            document.getElementById('chat-cast-name').innerText = cast.name + " 鑑定室";
+            showScreen('chat-screen');
+            sendMessage(""); 
+        }
+
+        async function sendMessage(manualText = null) {
+            const input = document.getElementById('chat-input'), box = document.getElementById('chat-box');
+            const text = manualText !== null ? manualText : input.value;
+            if (text && manualText === null) { box.innerHTML += `<div class="msg user">${text}</div>`; input.value = ""; }
+            const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, text }) });
+            const data = await res.json();
+            box.innerHTML += `<div class="msg ai">${data.reply}</div>`;
+            box.scrollTop = box.scrollHeight;
         }
 
         function closeModal() { document.getElementById('cast-modal').classList.remove('active'); setTimeout(() => document.getElementById('cast-modal').style.display = 'none', 300); }
         function openTicketModal() { document.getElementById('ticket-modal').style.display = 'flex'; setTimeout(() => document.getElementById('ticket-modal').classList.add('active'), 10); }
         function closeTicketModal() { document.getElementById('ticket-modal').classList.remove('active'); setTimeout(() => document.getElementById('ticket-modal').style.display = 'none', 300); }
-        
         async function buyTickets(amount) {
             const res = await fetch('/api/stripe_checkout', { method: 'POST', body: JSON.stringify({ userId, amount }) });
             const data = await res.json();
             if (data.url) window.location.href = data.url;
         }
-
-        async function cancelReservation() {
-            if (!confirm("予約をキャンセルしてチケットを戻しますか？")) return;
-            await fetch('/api/cancel_reservation', { method: 'POST', body: JSON.stringify({ userId }) });
-            initApp();
-        }
-
+        async function cancelReservation() { await fetch('/api/cancel_reservation', { method: 'POST', body: JSON.stringify({ userId }) }); initApp(); }
         function logout() { localStorage.clear(); location.reload(); }
     </script>
 </body>
