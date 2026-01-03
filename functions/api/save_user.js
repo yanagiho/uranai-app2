@@ -2,7 +2,7 @@ export async function onRequestPost(context) {
   const { request, env } = context;
   try {
     const { userId, lastName, firstName, dob, auth_type } = await request.json();
-    // 既存のチケット枚数を変えずに、名前情報だけを更新します 🎁
+    // 既存のチケット枚数（ticket_balance）を維持しながら情報を更新します
     await env.DB.prepare(`
       INSERT INTO Users (id, last_name, first_name, dob, auth_type, ticket_balance) 
       VALUES (?, ?, ?, ?, ?, 0)
