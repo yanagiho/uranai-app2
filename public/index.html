@@ -8,65 +8,42 @@
         :root { --bg: #0a0510; --accent: #9c27b0; --gold: #d4af37; --glass: rgba(255,255,255,0.07); --error: #ff4d4d; }
         body { font-family: 'Hiragino Mincho ProN', serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         .screen { display: none; padding: 40px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; }
-        
-        /* 共通UI */
         .logo { font-size: 2.4rem; color: var(--gold); margin: 0; letter-spacing: 8px; text-shadow: 0 0 15px rgba(212,175,55,0.4); }
         .form-box { width: 100%; max-width: 360px; margin: 0 auto; text-align: left; background: var(--glass); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
         label { display: block; font-size: 0.8rem; color: var(--gold); margin-bottom: 5px; margin-top: 10px; }
         input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; font-size: 1rem; outline: none; transition: 0.3s; }
-        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; transition: 0.3s; }
-        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-
-        /* 横並び設定 */
+        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; }
         .name-row, .dob-row { display: flex; gap: 8px; align-items: center; }
         .name-row input, .dob-row input { width: 100%; flex: 1; text-align: center; }
-        #dob-year { flex: 2; }
-
-        /* タイトル画面・演出 */
         #gateway-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle at center, #1a0b2e 0%, #0a0510 100%); gap: 20px; }
         .crystal-ball { width: 130px; height: 130px; background: radial-gradient(circle at 30% 30%, #fff, #9c27b0 80%); border-radius: 50%; box-shadow: 0 0 50px rgba(156, 39, 176, 0.6); animation: breathe 4s infinite alternate; }
         @keyframes breathe { from { transform: scale(1); } to { transform: scale(1.1); } }
         @keyframes blink-red { 0%, 100% { border-color: #444; } 50% { border-color: var(--error); box-shadow: 0 0 10px var(--error); } }
         .error-blink { animation: blink-red 0.4s ease 3; border-width: 2px !important; }
-
-        /* 鑑定師選択・モーダル */
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; }
         .cast-card { background: var(--glass); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; }
         .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; margin-bottom: 8px; }
-        #cast-modal { display: none; position: fixed; bottom: 0; left: 0; right: 0; top: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: flex-end; }
-        .modal-content { width: 100%; max-width: 500px; margin: 0 auto; background: #1a0b2e; border-top: 3px solid var(--gold); border-radius: 30px 30px 0 0; padding: 30px; box-sizing: border-box; transform: translateY(100%); transition: 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); }
-        #cast-modal.active { display: flex; }
-        #cast-modal.active .modal-content { transform: translateY(0); }
-
-        /* 予約・スロット */
-        .day-list { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; margin-bottom: 15px; justify-content: center; }
-        .day-tab { min-width: 60px; padding: 8px; border: 1px solid #444; border-radius: 8px; cursor: pointer; font-size: 0.8rem; color: #888; }
-        .day-tab.active { border-color: var(--gold); color: var(--gold); background: rgba(212, 175, 55, 0.1); }
+        #cast-modal, #ticket-modal { display: none; position: fixed; bottom: 0; left: 0; right: 0; top: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: flex-end; }
+        .modal-content, .ticket-box { width: 100%; max-width: 500px; margin: 0 auto; background: #1a0b2e; border-top: 3px solid var(--gold); border-radius: 30px 30px 0 0; padding: 30px; box-sizing: border-box; transform: translateY(100%); transition: 0.4s; }
+        .active .modal-content, .active .ticket-box { transform: translateY(0); }
+        .day-list { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; justify-content: center; }
+        .day-tab { min-width: 60px; padding: 8px; border: 1px solid #444; border-radius: 8px; cursor: pointer; font-size: 0.8rem; }
+        .day-tab.active { border-color: var(--gold); color: var(--gold); }
         .slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
-        .slot-btn { padding: 12px; border: 1px solid var(--gold); color: #fff; background: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
-        .slot-btn:disabled { opacity: 0.15; border-color: #444; color: #444; cursor: default; }
-        .slot-btn.selected { background: var(--gold); color: #000; }
-
-        /* チケット購入モーダル */
-        #ticket-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 3000; justify-content: center; align-items: center; }
-        .ticket-box { background: #1a0b2e; padding: 30px; border-radius: 20px; border: 1px solid var(--gold); width: 90%; max-width: 400px; text-align: center; }
-
-        /* チャット */
+        .slot-btn { padding: 12px; border: 1px solid var(--gold); color: #fff; background: none; border-radius: 8px; cursor: pointer; }
+        .slot-btn:disabled { opacity: 0.15; border-color: #444; }
         #chat-screen { flex-direction: column; height: 100vh; padding: 70px 10px 20px; }
         #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; }
-        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; word-wrap: break-word; line-height: 1.5; font-size: 0.95rem; }
+        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; word-wrap: break-word; line-height: 1.5; }
         .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; text-align: left; }
-        .msg.user { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
-        
+        .msg.user { background: var(--accent); color: #fff; align-self: flex-end; }
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; }
     </style>
 </head>
 <body>
     <nav id="main-nav" style="display:none">
         <div style="color:var(--gold); font-weight:bold; cursor:pointer;" onclick="location.reload()">占いの館</div>
-        <div style="display:flex; align-items:center; gap:10px;">
-            <div style="color:var(--gold); cursor:pointer;" onclick="openTicketModal()">🎟 <span id="nav-ticket">0</span> ＋</div>
-        </div>
+        <div style="color:var(--gold); cursor:pointer;" onclick="openTicketModal()">🎟 <span id="nav-ticket">0</span> ＋</div>
     </nav>
 
     <div id="gateway-screen" class="screen" style="display:flex">
@@ -79,10 +56,9 @@
     <div id="title-screen" class="screen">
         <h1 class="logo" style="font-size:1.8rem; margin-bottom:30px;">入館の儀</h1>
         <div class="form-box">
-            <button class="auth-btn" style="background:#000" onclick="handleAuth('X')">X で入館</button>
-            <button class="auth-btn" style="background:#1877F2" onclick="handleAuth('Facebook')">Facebook で入館</button>
-            <button class="auth-btn" style="background:#ff0033" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
-            <button class="auth-btn" style="background:#06C755" onclick="handleAuth('LINE')">LINE で入館</button>
+            <button class="auth-btn" style="background:#000; width:100%; color:#fff; border:none; padding:12px; border-radius:10px; margin-bottom:10px;" onclick="handleAuth('X')">X で入館</button>
+            <button class="auth-btn" style="background:#1877F2; width:100%; color:#fff; border:none; padding:12px; border-radius:10px; margin-bottom:10px;" onclick="handleAuth('Facebook')">Facebook で入館</button>
+            <button class="auth-btn" style="background:#06C755; width:100%; color:#fff; border:none; padding:12px; border-radius:10px; margin-bottom:10px;" onclick="handleAuth('LINE')">LINE で入館</button>
             <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
             <input type="email" id="login-email" placeholder="example@mail.com">
             <button class="main-btn" style="margin-top:0" onclick="handleAuth('Email')">入館する</button>
@@ -111,7 +87,7 @@
     <div id="selection-screen" class="screen">
         <div id="reservation-status" style="display:none; background:rgba(156, 39, 176, 0.2); padding:15px; border-radius:15px; margin-bottom:20px; border:1px solid var(--accent);">
             <p style="margin:0; font-size:0.9rem;">現在、鑑定の予約があります。</p>
-            <button class="main-btn" style="padding:10px; margin-top:10px; font-size:0.8rem; background:#444;" onclick="cancelReservation()">予約をキャンセルして返金</button>
+            <button class="main-btn" style="padding:10px; margin-top:10px; font-size:0.8rem; background:#444;" onclick="cancelReservation()">予約をキャンセル</button>
         </div>
         <h2 style="color:var(--gold)">鑑定師をお選びください</h2>
         <div id="cast-list" class="cast-grid"></div>
@@ -122,7 +98,6 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <img id="modal-img" src="" style="width:100px; height:100px; border-radius:50%; border:2px solid var(--gold); margin-bottom:15px; object-fit:cover;">
             <h2 id="modal-name" style="color:var(--gold); margin:5px 0;"></h2>
-            <p id="modal-role" style="color:#888; margin-bottom:15px; font-size:0.9rem;"></p>
             <p id="modal-intro" style="font-size:0.95rem; margin-bottom:25px; text-align:left; color:#ccc; line-height:1.6;"></p>
             <button class="main-btn" onclick="goToBooking()">この先生に予約する</button>
             <p style="margin-top:15px; color:#666; cursor:pointer; font-size:0.85rem;" onclick="closeModal()">戻る</p>
@@ -150,8 +125,8 @@
         <div class="ticket-box" onclick="event.stopPropagation()">
             <h2 style="color:var(--gold)">チケット購入</h2>
             <p style="font-size:0.9rem; color:#ccc; margin-bottom:20px;">鑑定1回につきチケット1枚が必要です。</p>
-            <button class="main-btn" onclick="buyTickets(1)">1枚購入 (¥1,000)</button>
-            <button class="main-btn" style="background:var(--gold); color:#000;" onclick="buyTickets(10)">10枚セット (¥8,000)</button>
+            <button class="main-btn" onclick="buyTickets(1)">1枚購入 (¥3,000)</button>
+            <button class="main-btn" style="background:var(--gold); color:#000;" onclick="buyTickets(10)">10枚セット (¥27,000)</button>
             <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="closeTicketModal()">閉じる</p>
         </div>
     </div>
@@ -161,10 +136,14 @@
         let currentCastId = null, selectedDate = null, selectedTime = null, castsData = [], currentAuthType = "";
 
         window.onload = async () => { 
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('payment') === 'success') alert("チケットの購入が完了しました！");
+
             if (userId) {
                 try {
                     const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId, auth_type: 'Session' }) });
                     const data = await res.json();
+                    // 修正：支払直後に戻った場合も、情報が揃っていれば占い師選択画面へ
                     if (data.isComplete) initApp(); else showScreen('setup-screen');
                 } catch (e) { showScreen('gateway-screen'); }
             } else { showScreen('gateway-screen'); }
@@ -175,11 +154,6 @@
             const target = document.getElementById(id);
             target.style.display = (id === 'gateway-screen' || id === 'chat-screen') ? 'flex' : 'block';
             document.getElementById('main-nav').style.display = (['gateway-screen','title-screen','setup-screen'].includes(id)) ? 'none' : 'flex';
-            closeModal();
-        }
-
-        function toHalfWidth(str) {
-            return str.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, '');
         }
 
         async function handleAuth(type) {
@@ -195,24 +169,19 @@
         function validateAndRegister() {
             const ln = document.getElementById('user-last-name'), fn = document.getElementById('user-first-name');
             const yIn = document.getElementById('dob-year'), mIn = document.getElementById('dob-month'), dIn = document.getElementById('dob-day');
+            const toHalfWidth = (str) => str.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, '');
             const y = toHalfWidth(yIn.value), m = toHalfWidth(mIn.value), d = toHalfWidth(dIn.value);
             const currentYear = new Date().getFullYear();
-            const err = document.getElementById('dob-error');
-
             [ln, fn, yIn, mIn, dIn].forEach(el => el.classList.remove('error-blink'));
-            err.style.display = 'none';
-
             let hasError = false;
             const triggerError = (el) => { void el.offsetWidth; el.classList.add('error-blink'); hasError = true; };
-
             if (!ln.value) triggerError(ln);
             if (!fn.value) triggerError(fn);
             if (!y || y < 1900 || y > currentYear) triggerError(yIn);
             if (!m || m < 1 || m > 12) triggerError(mIn);
             const daysInMonth = new Date(y, m, 0).getDate();
             if (!d || d < 1 || d > daysInMonth) triggerError(dIn);
-
-            if (hasError) { err.style.display = 'block'; return; }
+            if (hasError) { document.getElementById('dob-error').style.display = 'block'; return; }
             register(ln.value, fn.value, `${y}-${m}-${d}`);
         }
 
@@ -226,14 +195,13 @@
             const data = await res.json();
             document.getElementById('nav-ticket').innerText = data.ticket_balance || 0;
             document.getElementById('reservation-status').style.display = data.hasPendingReservation ? 'block' : 'none';
-            
             showScreen('selection-screen');
             const cres = await fetch('/api/casts');
             castsData = await cres.json();
             document.getElementById('cast-list').innerHTML = castsData.map(c => `
                 <div class="cast-card" onclick="openIntro(${c.id})">
                     <img src="/img/${c.img}">
-                    <strong>${c.name}</strong><small>${c.role}</small>
+                    <strong>${c.name}</strong><br><small style="color:#888">${c.role}</small>
                 </div>
             `).join('');
         }
@@ -243,16 +211,12 @@
             currentCastId = id;
             document.getElementById('modal-img').src = `/img/${cast.img}`;
             document.getElementById('modal-name').innerText = cast.name;
-            document.getElementById('modal-role').innerText = cast.role;
             document.getElementById('modal-intro').innerText = cast.intro;
+            document.getElementById('cast-modal').classList.add('active');
             document.getElementById('cast-modal').style.display = 'flex';
-            setTimeout(() => document.getElementById('cast-modal').classList.add('active'), 10);
         }
 
-        function closeModal() {
-            document.getElementById('cast-modal')?.classList.remove('active');
-            setTimeout(() => { if(document.getElementById('cast-modal')) document.getElementById('cast-modal').style.display = 'none'; }, 300);
-        }
+        function closeModal() { document.getElementById('cast-modal').classList.remove('active'); setTimeout(() => document.getElementById('cast-modal').style.display = 'none', 300); }
 
         function goToBooking() {
             closeModal();
@@ -271,18 +235,12 @@
 
         async function selectDay(date, el) {
             selectedDate = date;
-            if (el) {
-                document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
-                el.classList.add('active');
-            } else {
-                document.querySelector('.day-tab')?.classList.add('active');
-            }
+            document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
+            if (el) el.classList.add('active');
             const res = await fetch(`/api/get_slots?castId=${currentCastId}&date=${date}`);
             const data = await res.json();
             document.getElementById('time-slots').innerHTML = data.slots.map(s => `
-                <button class="slot-btn" ${s.status!=='available'?'disabled':''} onclick="selectTime('${s.time}', this)">
-                    ${s.status==='booked'?'予約済':s.status==='past'?'終了':s.time}
-                </button>
+                <button class="slot-btn" ${s.status!=='available'?'disabled':''} onclick="selectTime('${s.time}', this)">${s.time}</button>
             `).join('');
         }
 
@@ -297,23 +255,26 @@
             const res = await fetch('/api/reserve', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, scheduledAt: `${selectedDate}T${selectedTime}` }) });
             const data = await res.json();
             if (data.error) return alert(data.error);
-            alert("予約しました。メールをご確認ください。");
-            initApp();
+            alert("予約完了しました。鑑定を開始します。");
+            startChat();
         }
 
         async function cancelReservation() {
             if (!confirm("予約をキャンセルしてチケットを戻しますか？")) return;
-            const res = await fetch('/api/cancel_reservation', { method: 'POST', body: JSON.stringify({ userId }) });
-            if (res.ok) { alert("キャンセルしました。"); initApp(); }
+            await fetch('/api/cancel_reservation', { method: 'POST', body: JSON.stringify({ userId }) });
+            initApp();
         }
 
-        function openTicketModal() { document.getElementById('ticket-modal').style.display = 'flex'; }
-        function closeTicketModal() { document.getElementById('ticket-modal').style.display = 'none'; }
+        function openTicketModal() { document.getElementById('ticket-modal').style.display = 'flex'; setTimeout(() => document.getElementById('ticket-modal').classList.add('active'), 10); }
+        function closeTicketModal() { document.getElementById('ticket-modal').classList.remove('active'); setTimeout(() => document.getElementById('ticket-modal').style.display = 'none', 300); }
         
         async function buyTickets(amount) {
-            const res = await fetch('/api/stripe_checkout', { method: 'POST', body: JSON.stringify({ userId, amount }) });
-            const { url } = await res.json();
-            window.location.href = url; // Stripeの支払いページへ
+            try {
+                const res = await fetch('/api/stripe_checkout', { method: 'POST', body: JSON.stringify({ userId, amount }) });
+                const data = await res.json();
+                if (data.url) window.location.href = data.url;
+                else alert("決済の準備に失敗しました: " + (data.error || "Unknown Error"));
+            } catch (e) { alert("ネットワークエラーが発生しました。"); }
         }
 
         function startChat() {
