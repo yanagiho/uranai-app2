@@ -9,7 +9,7 @@
         body { font-family: 'Hiragino Mincho ProN', serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         .screen { display: none; padding: 40px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; }
         
-        /* 1. タイトル画面 🎨 */
+        /* タイトル画面のデザイン 🎨 */
         #gateway-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle at center, #1a0b2e 0%, #0a0510 100%); gap: 20px; }
         .crystal-ball { width: 130px; height: 130px; background: radial-gradient(circle at 30% 30%, #fff, #9c27b0 80%); border-radius: 50%; box-shadow: 0 0 50px rgba(156, 39, 176, 0.6); animation: breathe 4s infinite alternate; }
         @keyframes breathe { from { transform: scale(1); } to { transform: scale(1.1); } }
@@ -24,8 +24,8 @@
         @keyframes blink-red { 0%, 100% { border-color: #444; } 50% { border-color: var(--error); box-shadow: 0 0 10px var(--error); } }
         .error-blink { animation: blink-red 0.4s ease 3; border-width: 2px !important; }
 
-        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; }
-        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; color: #fff; cursor: pointer; }
+        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; transition: 0.3s; }
+        .auth-btn { width: 100%; margin-bottom: 12px; padding: 12px; border-radius: 12px; border: none; font-weight: bold; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         
         #chat-screen { flex-direction: column; height: 100vh; padding: 70px 10px 20px; }
         #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; }
@@ -34,6 +34,7 @@
         .msg.user { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
         
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
+        .cast-list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
     </style>
 </head>
 <body>
@@ -71,20 +72,22 @@
                 <input type="text" id="user-last-name" placeholder="姓">
                 <input type="text" id="user-first-name" placeholder="名">
             </div>
-            <label>生年月日</label>
+            
+            <label>生年月日（全角でも自動変換されます）</label>
             <div class="dob-row">
-                <input type="number" id="dob-year" placeholder="年" min="1900">
-                <input type="number" id="dob-month" placeholder="月" min="1" max="12">
-                <input type="number" id="dob-day" placeholder="日" min="1" max="31">
+                <input type="text" id="dob-year" placeholder="西暦（年）" inputmode="numeric">
+                <input type="text" id="dob-month" placeholder="月" inputmode="numeric">
+                <input type="text" id="dob-day" placeholder="日" inputmode="numeric">
             </div>
-            <p id="dob-error" style="color:var(--error); font-size:0.7rem; display:none; text-align:center;">正しい日付を刻んでください</p>
+            <p id="dob-error" style="color:var(--error); font-size:0.75rem; display:none; text-align:center;">正しい運命の日付を刻んでください</p>
+
             <button class="main-btn" onclick="validateAndRegister()">運命を刻む</button>
         </div>
     </div>
 
     <div id="selection-screen" class="screen">
         <h2 style="color:var(--gold)">鑑定師をお選びください</h2>
-        <div id="cast-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:15px;"></div>
+        <div id="cast-list" class="cast-list-grid"></div>
         <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:40px;" onclick="logout()">ログアウト</p>
     </div>
 
@@ -92,7 +95,7 @@
         <h2 id="chat-cast-name" style="color:var(--gold)"></h2>
         <div id="chat-box"></div>
         <div style="display:flex; gap:10px;">
-            <input type="text" id="chat-input" placeholder="尋ねたいことを入力...">
+            <input type="text" id="chat-input" placeholder="尋ねたいことを入力..." style="margin-bottom:0; text-align:left;">
             <button class="main-btn" style="width:80px; margin-top:0;" onclick="sendMessage()">送信</button>
         </div>
     </div>
@@ -108,14 +111,15 @@
                     const data = await res.json();
                     if (data.isComplete) initApp(); else showScreen('setup-screen');
                 } catch (e) { showScreen('gateway-screen'); }
-            } else { showScreen('gateway-screen'); }
+            } else {
+                showScreen('gateway-screen');
+            }
         };
 
-        function showScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
-            const target = document.getElementById(id);
-            target.style.display = (id === 'gateway-screen' || id === 'chat-screen') ? 'flex' : 'block';
-            document.getElementById('main-nav').style.display = (['gateway-screen','title-screen','setup-screen'].includes(id)) ? 'none' : 'flex';
+        // 全角数字を半角数字に変換する魔法 🪄
+        function toHalfWidth(str) {
+            if (!str) return "";
+            return str.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).replace(/[^0-9]/g, '');
         }
 
         async function handleAuth(type) {
@@ -130,23 +134,28 @@
 
         function validateAndRegister() {
             const ln = document.getElementById('user-last-name'), fn = document.getElementById('user-first-name');
-            const y = document.getElementById('dob-year'), m = document.getElementById('dob-month'), d = document.getElementById('dob-day');
+            const yIn = document.getElementById('dob-year'), mIn = document.getElementById('dob-month'), dIn = document.getElementById('dob-day');
+            
+            // 入力を半角にクリーンアップ
+            const y = toHalfWidth(yIn.value), m = toHalfWidth(mIn.value), d = toHalfWidth(dIn.value);
             const err = document.getElementById('dob-error');
             const currentYear = new Date().getFullYear();
             
-            [ln, fn, y, m, d].forEach(el => el.classList.remove('error-blink'));
+            [ln, fn, yIn, mIn, dIn].forEach(el => el.classList.remove('error-blink'));
             err.style.display = 'none';
 
             let hasError = false;
             if (!ln.value) { ln.classList.add('error-blink'); hasError = true; }
             if (!fn.value) { fn.classList.add('error-blink'); hasError = true; }
-            if (y.value < 1900 || y.value > currentYear) { y.classList.add('error-blink'); hasError = true; }
-            if (m.value < 1 || m.value > 12) { m.classList.add('error-blink'); hasError = true; }
-            const daysInMonth = new Date(y.value, m.value, 0).getDate();
-            if (d.value < 1 || d.value > daysInMonth) { d.classList.add('error-blink'); hasError = true; }
+            if (!y || y < 1900 || y > currentYear) { yIn.classList.add('error-blink'); hasError = true; }
+            if (!m || m < 1 || m > 12) { mIn.classList.add('error-blink'); hasError = true; }
+            
+            const daysInMonth = new Date(y, m, 0).getDate();
+            if (!d || d < 1 || d > daysInMonth) { dIn.classList.add('error-blink'); hasError = true; }
 
             if (hasError) { err.style.display = 'block'; return; }
-            register(ln.value, fn.value, `${y.value}-${m.value}-${d.value}`);
+            
+            register(ln.value, fn.value, `${y}-${m}-${d}`);
         }
 
         async function register(lastName, firstName, dob) {
@@ -169,6 +178,13 @@
             `).join('');
         }
 
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+            const target = document.getElementById(id);
+            target.style.display = (id === 'gateway-screen' || id === 'chat-screen') ? 'flex' : 'block';
+            document.getElementById('main-nav').style.display = (['gateway-screen','title-screen','setup-screen'].includes(id)) ? 'none' : 'flex';
+        }
+
         function startChat(id) {
             currentCastId = id;
             document.getElementById('chat-cast-name').innerText = castsData.find(c => c.id === id).name + " 鑑定室";
@@ -177,11 +193,12 @@
         }
 
         async function sendMessage(manualText = null) {
-            const text = (manualText !== null) ? manualText : document.getElementById('chat-input').value;
+            const input = document.getElementById('chat-input');
+            const text = (manualText !== null) ? manualText : input.value;
             const box = document.getElementById('chat-box');
             if (text && manualText === null) {
                 box.innerHTML += `<div class="msg user">${text}</div>`;
-                document.getElementById('chat-input').value = "";
+                input.value = "";
             }
             const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, text }) });
             const data = await res.json();
