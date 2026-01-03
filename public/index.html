@@ -44,12 +44,12 @@
     <div id="title-screen" class="screen">
         <h1 class="logo" style="font-size:1.8rem; margin-bottom:30px;">入館の儀</h1>
         <div class="form-box">
-            <button class="auth-btn" style="background:#000; width:100%; color:#fff;" onclick="handleAuth('X')">X で入館</button>
-            <button class="auth-btn" style="background:#1877F2; width:100%; color:#fff;" onclick="handleAuth('Facebook')">Facebook で入館</button>
-            <button class="auth-btn" style="background:#ff0033; width:100%; color:#fff;" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
-            <button class="auth-btn" style="background:#06C755; width:100%; color:#fff;" onclick="handleAuth('LINE')">LINE で入館</button>
+            <button class="auth-btn" style="background:#000; width:100%;" onclick="handleAuth('X')">X で入館</button>
+            <button class="auth-btn" style="background:#1877F2; width:100%;" onclick="handleAuth('Facebook')">Facebook で入館</button>
+            <button class="auth-btn" style="background:#ff0033; width:100%;" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
+            <button class="auth-btn" style="background:#06C755; width:100%;" onclick="handleAuth('LINE')">LINE で入館</button>
             <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
-            <input type="email" id="login-email" placeholder="メールアドレス">
+            <input type="email" id="login-email" placeholder="example@mail.com">
             <button class="main-btn" style="margin-top:0" onclick="handleAuth('Email')">Basic認証で入館</button>
         </div>
     </div>
@@ -115,6 +115,9 @@
         let castsData = [], currentAuthType = "";
 
         window.onload = async () => { 
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('payment') === 'success') alert("チケットの購入が完了しました！");
+
             if (userId) {
                 const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId }) });
                 const data = await res.json();
@@ -196,6 +199,12 @@
             const res = await fetch('/api/stripe_checkout', { method: 'POST', body: JSON.stringify({ userId, amount }) });
             const data = await res.json();
             if (data.url) window.location.href = data.url;
+        }
+
+        async function cancelReservation() {
+            if (!confirm("予約をキャンセルしてチケットを戻しますか？")) return;
+            await fetch('/api/cancel_reservation', { method: 'POST', body: JSON.stringify({ userId }) });
+            initApp();
         }
 
         function logout() { localStorage.clear(); location.reload(); }
