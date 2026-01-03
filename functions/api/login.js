@@ -1,14 +1,19 @@
 export async function onRequestPost(context) {
   const { request, env } = context;
   try {
-    const { userId, email } = await request.json();
-    const user = await env.DB.prepare("SELECT * FROM Users WHERE id = ? OR email = ?").bind(userId, email).first();
+    const { userId } = await request.json();
+    // データベースから最新の姓名情報を取得
+    const user = await env.DB.prepare("SELECT last_name, first_name, dob FROM Users WHERE id = ?").bind(userId).first();
+
     if (user) {
-      // 姓・名・誕生日が揃っていれば「登録済み」と判定 🚀
+      // 姓・名・誕生日が揃っていれば「登録済み」として true を返す
       const isComplete = !!(user.last_name && user.first_name && user.dob);
-      return new Response(JSON.stringify({ success: true, userId: user.id, isComplete }));
+      return new Response(JSON.stringify({ success: true, isComplete }));
     } else {
       return new Response(JSON.stringify({ success: true, isComplete: false }));
     }
-  } catch (e) { return new Response(JSON.stringify({ error: e.message }), { status: 500 }); }
+  } catch (e) {
+    // データベースのカラムがない場合でもエラーにせず false を返す
+    return new Response(JSON.stringify({ success: true, isComplete: false, error: e.message }));
+  }
 }
