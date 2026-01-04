@@ -10,8 +10,8 @@
         .screen { display: none; padding: 40px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; }
         .logo { font-size: 2.4rem; color: var(--gold); margin: 0; letter-spacing: 8px; text-shadow: 0 0 15px rgba(212,175,55,0.4); }
         .form-box { width: 100%; max-width: 360px; margin: 0 auto; text-align: left; background: var(--glass); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
-        input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; font-size: 1rem; outline: none; }
-        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; }
+        input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; font-size: 1rem; outline: none; transition: 0.3s; }
+        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; transition: 0.3s; }
         .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; }
         .cast-card { background: var(--glass); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; }
@@ -33,7 +33,7 @@
     </nav>
 
     <div id="gateway-screen" class="screen" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <div style="width:130px; height:130px; background:radial-gradient(circle, #fff, #9c27b0); border-radius:50%; box-shadow:0 0 50px var(--accent); animation: breathe 4s infinite alternate;"></div>
+        <div style="width:130px; height:130px; background:radial-gradient(circle, #fff, #9c27b0); border-radius:50%; box-shadow:0 0 50px var(--accent);"></div>
         <h1 class="logo">AI 占いの館</h1>
         <button class="main-btn" style="width:200px" onclick="showScreen('title-screen')">館に入る</button>
     </div>
@@ -63,7 +63,7 @@
     <div id="selection-screen" class="screen">
         <div id="reservation-status" style="display:none; background:rgba(156, 39, 176, 0.2); padding:15px; border-radius:15px; margin-bottom:20px; border:1px solid var(--accent);">
             <p style="margin:0;">予約があります。</p>
-            <button class="main-btn" style="padding:10px; margin-top:10px;" onclick="startChat()">今すぐ鑑定を始める</button>
+            <button class="main-btn" style="padding:10px; margin-top:10px;" onclick="startChat()">鑑定を開始する</button>
         </div>
         <h2 style="color:var(--gold)">鑑定師をお選びください</h2>
         <div id="cast-list" class="cast-grid"></div>
@@ -78,18 +78,20 @@
         <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="showScreen('selection-screen')">戻る</p>
     </div>
 
-    <div id="chat-screen" class="screen" style="display:none; flex-direction:column; height:100vh; padding:70px 10px 20px;">
+    <div id="chat-screen" class="screen">
         <h2 id="chat-cast-name" style="color:var(--gold); margin:0;"></h2>
         <div id="chat-box"></div>
-        <div style="display:flex; gap:10px;"><input type="text" id="chat-input" placeholder="尋ねたいことを入力..."><button class="main-btn" style="width:80px; margin-top:0;" onclick="sendMessage()">送信</button></div>
+        <div style="display:flex; gap:10px;"><input type="text" id="chat-input" placeholder="入力..."><button class="main-btn" style="width:80px; margin-top:0;" onclick="sendMessage()">送信</button></div>
     </div>
 
     <div id="cast-modal" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <img id="modal-img" src="" style="width:100px; height:100px; border-radius:50%; border:2px solid var(--gold); margin-bottom:15px; object-fit:cover;">
             <h2 id="modal-name" style="color:var(--gold); margin:5px 0;"></h2>
-            <p id="modal-intro" style="font-size:0.9rem; color:#ccc;"></p>
+            <div id="modal-role" style="font-size:0.8rem; color:var(--gold); margin-bottom:10px;"></div>
+            <p id="modal-intro" style="font-size:0.95rem; text-align:left; color:#ccc; line-height:1.6;"></p>
             <button class="main-btn" onclick="goToBooking()">この先生に予約する</button>
+            <p style="margin-top:15px; color:#666; cursor:pointer;" onclick="closeModal()">閉じる</p>
         </div>
     </div>
 
@@ -109,7 +111,6 @@
         window.onload = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.get('payment') === 'success') alert("チケットの購入が完了しました！");
-            
             if (userId) {
                 const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId }) });
                 const data = await res.json();
@@ -131,7 +132,6 @@
             const email = document.getElementById('login-email').value.trim();
             const prefix = type === 'X' ? 'x_' : type === 'Facebook' ? 'f_' : type === 'Yahoo' ? 'y_' : type === 'LINE' ? 'l_' : 'e_';
             const simId = type === 'Email' ? prefix + btoa(email) : (userId || prefix + Math.random().toString(36).substr(2, 9));
-            
             const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId: simId, email, auth_type: type }) });
             const data = await res.json();
             userId = simId; localStorage.setItem('fortune_user_id', userId);
@@ -164,6 +164,7 @@
             currentCastId = id;
             document.getElementById('modal-img').src = `/img/${cast.img}`;
             document.getElementById('modal-name').innerText = cast.name;
+            document.getElementById('modal-role').innerText = cast.role;
             document.getElementById('modal-intro').innerText = cast.intro;
             document.getElementById('cast-modal').style.display = 'flex';
             setTimeout(() => document.getElementById('cast-modal').classList.add('active'), 10);
