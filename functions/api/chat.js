@@ -6,7 +6,7 @@ export async function onRequestPost(context) {
   try {
     // 1. APIキーの確認
     if (!env.GEMINI_API_KEY) {
-      throw new Error("サーバー設定エラー：GEMINI_API_KEY が設定されていません。");
+      throw new Error("サーバー設定エラー：GEMINI_API_KEY がありません。");
     }
 
     const { userId, castId, text } = await request.json();
@@ -17,8 +17,12 @@ export async function onRequestPost(context) {
 
     if (!user) return new Response(JSON.stringify({ error: "ログインが必要です。" }), { status: 401 });
 
-    // 3. チケット・予約チェック 🎫
-    if (!reservation && (user.ticket_balance || 0) < 1) {
+    // 3. チケット・予約チェック【ここを修正】🛠️
+    // チケット枚数が undefined なら 0 とみなす処理を追加
+    const ticketBalance = user.ticket_balance || 0;
+    
+    // 予約がなく、かつチケットが1枚未満なら、ここで確実に止める
+    if (!reservation && ticketBalance < 1) {
       return new Response(JSON.stringify({ reply: "鑑定を受けるにはチケットが必要です。右上の「＋」からお求めください。" }));
     }
 
@@ -31,23 +35,22 @@ export async function onRequestPost(context) {
 
     // プロンプト構築
     const promptText = `
-あなたは「${cast.name}」という占い師です。
+あなたは占い師「${cast.name}」です。
 設定：${cast.systemPrompt}
 相談者：${user.last_name} ${user.first_name} 様 (${user.dob}生まれ)
 ${expertKnowledge}
 
-【鑑定のルール】
-1. 相談者に深く共感し、寄り添う言葉をかけてください。
-2. 占断を行う際は「カードを引きます」等と宣言し、結果を伝えてください。
-3. 鑑定結果に対応するタロットカード画像を、必ず [CARD: 画像ファイル名] という形式で出力してください。
+【鑑定ルール】
+1. 相談者に深く共感する。
+2. 占断時は「カードを引きます」と言い、結果を出す。
+3. カード画像は必ず [CARD: 画像名.png] の形式で出力する。
    例: [CARD: fool.png]
-4. 最後に具体的で温かいアドバイスをして締めくくってください。
-5. あなたがAIであることは絶対に秘密です。
+4. 具体的で温かい助言で結ぶ。
 
 相談内容：
 ${text || "鑑定をお願いします。"}`;
 
-    // 5. Gemini 1.5 Flash へのリクエスト（モデル名を修正 🚀）
+    // 5. Gemini 1.5 Flash へのリクエスト（最も標準的な設定）
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${env.GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -56,20 +59,16 @@ ${text || "鑑定をお願いします。"}`;
       })
     });
     
-    // エラーハンドリング
     if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Gemini API Error:", errorText);
-        throw new Error(`AI通信エラー (${response.status})`);
+        throw new Error(`AI通信エラー: ${response.status}`);
     }
     
     const data = await response.json();
-    if (!data.candidates || data.candidates.length === 0) {
-        throw new Error("AIからの応答が空でした。");
-    }
-    const reply = data.candidates[0].content.parts[0].text;
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!reply) throw new Error("AIからの応答がありませんでした。");
 
-    // 6. チケット消費とログ保存
+    // 6. チケット消費とログ保存（正常に応答できた場合のみ）
     if (reservation) {
       await env.DB.prepare("UPDATE Reservations SET status = 'completed' WHERE id = ?").bind(reservation.id).run();
     } else {
@@ -79,7 +78,7 @@ ${text || "鑑定をお願いします。"}`;
 
     return new Response(JSON.stringify({ reply }));
   } catch (err) {
-    console.error("System Error:", err);
+    console.error("Chat Error:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }
