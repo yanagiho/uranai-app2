@@ -17,11 +17,9 @@ export async function onRequestPost(context) {
 
     if (!user) return new Response(JSON.stringify({ error: "ログインが必要です。" }), { status: 401 });
 
-    // 3. チケット・予約チェック 🛠️
-    // チケット枚数が undefined なら 0 とみなす安全策
+    // 3. チケット・予約チェック 🎫
     const ticketBalance = user.ticket_balance || 0;
     
-    // 予約がなく、かつチケットが1枚未満なら、ここで確実に止める
     if (!reservation && ticketBalance < 1) {
       return new Response(JSON.stringify({ reply: "鑑定を受けるにはチケットが必要です。右上の「＋」からお求めください。" }));
     }
@@ -34,7 +32,6 @@ export async function onRequestPost(context) {
     let expertKnowledge = activeCastId === 1 ? `【タロット知識】\n${JSON.stringify(tarotDataShion)}` : "";
 
     // プロンプト構築
-    // gemini-pro はシンプルな指示を好むため、構造を少し簡略化しています
     const promptText = `
 あなたは占い師「${cast.name}」として振る舞ってください。
 【設定】${cast.systemPrompt}
@@ -52,9 +49,9 @@ ${expertKnowledge}
 【相談内容】
 ${text || "鑑定をお願いします。"}`;
 
-    // 5. Gemini Pro (安定版) へのリクエスト 🚀
-    // ※モデル名を 'gemini-pro' に変更しました。これが最も確実です。
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${env.GEMINI_API_KEY}`, {
+    // 5. Gemini 2.5 Flash へのリクエスト 🚀
+    // ★ここを、お客様のリストにある「gemini-2.5-flash」に変更しました
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -62,24 +59,23 @@ ${text || "鑑定をお願いします。"}`;
       })
     });
     
+    // エラーハンドリング
     if (!response.ok) {
-        // エラー詳細をログに残す
         const errorText = await response.text();
         console.error(`Gemini API Error (${response.status}):`, errorText);
         
         if (response.status === 404) {
-             throw new Error("AIモデルへの接続に失敗しました(404)。");
+             throw new Error("AIモデルへの接続に失敗しました(404)。指定されたモデルが利用できません。");
         }
         throw new Error(`AI通信エラー: ${response.status}`);
     }
     
     const data = await response.json();
-    // 応答データがあるか安全にチェック
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!reply) throw new Error("AIからの応答がありませんでした。");
 
-    // 6. チケット消費とログ保存（正常に応答できた場合のみ）
+    // 6. チケット消費とログ保存
     if (reservation) {
       await env.DB.prepare("UPDATE Reservations SET status = 'completed' WHERE id = ?").bind(reservation.id).run();
     } else {
