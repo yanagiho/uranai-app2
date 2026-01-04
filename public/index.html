@@ -10,20 +10,14 @@
         .screen { display: none; padding: 40px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; }
         .logo { font-size: 2.4rem; color: var(--gold); margin: 0; letter-spacing: 8px; text-shadow: 0 0 15px rgba(212,175,55,0.4); }
         .form-box { width: 100%; max-width: 360px; margin: 0 auto; text-align: left; background: var(--glass); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
-        input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; font-size: 1rem; outline: none; }
-        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; transition: 0.3s; box-shadow: 0 4px 15px rgba(156, 39, 176, 0.4); }
-        .main-btn:active { transform: scale(0.95); }
-        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+        label { display: block; font-size: 0.8rem; color: var(--gold); margin-bottom: 5px; margin-top: 10px; }
+        input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; font-size: 1rem; outline: none; transition: 0.3s; }
+        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; transition: 0.3s; }
+        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; }
-        .cast-card { background: var(--glass); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; transition: 0.3s; }
-        .cast-card:hover { border-color: var(--gold); background: rgba(212, 175, 55, 0.05); }
+        .cast-card { background: var(--glass); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; }
         .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; margin-bottom: 8px; }
-        #chat-box { flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
-        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; line-height: 1.6; font-size: 0.95rem; animation: fade-in 0.5s ease; }
-        .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; text-align: left; }
-        .msg.user { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); align-items: center; }
-        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         #cast-modal, #ticket-modal { display: none; position: fixed; bottom: 0; left: 0; right: 0; top: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: flex-end; }
         .modal-content, .ticket-box { width: 100%; max-width: 500px; margin: 0 auto; background: #1a0b2e; border-top: 3px solid var(--gold); border-radius: 30px 30px 0 0; padding: 30px; box-sizing: border-box; transform: translateY(100%); transition: 0.4s cubic-bezier(0.25, 0.1, 0.25, 1); }
         .active .modal-content, .active .ticket-box { transform: translateY(0); }
@@ -36,7 +30,7 @@
     </nav>
 
     <div id="gateway-screen" class="screen" style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <div style="width:130px; height:130px; background:radial-gradient(circle at 30% 30%, #fff, #9c27b0 80%); border-radius:50%; box-shadow:0 0 50px rgba(156, 39, 176, 0.6); animation: fade-in 2s;"></div>
+        <div style="width:130px; height:130px; background:radial-gradient(circle, #fff, #9c27b0); border-radius:50%; box-shadow:0 0 50px var(--accent);"></div>
         <h1 class="logo">AI 占いの館</h1>
         <button class="main-btn" style="width:200px" onclick="showScreen('title-screen')">館に入る</button>
     </div>
@@ -49,8 +43,8 @@
             <button class="auth-btn" style="background:#ff0033" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
             <button class="auth-btn" style="background:#06C755" onclick="handleAuth('LINE')">LINE で入館</button>
             <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
-            <input type="email" id="login-email" placeholder="メールアドレス">
-            <button class="main-btn" style="margin-top:0" onclick="handleAuth('Email')">メール認証で入館</button>
+            <input type="email" id="login-email" placeholder="メールアドレスを入力">
+            <button class="main-btn" style="margin-top:0" onclick="handleAuth('Email')">Basic認証で入館</button>
         </div>
     </div>
 
@@ -64,38 +58,9 @@
     </div>
 
     <div id="selection-screen" class="screen">
-        <div id="reservation-status" style="display:none; background:rgba(156, 39, 176, 0.2); padding:15px; border-radius:15px; margin-bottom:20px; border:1px solid var(--accent);">
-            <p style="margin:0;">予約があります。</p>
-            <button class="main-btn" style="padding:10px; margin-top:10px; font-size:0.8rem;" onclick="startChat()">鑑定室へ入る</button>
-        </div>
         <h2 style="color:var(--gold)">鑑定師をお選びください</h2>
         <div id="cast-list" class="cast-grid"></div>
         <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:40px;" onclick="logout()">ログアウト</p>
-    </div>
-
-    <div id="chat-screen" class="screen" style="display:none; flex-direction:column; height:100vh; padding:70px 10px 20px;">
-        <h2 id="chat-cast-name" style="color:var(--gold); margin:0;"></h2>
-        <div id="chat-box"></div>
-        <div style="display:flex; gap:10px;"><input type="text" id="chat-input" placeholder="尋ねたいことを入力..."><button class="main-btn" style="width:80px; margin-top:0;" onclick="sendMessage()">送信</button></div>
-    </div>
-
-    <div id="cast-modal" onclick="closeModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <img id="modal-img" src="" style="width:100px; height:100px; border-radius:50%; border:2px solid var(--gold); margin-bottom:15px; object-fit:cover;">
-            <h2 id="modal-name" style="color:var(--gold); margin:5px 0;"></h2>
-            <p id="modal-intro" style="font-size:0.95rem; text-align:left; color:#ccc; line-height:1.6;"></p>
-            <button class="main-btn" onclick="startChat()">今すぐ相談する (1枚)</button>
-            <p style="margin-top:15px; color:#666; cursor:pointer;" onclick="closeModal()">閉じる</p>
-        </div>
-    </div>
-
-    <div id="ticket-modal" onclick="closeTicketModal()">
-        <div class="ticket-box" onclick="event.stopPropagation()">
-            <h2 style="color:var(--gold)">チケット購入</h2>
-            <button class="main-btn" onclick="buyTickets(1)">1枚購入 (¥3,000)</button>
-            <button class="main-btn" style="background:var(--gold); color:#000;" onclick="buyTickets(10)">10枚セット (¥27,000)</button>
-            <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="closeTicketModal()">閉じる</p>
-        </div>
     </div>
 
     <script>
@@ -104,50 +69,67 @@
 
         window.onload = async () => {
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('payment') === 'success') alert("チケットが追加されました！");
+            const isPaymentSuccess = urlParams.get('payment') === 'success';
+            
             if (userId) {
                 const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId }) });
                 const data = await res.json();
-                if (data.isComplete || urlParams.get('payment') === 'success') initApp(); else showScreen('setup-screen');
+                
+                // 購入成功時は、登録未完了でも「一旦占い師選択」へ進み、チケット反映を待つフロー 🚀
+                if (data.isComplete || isPaymentSuccess) {
+                    await initApp(isPaymentSuccess); 
+                } else {
+                    showScreen('setup-screen');
+                }
             } else { showScreen('gateway-screen'); }
         };
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
             const target = document.getElementById(id);
-            target.style.display = (id === 'gateway-screen' || id === 'chat-screen') ? 'flex' : 'block';
+            target.style.display = 'block';
             document.getElementById('main-nav').style.display = (['gateway-screen','title-screen','setup-screen'].includes(id)) ? 'none' : 'flex';
         }
 
         async function handleAuth(type) {
             currentAuthType = type;
             const email = document.getElementById('login-email').value.trim();
-            const simId = type === 'Email' ? 'e_' + btoa(email) : (userId || 's_' + Math.random().toString(36).substr(2, 9));
-            const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId: simId, email, auth_type: type }) });
-            const data = await res.json();
+            const prefix = { 'X': 'x_', 'Facebook': 'f_', 'Yahoo': 'y_', 'LINE': 'l_', 'Email': 'e_' }[type] || 's_';
+            const simId = type === 'Email' ? prefix + btoa(email) : (userId || prefix + Math.random().toString(36).substr(2, 9));
+            
             userId = simId; localStorage.setItem('fortune_user_id', userId);
+            const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId, email, auth_type: type }) });
+            const data = await res.json();
             if (data.isComplete) initApp(); else showScreen('setup-screen');
         }
 
-        async function validateAndRegister() {
-            const ln = document.getElementById('user-last-name').value, fn = document.getElementById('user-first-name').value;
-            const y = document.getElementById('dob-year').value, m = document.getElementById('dob-month').value, d = document.getElementById('dob-day').value;
-            if(!ln || !fn || !y || !m || !d) return alert("全て入力してください。");
-            await fetch('/api/save_user', { method: 'POST', body: JSON.stringify({ userId, lastName: ln, firstName: fn, dob: `${y}-${m}-${d}`, auth_type: currentAuthType }) });
-            initApp();
-        }
-
-        async function initApp() {
-            const res = await fetch(`/api/user_info?userId=${userId}`);
-            const data = await res.json();
-            document.getElementById('nav-ticket').innerText = data.ticket_balance || 0;
-            document.getElementById('reservation-status').style.display = data.hasPendingReservation ? 'block' : 'none';
+        async function initApp(waitForTickets = false) {
             showScreen('selection-screen');
+            await fetchUserInfo(waitForTickets);
             const cres = await fetch('/api/casts');
             castsData = await cres.json();
             document.getElementById('cast-list').innerHTML = castsData.map(c => `
                 <div class="cast-card" onclick="openIntro(${c.id})"><img src="/img/${c.img}"><strong>${c.name}</strong><br><small>${c.role}</small></div>
             `).join('');
+        }
+
+        async function fetchUserInfo(retryUntilPaid = false) {
+            let attempts = 0;
+            const updateBalance = async () => {
+                const res = await fetch(`/api/user_info?userId=${userId}`);
+                const data = await res.json();
+                const balance = data.ticket_balance || 0;
+                document.getElementById('nav-ticket').innerText = balance;
+                
+                // チケットがまだ0枚なら、少し待って再確認する（決済反映待ち） ⏳
+                if (retryUntilPaid && balance === 0 && attempts < 5) {
+                    attempts++;
+                    setTimeout(updateBalance, 2000);
+                } else if (retryUntilPaid && balance > 0) {
+                    alert("チケットが反映されました！");
+                }
+            };
+            await updateBalance();
         }
 
         function openIntro(id) {
@@ -161,40 +143,19 @@
         }
 
         function closeModal() { document.getElementById('cast-modal').classList.remove('active'); setTimeout(() => document.getElementById('cast-modal').style.display = 'none', 300); }
-
-        function startChat() {
-            closeModal();
-            document.getElementById('chat-cast-name').innerText = castsData.find(c => c.id === currentCastId)?.name || "鑑定室";
-            showScreen('chat-screen');
-            sendMessage(""); 
-        }
-
-        async function sendMessage(manualText = null) {
-            const input = document.getElementById('chat-input'), box = document.getElementById('chat-box');
-            const text = manualText !== null ? manualText : input.value;
-            if (text && manualText === null) { box.innerHTML += `<div class="msg user">${text}</div>`; input.value = ""; }
-            try {
-                const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, text }) });
-                const data = await res.json();
-                if (data.error) return alert(data.error);
-                let reply = data.reply;
-                const cardMatch = reply.match(/\[CARD:\s*(.+?)\]/);
-                if (cardMatch) {
-                    const imgHtml = `<div style="text-align:center; margin:15px 0; animation: fade-in 1.5s;"><img src="/img/tarot/${cardMatch[1]}" style="width:160px; border-radius:10px; border:2px solid var(--gold); box-shadow:0 0 20px var(--gold);"></div>`;
-                    reply = reply.replace(cardMatch[0], "");
-                    box.innerHTML += `<div class="msg ai">${reply}${imgHtml}</div>`;
-                } else { box.innerHTML += `<div class="msg ai">${reply}</div>`; }
-                box.scrollTop = box.scrollHeight;
-                initApp(); // チケット枚数表示を更新 🎟️
-            } catch (e) { box.innerHTML += `<div class="msg ai" style="color:var(--error)">※通信が途絶えました。</div>`; }
-        }
-
         function openTicketModal() { document.getElementById('ticket-modal').style.display = 'flex'; setTimeout(() => document.getElementById('ticket-modal').classList.add('active'), 10); }
         function closeTicketModal() { document.getElementById('ticket-modal').classList.remove('active'); setTimeout(() => document.getElementById('ticket-modal').style.display = 'none', 300); }
         async function buyTickets(amount) {
             const res = await fetch('/api/stripe_checkout', { method: 'POST', body: JSON.stringify({ userId, amount }) });
             const data = await res.json();
             if (data.url) window.location.href = data.url;
+        }
+        async function validateAndRegister() {
+            const ln = document.getElementById('user-last-name').value, fn = document.getElementById('user-first-name').value;
+            const y = document.getElementById('dob-year').value, m = document.getElementById('dob-month').value, d = document.getElementById('dob-day').value;
+            if(!ln || !fn || !y || !m || !d) return alert("入力してください");
+            await fetch('/api/save_user', { method: 'POST', body: JSON.stringify({ userId, lastName: ln, firstName: fn, dob: `${y}-${m}-${d}`, auth_type: currentAuthType }) });
+            initApp();
         }
         function logout() { localStorage.clear(); location.reload(); }
     </script>
