@@ -4,14 +4,15 @@ export async function onRequestGet(context) {
   const userId = url.searchParams.get("userId");
 
   try {
-    // 修正：name ではなく last_name, first_name を取得するように変更 🚀
     const user = await env.DB.prepare("SELECT last_name, first_name, ticket_balance FROM Users WHERE id = ?").bind(userId).first();
-    const res = await env.DB.prepare("SELECT id FROM Reservations WHERE user_id = ? AND status = 'pending'").bind(userId).first();
+    // 予約情報から cast_id も取得するように修正 🔍
+    const res = await env.DB.prepare("SELECT cast_id FROM Reservations WHERE user_id = ? AND status = 'pending'").bind(userId).first();
 
     return new Response(JSON.stringify({
       firstName: user?.first_name || "ゲスト",
       ticket_balance: user?.ticket_balance || 0,
-      hasPendingReservation: !!res
+      hasPendingReservation: !!res,
+      pendingCastId: res?.cast_id || null // フロントエンドに占い師IDを伝える 🚀
     }), { headers: { "Content-Type": "application/json" } });
   } catch (e) { 
     return new Response(JSON.stringify({ error: e.message }), { status: 500 }); 
