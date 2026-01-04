@@ -6,8 +6,10 @@
     <style>
         :root { --bg: #0a0510; --accent: #9c27b0; --gold: #d4af37; --glass: rgba(255,255,255,0.07); --error: #ff4d4d; }
         body { font-family: 'Hiragino Mincho ProN', serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-        /* 🚀 画面レイアウト修正：縦並びを保証 */
+        
+        /* 🚀 画面レイアウト修正：縦並びを保証して崩れを防ぐ */
         .screen { display: none; padding: 60px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; flex-direction: column; align-items: center; }
+        
         .logo { font-size: 2.2rem; color: var(--gold); letter-spacing: 6px; text-shadow: 0 0 15px rgba(212,175,55,0.4); margin-bottom: 20px; }
         .form-box { width: 100%; max-width: 360px; margin: 0 auto; text-align: left; background: var(--glass); padding: 25px; border-radius: 20px; backdrop-filter: blur(10px); }
         input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; font-size: 1rem; outline: none; }
@@ -16,11 +18,13 @@
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; width: 100%; max-width: 500px; }
         .cast-card { background: var(--glass); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; }
         .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; margin-bottom: 8px; }
+        
         /* 💬 チャット画面の強化 */
         #chat-box { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.2); border-radius: 15px; margin-bottom: 15px; width: 100%; max-width: 600px; }
         .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; font-size: 0.95rem; line-height: 1.6; text-align: left; }
         .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; }
         .msg.user { background: var(--accent); color: #fff; align-self: flex-end; }
+        
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); align-items: center; }
         .slot-btn { padding: 10px; border: 1px solid var(--gold); color: #fff; background: none; border-radius: 8px; cursor: pointer; }
         .day-tab { min-width: 60px; padding: 8px; border: 1px solid #444; border-radius: 8px; cursor: pointer; font-size: 0.8rem; background: none; color: #fff; }
@@ -128,7 +132,7 @@
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
             const target = document.getElementById(id);
-            target.style.display = 'flex'; // flexに統一
+            target.style.display = 'flex'; 
             document.getElementById('main-nav').style.display = (['gateway-screen','title-screen','setup-screen'].includes(id)) ? 'none' : 'flex';
         }
 
@@ -221,6 +225,7 @@
                 // エラー時はアラートを出して終了 🛑
                 if (data.error) {
                     alert("エラー: " + data.error);
+                    // ここで処理を止めることで、不正な進行を防ぐ
                     return;
                 }
 
