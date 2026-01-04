@@ -1,4 +1,4 @@
-import { casts } from "../../src/casts.js";
+import { casts } from "./lib/casts.js"; // 修正 🚀
 
 export async function onRequestGet() {
   const list = Object.keys(casts).map(id => ({
