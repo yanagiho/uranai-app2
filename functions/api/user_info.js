@@ -8,10 +8,11 @@ export async function onRequestGet(context) {
     const res = await env.DB.prepare("SELECT cast_id FROM Reservations WHERE user_id = ? AND status = 'pending'").bind(userId).first();
 
     return new Response(JSON.stringify({
+      lastName: user?.last_name || "",
       firstName: user?.first_name || "ゲスト",
       ticket_balance: user?.ticket_balance || 0,
       hasPendingReservation: !!res,
-      pendingCastId: res?.cast_id || null // フロントエンドに占い師IDを伝える 🚀
+      pendingCastId: res?.cast_id || null
     }), { headers: { "Content-Type": "application/json" } });
   } catch (e) { 
     return new Response(JSON.stringify({ error: e.message }), { status: 500 }); 
