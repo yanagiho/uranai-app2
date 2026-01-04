@@ -11,7 +11,7 @@ export async function onRequestGet(context) {
       firstName: user?.first_name || "ゲスト",
       ticket_balance: user?.ticket_balance || 0,
       hasPendingReservation: !!res,
-      pendingCastId: res?.cast_id || null // フロントエンドに伝える 🚀
+      pendingCastId: res?.cast_id || null // フロントエンドに占い師IDを伝える 🚀
     }), { headers: { "Content-Type": "application/json" } });
   } catch (e) { 
     return new Response(JSON.stringify({ error: e.message }), { status: 500 }); 
