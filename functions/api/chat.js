@@ -4,7 +4,7 @@ import { tarotDataShion } from "./lib/tarot_data_shion.js";
 export async function onRequestPost(context) {
   const { request, env } = context;
   try {
-    // 1. APIキーの確認（設定漏れ防止）
+    // 1. APIキーの確認
     if (!env.GEMINI_API_KEY) {
       throw new Error("サーバー設定エラー：GEMINI_API_KEY が設定されていません。");
     }
@@ -17,8 +17,7 @@ export async function onRequestPost(context) {
 
     if (!user) return new Response(JSON.stringify({ error: "ログインが必要です。" }), { status: 401 });
 
-    // 3. チケット・予約チェック（ここを厳格化）🎫
-    // 「予約がない」かつ「チケットが0枚」なら、門前払いにする
+    // 3. チケット・予約チェック 🎫
     if (!reservation && (user.ticket_balance || 0) < 1) {
       return new Response(JSON.stringify({ reply: "鑑定を受けるにはチケットが必要です。右上の「＋」からお求めください。" }));
     }
@@ -30,7 +29,7 @@ export async function onRequestPost(context) {
 
     let expertKnowledge = activeCastId === 1 ? `【タロット知識】\n${JSON.stringify(tarotDataShion)}` : "";
 
-    // プロンプトを構築（AIへの指示書）
+    // プロンプト構築
     const promptText = `
 あなたは「${cast.name}」という占い師です。
 設定：${cast.systemPrompt}
@@ -48,7 +47,7 @@ ${expertKnowledge}
 相談内容：
 ${text || "鑑定をお願いします。"}`;
 
-    // 5. Gemini 1.5 Flash へのリクエスト（最も安定した方式）🚀
+    // 5. Gemini 1.5 Flash へのリクエスト（モデル名を修正 🚀）
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${env.GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -57,11 +56,11 @@ ${text || "鑑定をお願いします。"}`;
       })
     });
     
-    // エラーハンドリング（AIが動かない原因を特定するため）
+    // エラーハンドリング
     if (!response.ok) {
         const errorText = await response.text();
         console.error("Gemini API Error:", errorText);
-        throw new Error("AIとの通信に失敗しました。しばらく待ってから再試行してください。");
+        throw new Error(`AI通信エラー (${response.status})`);
     }
     
     const data = await response.json();
@@ -70,7 +69,7 @@ ${text || "鑑定をお願いします。"}`;
     }
     const reply = data.candidates[0].content.parts[0].text;
 
-    // 6. チケット消費とログ保存（AIが正常に応答した場合のみ実行）
+    // 6. チケット消費とログ保存
     if (reservation) {
       await env.DB.prepare("UPDATE Reservations SET status = 'completed' WHERE id = ?").bind(reservation.id).run();
     } else {
