@@ -4,7 +4,7 @@ export async function onRequestPost(context) {
   const { request, env } = context;
   try {
     const { userId, castId, scheduledAt } = await request.json();
-    const user = await env.DB.prepare("SELECT last_name, first_name, email, ticket_balance FROM Users WHERE id = ?").bind(userId).first();
+    const user = await env.DB.prepare("SELECT ticket_balance FROM Users WHERE id = ?").bind(userId).first();
     
     if (!user || user.ticket_balance < 1) return new Response(JSON.stringify({ error: "チケットが足りません。" }));
 
