@@ -25,10 +25,14 @@
         .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; }
         .msg.user { background: var(--accent); color: #fff; align-self: flex-end; }
         
-        /* 🔮 ローディング演出のスタイル */
         .loading-msg { display: none; align-self: flex-start; background: var(--glass); border-left: 4px solid var(--gold); padding: 12px 16px; border-radius: 18px; color: #ccc; font-style: italic; }
         .loading-icon { display: inline-block; margin-right: 8px; animation: blink 1.5s infinite both; }
         @keyframes blink { 0%, 100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); color: var(--gold); } }
+
+        /* 🚪 終了ボタンエリアのスタイル */
+        #end-session-area { display: none; width: 100%; max-width: 600px; padding: 10px; text-align: center; }
+        .end-btn { background: #333; color: var(--gold); border: 2px solid var(--gold); width: 100%; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; animation: fadeIn 1s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); align-items: center; }
         .slot-btn { padding: 10px; border: 1px solid var(--gold); color: #fff; background: none; border-radius: 8px; cursor: pointer; }
@@ -98,9 +102,15 @@
                 <span class="loading-icon">✦</span> 星々が囁き、水晶が未来を映し出しています...
             </div>
         </div>
-        <div style="display:flex; gap:10px; width:100%; max-width:600px;">
+        
+        <div id="input-area" style="display:flex; gap:10px; width:100%; max-width:600px;">
             <input type="text" id="chat-input" placeholder="尋ねたいことを入力...">
             <button class="main-btn" style="width:80px; margin-top:0;" onclick="sendMessage()">送信</button>
+        </div>
+
+        <div id="end-session-area">
+            <p style="color:#ccc; margin-bottom:10px;">鑑定が終了しました</p>
+            <button class="end-btn" onclick="finishSession()">退出する</button>
         </div>
     </div>
 
@@ -226,9 +236,13 @@
             document.getElementById('chat-cast-name').innerText = castsData.find(c => c.id === currentCastId)?.name || "鑑定室"; 
             
             const chatBox = document.getElementById('chat-box');
-            // メッセージのみ削除（ローディング表示は残す）
             chatBox.querySelectorAll('.msg').forEach(el => el.remove());
             
+            // 入力エリアをリセットして表示
+            document.getElementById('input-area').style.display = 'flex';
+            document.getElementById('end-session-area').style.display = 'none';
+            document.getElementById('chat-input').value = "";
+
             showScreen('chat-screen'); 
             sendMessage(""); 
         }
@@ -285,6 +299,12 @@
                 if (loading && loading.parentNode === box) box.insertBefore(messageElement, loading);
                 else box.appendChild(messageElement);
 
+                // ★終了判定：AIが終了シグナルを出していたらUIを切り替える
+                if (data.isEnded) {
+                    document.getElementById('input-area').style.display = 'none';
+                    document.getElementById('end-session-area').style.display = 'block';
+                }
+
                 box.scrollTop = box.scrollHeight;
                 syncTickets(); 
             } catch (e) { 
@@ -292,6 +312,10 @@
                 console.error(e);
                 alert("通信エラーが発生しました: " + e.message);
             }
+        }
+
+        function finishSession() {
+            showScreen('selection-screen');
         }
 
         function createMsgElement(html, type) {
