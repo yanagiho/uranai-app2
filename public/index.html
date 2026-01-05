@@ -240,7 +240,13 @@
                     body: JSON.stringify({ userId, castId: currentCastId, text }) 
                 });
 
-                // ★ここを修正: エラー内容をサーバーからJSONで受け取るように変更
+                // ★自動ログアウト処理
+                if (res.status === 401) {
+                    alert("データが更新されました。再度ご入館ください。");
+                    logout();
+                    return;
+                }
+
                 if (!res.ok) {
                     const errorData = await res.json().catch(() => ({ error: `サーバーエラー: ${res.status}` }));
                     throw new Error(errorData.error || `サーバーエラー: ${res.status}`);
@@ -279,7 +285,6 @@
             } catch (e) { 
                 if (loading) loading.style.display = 'none';
                 console.error(e);
-                // 詳細なエラー内容を表示
                 alert("通信エラーが発生しました: " + e.message);
             }
         }
