@@ -14,14 +14,13 @@ export async function onRequestPost(context) {
 
     if (!user) return new Response(JSON.stringify({ error: "ログインが必要です。" }), { status: 401 });
 
-    // --- チケット消費・セッション管理（timestampカラム確認） ---
+    // --- チケット・セッション管理 ---
     let lastChat = null;
     let isSessionActive = false;
     
     try {
         lastChat = await env.DB.prepare("SELECT timestamp FROM ChatLogs WHERE user_id = ? AND sender = 'ai' ORDER BY id DESC LIMIT 1").bind(userId).first();
     } catch (e) {
-        // timestampカラムが無いエラー対策：無視して新規扱いにする
         console.error("DB Error (timestamp check):", e.message);
     }
 
@@ -29,6 +28,7 @@ export async function onRequestPost(context) {
         const lastTimeStr = lastChat.timestamp.endsWith('Z') ? lastChat.timestamp : lastChat.timestamp + 'Z';
         const lastTime = new Date(lastTimeStr).getTime();
         const now = Date.now();
+        // 10分以内ならチケット消費なし
         if (!isNaN(lastTime) && (now - lastTime) < 10 * 60 * 1000) {
             isSessionActive = true;
         }
@@ -46,7 +46,7 @@ export async function onRequestPost(context) {
 
     let expertKnowledge = activeCastId === 1 ? `【タロット知識】\n${JSON.stringify(tarotDataShion)}` : "";
 
-    // 過去ログ取得（エラー回避のためtry-catch）
+    // 過去ログ取得
     let historyText = "";
     try {
         const historyData = await env.DB.prepare("SELECT sender, content FROM ChatLogs WHERE user_id = ? ORDER BY id DESC LIMIT 10").bind(userId).all();
@@ -57,25 +57,34 @@ export async function onRequestPost(context) {
         console.error("DB Error (history):", e.message);
     }
 
+    // プロンプト（人間味・終了判定強化）
     const promptText = `
-あなたはチャット占い師「${cast.name}」です。AIではなく人間として振る舞ってください。
+あなたはチャット占い師「${cast.name}」です。AIではなく、感情を持った人間として振る舞ってください。
 設定：${cast.systemPrompt}
 相談者：${user.last_name} ${user.first_name} 様 (${user.dob}生まれ)
 ${expertKnowledge}
 
-【過去の会話】
+【直近の会話履歴】
 ${historyText}
 
-【相談内容】
+【相談者の最新の言葉】
 ${text}
 
-【ルール】
-1. 人間らしく、フィラー（「うーん」「そうですね」）や共感を交えて話してください。
-2. 過去の話を覚えているように振る舞ってください。
-3. 会話を終了すべき時は、最後に「[END]」とだけ付けてください（表示はされません）。
-4. カード画像 [CARD: ...] は必要な時だけ出してください。`;
+【対話・鑑定の絶対ルール】
+1. **人間味の追求**:
+   - 即答で解決策を出さず、まずは「うーん、それは辛いですね…」「なるほど…」といった**フィラー（間投詞）や共感**から始めてください。
+2. **文脈の維持**:
+   - 過去の履歴にある内容を「さっき仰っていた〜」と引用し、**記憶していること**をアピールしてください。
+3. **終了の判断（重要）**:
+   - 相談者が「ありがとう」「スッキリしました」等と言ったり、話題が尽きたと感じたら、ダラダラ続けずに**綺麗に締めくくってください**。
+   - **会話を終了すべき時は、発言の最後に必ず「[END]」という文字列を付けてください。**
+     例：「…応援していますよ。またいつでも来てくださいね。[END]」
+4. **演出**:
+   - タロット画像の出力 [CARD: ...] は、ここぞという場面でのみ行ってください。
 
-    // Gemini 2.5 Flash
+以上のルールを守り、${cast.name}になりきって返答してください。`;
+
+    // 🚀 本番用モデル: Gemini 2.5 Flash
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -83,8 +92,9 @@ ${text}
     });
     
     if (!response.ok) {
-        const err = await response.text();
-        throw new Error(`AI通信エラー (${response.status}): ${err}`);
+        const errText = await response.text();
+        console.error("Gemini API Error:", errText);
+        throw new Error(`AI通信エラー (${response.status}): ${errText}`);
     }
     
     const data = await response.json();
@@ -105,17 +115,17 @@ ${text}
       await env.DB.prepare("UPDATE Users SET ticket_balance = ticket_balance - 1 WHERE id = ?").bind(userId).run();
     }
 
-    // ログ保存（エラーが出てもチャット自体は止めない）
+    // ログ保存（エラー回避のためtry-catch）
     try {
         const nowISO = new Date().toISOString();
         await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'ai', ?, ?)").bind(userId, reply, nowISO).run();
-        await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'user', ?, ?)").bind(userId, text || "...", nowISO).run();
+        await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'user', ?, ?)").bind(userId, text || "(...)", nowISO).run();
     } catch (e) {
         console.error("DB Log Error:", e.message);
-        // timestampカラムがない場合のフォールバック（旧テーブル対応）
+        // timestampカラムがない場合のフォールバック（旧DB対応）
         if (e.message.includes("no such column: timestamp")) {
              await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'ai', ?)").bind(userId, reply).run();
-             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, text || "...").run();
+             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, text || "(...)").run();
         }
     }
 
