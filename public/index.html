@@ -9,7 +9,6 @@
         
         .screen { display: none; padding: 60px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; flex-direction: column; align-items: center; }
         
-        /* ロゴ・背景設定（前回の設定を維持） */
         #gateway-screen { background-image: url('/img/title_bg.png'); background-size: cover; background-position: center; }
         .logo-img { max-width: 80%; height: auto; margin-bottom: 20px; }
 
@@ -221,7 +220,19 @@
             if (data.error) return alert(data.error);
             initApp();
         }
-        function startChat() { closeModal(); document.getElementById('chat-cast-name').innerText = castsData.find(c => c.id === currentCastId)?.name || "鑑定室"; document.getElementById('chat-box').innerHTML = ""; showScreen('chat-screen'); sendMessage(""); }
+
+        // 修正箇所：loading-indicator を消さないように変更
+        function startChat() { 
+            closeModal(); 
+            document.getElementById('chat-cast-name').innerText = castsData.find(c => c.id === currentCastId)?.name || "鑑定室"; 
+            
+            const chatBox = document.getElementById('chat-box');
+            // メッセージクラスを持つ要素だけを削除
+            chatBox.querySelectorAll('.msg').forEach(el => el.remove());
+            
+            showScreen('chat-screen'); 
+            sendMessage(""); 
+        }
         
         // 🔮 ローディング制御を追加した sendMessage 関数
         async function sendMessage(manualText = null) {
@@ -238,14 +249,14 @@
 
             try {
                 // リクエスト前にローディングを表示
-                loading.style.display = 'block';
+                if (loading) loading.style.display = 'block';
                 box.scrollTop = box.scrollHeight; // スクロールしてローディングを見せる
 
                 const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, text }) });
                 const data = await res.json();
                 
                 // レスポンスが来たらローディングを非表示
-                loading.style.display = 'none';
+                if (loading) loading.style.display = 'none';
 
                 if (data.error) {
                     alert("エラー: " + data.error);
@@ -265,7 +276,7 @@
                 
                 syncTickets(); 
             } catch (e) { 
-                loading.style.display = 'none'; // エラー時も非表示に
+                if (loading) loading.style.display = 'none'; // エラー時も非表示に
                 console.error(e);
                 alert("通信エラーが発生しました。");
             }
