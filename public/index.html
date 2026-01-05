@@ -221,46 +221,48 @@
             initApp();
         }
 
-        // 修正箇所：loading-indicator を消さないように変更
         function startChat() { 
             closeModal(); 
             document.getElementById('chat-cast-name').innerText = castsData.find(c => c.id === currentCastId)?.name || "鑑定室"; 
             
             const chatBox = document.getElementById('chat-box');
-            // メッセージクラスを持つ要素だけを削除
+            // メッセージのみ削除（ローディング表示は残す）
             chatBox.querySelectorAll('.msg').forEach(el => el.remove());
             
             showScreen('chat-screen'); 
             sendMessage(""); 
         }
         
-        // 🔮 ローディング制御を追加した sendMessage 関数
         async function sendMessage(manualText = null) {
             const input = document.getElementById('chat-input'), box = document.getElementById('chat-box');
-            const loading = document.getElementById('loading-indicator'); // ローディング要素を取得
+            const loading = document.getElementById('loading-indicator');
             const text = manualText !== null ? manualText : input.value;
             
             if (text && manualText === null) { 
-                // loading要素が存在する場合、その前にメッセージを挿入。そうでなければ末尾に追加。
-                if (loading && loading.parentNode === box) {
-                    box.insertBefore(createMsgElement(text, 'user'), loading);
-                } else {
-                    box.appendChild(createMsgElement(text, 'user'));
-                }
+                if (loading && loading.parentNode === box) box.insertBefore(createMsgElement(text, 'user'), loading);
+                else box.appendChild(createMsgElement(text, 'user'));
                 input.value = ""; 
             }
             
             box.scrollTop = box.scrollHeight;
 
             try {
-                // リクエスト前にローディングを表示
                 if (loading) loading.style.display = 'block';
-                box.scrollTop = box.scrollHeight; // スクロールしてローディングを見せる
+                box.scrollTop = box.scrollHeight;
 
-                const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, text }) });
+                const res = await fetch('/api/chat', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, castId: currentCastId, text }) 
+                });
+
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(`サーバーエラー: ${res.status}`);
+                }
+
                 const data = await res.json();
                 
-                // レスポンスが来たらローディングを非表示
                 if (loading) loading.style.display = 'none';
 
                 if (data.error) {
@@ -280,24 +282,18 @@
                     messageElement = createMsgElement(reply, 'ai');
                 }
 
-                // AIの返答を挿入（loading要素の前、なければ末尾）
-                if (loading && loading.parentNode === box) {
-                    box.insertBefore(messageElement, loading);
-                } else {
-                    box.appendChild(messageElement);
-                }
+                if (loading && loading.parentNode === box) box.insertBefore(messageElement, loading);
+                else box.appendChild(messageElement);
 
                 box.scrollTop = box.scrollHeight;
-                
                 syncTickets(); 
             } catch (e) { 
-                if (loading) loading.style.display = 'none'; // エラー時も非表示に
+                if (loading) loading.style.display = 'none';
                 console.error(e);
-                alert("通信エラーが発生しました。");
+                alert("通信エラーが発生しました: " + e.message);
             }
         }
 
-        // メッセージ要素を作成するヘルパー関数
         function createMsgElement(html, type) {
             const div = document.createElement('div');
             div.className = `msg ${type}`;
