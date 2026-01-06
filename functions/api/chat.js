@@ -59,7 +59,8 @@ export async function onRequestPost(context) {
     }
 
     // プロンプト（人間味・終了判定強化）
-    const userName = (user.last_name && user.first_name) ? `${user.last_name} ${user.first_name}` : "お客様";
+    const hasName = user.last_name && user.first_name && user.last_name !== "null" && user.first_name !== "null";
+    const userName = hasName ? `${user.last_name} ${user.first_name}` : "お客様";
     const promptText = `
 あなたはチャット占い師「${cast.name}」です。AIではなく、感情を持った人間として振る舞ってください。
 設定：${cast.systemPrompt}
