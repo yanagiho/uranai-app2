@@ -118,14 +118,15 @@ ${text}
     // ログ保存（エラー回避のためtry-catch）
     try {
         const nowISO = new Date().toISOString();
-        await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'ai', ?, ?)").bind(userId, reply, nowISO).run();
+        // 先にユーザーのメッセージを保存（ID順序を保証するため）
         await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'user', ?, ?)").bind(userId, text || "(...)", nowISO).run();
+        await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'ai', ?, ?)").bind(userId, reply, nowISO).run();
     } catch (e) {
         console.error("DB Log Error:", e.message);
         // timestampカラムがない場合のフォールバック（旧DB対応）
         if (e.message.includes("no such column: timestamp")) {
-             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'ai', ?)").bind(userId, reply).run();
              await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, text || "(...)").run();
+             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'ai', ?)").bind(userId, reply).run();
         }
     }
 
