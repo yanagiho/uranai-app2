@@ -64,24 +64,36 @@ export async function onRequestPost(context) {
         timeZone: 'Asia/Tokyo' 
     });
 
-    // ★修正ポイント：「null null様」を防ぐ処理
-    // 名前がDBにない場合は「お客様」とする
-    const userName = (user.last_name && user.first_name) 
-        ? `${user.last_name} ${user.first_name} 様` 
-        : "お客様";
+    // ★修正1：名前の「null」排除ロジックを強化
+    let lastName = user.last_name;
+    let firstName = user.first_name;
+    
+    // 文字列の"null"や、実際のnull/undefinedを空文字に変換
+    if (lastName === "null" || !lastName) lastName = "";
+    if (firstName === "null" || !firstName) firstName = "";
+    
+    // 両方揃っている場合のみフルネーム、そうでなければ「お客様」
+    const userName = (lastName && firstName) ? `${lastName} ${firstName} 様` : "お客様";
 
-    const userDob = user.dob ? `(${user.dob}生まれ)` : "";
+    // ★修正2：生年月日情報の処理
+    const userDobInfo = user.dob ? `${user.dob}生まれ` : "生年月日不明";
 
     const promptText = `
 あなたはチャット占い師「${cast.name}」です。AIではなく、感情を持った人間として振る舞ってください。
 設定：${cast.systemPrompt}
-相談者：${userName} ${userDob}
+
+【相談者データ】
+名前：${userName}
+生年月日：${userDobInfo}
+※重要：**相談者の生年月日はすでに分かっています。絶対に会話の中で「生年月日はいつですか？」と聞き直さないでください。**
+※もし占いに必要な場合でも、上記の生年月日データを使って勝手に占ってください。
+
 ${expertKnowledge}
 
 【現在日時】
 ${currentDate}
 ※重要：「今年」や「来年」、「今日」といった言葉は、上記の現在日時を基準に解釈してください。
-※現在は2026年です。過去の年（2024年や2025年など）を未来のこととして話さないように注意してください。
+※現在は2026年です。
 
 【直近の会話履歴】
 ${historyText}
@@ -91,7 +103,7 @@ ${text}
 
 【対話・鑑定の絶対ルール】
 1. **人間味の追求**:
-   - 即答で解決策を出さず、まずは「うーん、それは辛いですね…」「なるほど…」といったフィラー（間投詞）や共感から始めてください。
+   - 即答で解決策を出さず、まずは「うーん、それは辛いですね…」「なるほど…」といった**フィラー（間投詞）や共感**から始めてください。
 2. **文脈の維持**:
    - 過去の履歴にある内容を「さっき仰っていた〜」と引用し、**記憶していること**をアピールしてください。
 3. **終了の判断（重要）**:
@@ -99,6 +111,8 @@ ${text}
    - **会話を終了すべき時は、発言の最後に必ず「[END]」という文字列を付けてください。**
 4. **演出**:
    - タロット画像の出力 [CARD: ...] は、ここぞという場面でのみ行ってください。
+5. **名前の呼び方**:
+   - 会話の中では「${userName.replace(" 様", "")}さん」と呼んでください。もし「お客様」の場合は「お客様」と呼んでください。
 
 以上のルールを守り、${cast.name}になりきって返答してください。`;
 
