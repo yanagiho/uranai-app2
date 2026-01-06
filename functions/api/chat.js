@@ -1,5 +1,6 @@
 import { casts } from "./lib/casts.js";
 import { tarotDataShion } from "./lib/tarot_data_shion.js";
+import { callGemini } from "./lib/gemini.js";
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -7,7 +8,7 @@ export async function onRequestPost(context) {
     if (!env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY が設定されていません。");
 
     const { userId, castId, text } = await request.json();
-    
+
     // ユーザー・予約確認
     const user = await env.DB.prepare("SELECT * FROM Users WHERE id = ?").bind(userId).first();
     const reservation = await env.DB.prepare("SELECT id, cast_id FROM Reservations WHERE user_id = ? AND status = 'pending'").bind(userId).first();
@@ -17,21 +18,21 @@ export async function onRequestPost(context) {
     // --- チケット・セッション管理 ---
     let lastChat = null;
     let isSessionActive = false;
-    
+
     try {
-        lastChat = await env.DB.prepare("SELECT timestamp FROM ChatLogs WHERE user_id = ? AND sender = 'ai' ORDER BY id DESC LIMIT 1").bind(userId).first();
+      lastChat = await env.DB.prepare("SELECT timestamp FROM ChatLogs WHERE user_id = ? AND sender = 'ai' ORDER BY id DESC LIMIT 1").bind(userId).first();
     } catch (e) {
-        console.error("DB Error (timestamp check):", e.message);
+      console.error("DB Error (timestamp check):", e.message);
     }
 
     if (lastChat && lastChat.timestamp) {
-        const lastTimeStr = lastChat.timestamp.endsWith('Z') ? lastChat.timestamp : lastChat.timestamp + 'Z';
-        const lastTime = new Date(lastTimeStr).getTime();
-        const now = Date.now();
-        // 10分以内ならチケット消費なし
-        if (!isNaN(lastTime) && (now - lastTime) < 10 * 60 * 1000) {
-            isSessionActive = true;
-        }
+      const lastTimeStr = lastChat.timestamp.endsWith('Z') ? lastChat.timestamp : lastChat.timestamp + 'Z';
+      const lastTime = new Date(lastTimeStr).getTime();
+      const now = Date.now();
+      // 10分以内ならチケット消費なし
+      if (!isNaN(lastTime) && (now - lastTime) < 10 * 60 * 1000) {
+        isSessionActive = true;
+      }
     }
 
     const ticketBalance = user.ticket_balance || 0;
@@ -49,19 +50,20 @@ export async function onRequestPost(context) {
     // 過去ログ取得
     let historyText = "";
     try {
-        const historyData = await env.DB.prepare("SELECT sender, content FROM ChatLogs WHERE user_id = ? ORDER BY id DESC LIMIT 10").bind(userId).all();
-        historyText = historyData.results.reverse().map(log => {
-            return `${log.sender === 'user' ? '相談者' : 'あなた'}: ${log.content}`;
-        }).join("\n");
+      const historyData = await env.DB.prepare("SELECT sender, content FROM ChatLogs WHERE user_id = ? ORDER BY id DESC LIMIT 10").bind(userId).all();
+      historyText = historyData.results.reverse().map(log => {
+        return `${log.sender === 'user' ? '相談者' : 'あなた'}: ${log.content}`;
+      }).join("\n");
     } catch (e) {
-        console.error("DB Error (history):", e.message);
+      console.error("DB Error (history):", e.message);
     }
 
     // プロンプト（人間味・終了判定強化）
+    const userName = (user.last_name && user.first_name) ? `${user.last_name} ${user.first_name}` : "お客様";
     const promptText = `
 あなたはチャット占い師「${cast.name}」です。AIではなく、感情を持った人間として振る舞ってください。
 設定：${cast.systemPrompt}
-相談者：${user.last_name} ${user.first_name} 様 (${user.dob}生まれ)
+相談者：${userName} 様 (${user.dob}生まれ)
 ${expertKnowledge}
 
 【直近の会話履歴】
@@ -85,27 +87,13 @@ ${text}
 以上のルールを守り、${cast.name}になりきって返答してください。`;
 
     // 🚀 本番用モデル: Gemini 2.5 Flash
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-    });
-    
-    if (!response.ok) {
-        const errText = await response.text();
-        console.error("Gemini API Error:", errText);
-        throw new Error(`AI通信エラー (${response.status}): ${errText}`);
-    }
-    
-    const data = await response.json();
-    let reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!reply) throw new Error("AIからの応答が空でした。");
+    let reply = await callGemini(env.GEMINI_API_KEY, promptText);
 
     // 終了フラグ処理
     let isEnded = false;
     if (reply.includes("[END]")) {
-        isEnded = true;
-        reply = reply.replace("[END]", "").trim();
+      isEnded = true;
+      reply = reply.replace("[END]", "").trim();
     }
 
     // --- ログ保存・チケット消費 ---
@@ -117,17 +105,17 @@ ${text}
 
     // ログ保存（エラー回避のためtry-catch）
     try {
-        const nowISO = new Date().toISOString();
-        // 先にユーザーのメッセージを保存（ID順序を保証するため）
-        await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'user', ?, ?)").bind(userId, text || "(...)", nowISO).run();
-        await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'ai', ?, ?)").bind(userId, reply, nowISO).run();
+      const nowISO = new Date().toISOString();
+      // 先にユーザーのメッセージを保存（ID順序を保証するため）
+      await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'user', ?, ?)").bind(userId, text || "(...)", nowISO).run();
+      await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'ai', ?, ?)").bind(userId, reply, nowISO).run();
     } catch (e) {
-        console.error("DB Log Error:", e.message);
-        // timestampカラムがない場合のフォールバック（旧DB対応）
-        if (e.message.includes("no such column: timestamp")) {
-             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, text || "(...)").run();
-             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'ai', ?)").bind(userId, reply).run();
-        }
+      console.error("DB Log Error:", e.message);
+      // timestampカラムがない場合のフォールバック（旧DB対応）
+      if (e.message.includes("no such column: timestamp")) {
+        await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, text || "(...)").run();
+        await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'ai', ?)").bind(userId, reply).run();
+      }
     }
 
     return new Response(JSON.stringify({ reply, isEnded }));
