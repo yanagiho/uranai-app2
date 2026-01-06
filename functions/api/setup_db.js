@@ -1,4 +1,11 @@
 export async function onRequest(context) {
+  // ★安全対策：本番稼働中はアクセスできないように即時終了させます
+  return new Response("この機能はセキュリティのため無効化されています。", { status: 403 });
+
+  /* // =================================================================
+  // ⚠️ データベース初期化用コード（必要時のみコメントアウトを外す）
+  // =================================================================
+  
   const { env } = context;
   try {
     // データベースを一度削除して、正しい形（timestamp付き）で作り直す
@@ -53,4 +60,5 @@ export async function onRequest(context) {
   } catch (err) {
     return new Response("❌ DB設定エラー: " + err.message, { status: 500 });
   }
+  */
 }
