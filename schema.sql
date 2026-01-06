@@ -31,6 +31,7 @@ DROP TABLE IF EXISTS ChatLogs;
 CREATE TABLE ChatLogs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id TEXT,
+  cast_id INTEGER, -- ★追加：誰と話したかを記録
   sender TEXT, -- 'user' or 'ai'
   content TEXT,
   timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
