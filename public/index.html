@@ -85,7 +85,7 @@
         <h2 id="chat-cast-name" style="color:var(--gold); margin:0 0 15px 0; font-size:1.2rem;"></h2>
         <div id="chat-box">
             <div id="loading-indicator" class="loading-msg">
-                <span class="loading-icon">✦</span> 星々が囁き、水晶が未来を映し出しています...
+                <span class="loading-icon">✦</span> <span id="loading-text">星々が囁き、水晶が未来を映し出しています...</span>
             </div>
         </div>
         <div id="input-area" style="display:flex; gap:10px; width:100%; max-width:600px;">
@@ -207,7 +207,8 @@
         }
         function startChat() { 
             closeModal(); 
-            document.getElementById('chat-cast-name').innerText = castsData.find(c => c.id === currentCastId)?.name || "鑑定室"; 
+            const currentCast = castsData.find(c => c.id === currentCastId);
+            document.getElementById('chat-cast-name').innerText = currentCast?.name || "鑑定室"; 
             const chatBox = document.getElementById('chat-box');
             chatBox.querySelectorAll('.msg').forEach(el => el.remove());
             document.getElementById('input-area').style.display = 'flex';
@@ -222,6 +223,11 @@
             const loading = document.getElementById('loading-indicator');
             const text = manualText !== null ? manualText : input.value;
             
+            // ★キャラごとの待機メッセージを設定
+            const currentCast = castsData.find(c => c.id === currentCastId);
+            const loadingText = currentCast && currentCast.waitingMsg ? currentCast.waitingMsg : "星々が囁き、水晶が未来を映し出しています...";
+            document.getElementById('loading-text').innerText = loadingText;
+
             if (text && manualText === null) { 
                 if (loading && loading.parentNode === box) box.insertBefore(createMsgElement(text, 'user'), loading);
                 else box.appendChild(createMsgElement(text, 'user'));
@@ -240,7 +246,6 @@
                     body: JSON.stringify({ userId, castId: currentCastId, text }) 
                 });
 
-                // ★自動ログアウト処理
                 if (res.status === 401) {
                     alert("データが更新されました。再度ご入館ください。");
                     logout();
