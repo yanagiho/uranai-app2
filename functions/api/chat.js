@@ -1,6 +1,5 @@
 import { casts } from "./lib/casts.js";
 import { tarotDataShion } from "./lib/tarot_data_shion.js";
-import { callGemini } from "./lib/gemini.js";
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -8,7 +7,7 @@ export async function onRequestPost(context) {
     if (!env.GEMINI_API_KEY) throw new Error("GEMINI_API_KEY が設定されていません。");
 
     const { userId, castId, text } = await request.json();
-
+    
     // ユーザー・予約確認
     const user = await env.DB.prepare("SELECT * FROM Users WHERE id = ?").bind(userId).first();
     const reservation = await env.DB.prepare("SELECT id, cast_id FROM Reservations WHERE user_id = ? AND status = 'pending'").bind(userId).first();
@@ -18,21 +17,20 @@ export async function onRequestPost(context) {
     // --- チケット・セッション管理 ---
     let lastChat = null;
     let isSessionActive = false;
-
+    
     try {
-      lastChat = await env.DB.prepare("SELECT timestamp FROM ChatLogs WHERE user_id = ? AND sender = 'ai' ORDER BY id DESC LIMIT 1").bind(userId).first();
+        lastChat = await env.DB.prepare("SELECT timestamp FROM ChatLogs WHERE user_id = ? AND sender = 'ai' ORDER BY id DESC LIMIT 1").bind(userId).first();
     } catch (e) {
-      console.error("DB Error (timestamp check):", e.message);
+        console.error("DB Error (timestamp check):", e.message);
     }
 
     if (lastChat && lastChat.timestamp) {
-      const lastTimeStr = lastChat.timestamp.endsWith('Z') ? lastChat.timestamp : lastChat.timestamp + 'Z';
-      const lastTime = new Date(lastTimeStr).getTime();
-      const now = Date.now();
-      // 10分以内ならチケット消費なし
-      if (!isNaN(lastTime) && (now - lastTime) < 10 * 60 * 1000) {
-        isSessionActive = true;
-      }
+        const lastTimeStr = lastChat.timestamp.endsWith('Z') ? lastChat.timestamp : lastChat.timestamp + 'Z';
+        const lastTime = new Date(lastTimeStr).getTime();
+        const now = Date.now();
+        if (!isNaN(lastTime) && (now - lastTime) < 10 * 60 * 1000) {
+            isSessionActive = true;
+        }
     }
 
     const ticketBalance = user.ticket_balance || 0;
@@ -50,22 +48,37 @@ export async function onRequestPost(context) {
     // 過去ログ取得
     let historyText = "";
     try {
-      const historyData = await env.DB.prepare("SELECT sender, content FROM ChatLogs WHERE user_id = ? ORDER BY id DESC LIMIT 10").bind(userId).all();
-      historyText = historyData.results.reverse().map(log => {
-        return `${log.sender === 'user' ? '相談者' : 'あなた'}: ${log.content}`;
-      }).join("\n");
+        const historyData = await env.DB.prepare("SELECT sender, content FROM ChatLogs WHERE user_id = ? ORDER BY id DESC LIMIT 10").bind(userId).all();
+        historyText = historyData.results.reverse().map(log => {
+            return `${log.sender === 'user' ? '相談者' : 'あなた'}: ${log.content}`;
+        }).join("\n");
     } catch (e) {
-      console.error("DB Error (history):", e.message);
+        console.error("DB Error (history):", e.message);
     }
 
-    // プロンプト（人間味・終了判定強化）
-    const hasName = user.last_name && user.first_name && user.last_name !== "null" && user.first_name !== "null";
-    const userName = hasName ? `${user.last_name} ${user.first_name}` : "お客様";
+    // ★追加：現在日時の取得とフォーマット（日本時間）
+    const now = new Date();
+    const currentDate = now.toLocaleString('ja-JP', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric', 
+        weekday: 'long',
+        hour: 'numeric', 
+        minute: 'numeric',
+        timeZone: 'Asia/Tokyo' 
+    });
+
+    // プロンプト（日時認識を追加）
     const promptText = `
 あなたはチャット占い師「${cast.name}」です。AIではなく、感情を持った人間として振る舞ってください。
 設定：${cast.systemPrompt}
-相談者：${userName} 様 (${user.dob}生まれ)
+相談者：${user.last_name} ${user.first_name} 様 (${user.dob}生まれ)
 ${expertKnowledge}
+
+【現在日時】
+${currentDate}
+※重要：「今年」や「来年」、「今日」といった言葉は、上記の現在日時を基準に解釈してください。
+※現在は2026年です。過去の年（2024年や2025年など）を未来のこととして話さないように注意してください。
 
 【直近の会話履歴】
 ${historyText}
@@ -81,22 +94,32 @@ ${text}
 3. **終了の判断（重要）**:
    - 相談者が「ありがとう」「スッキリしました」等と言ったり、話題が尽きたと感じたら、ダラダラ続けずに**綺麗に締めくくってください**。
    - **会話を終了すべき時は、発言の最後に必ず「[END]」という文字列を付けてください。**
-     例：「…応援していますよ。またいつでも来てくださいね。[END]」
 4. **演出**:
    - タロット画像の出力 [CARD: ...] は、ここぞという場面でのみ行ってください。
-5. **名前の呼びかけ**:
-   - 会話の中で自然に「${userName}さん」と名前を呼んでください。
 
 以上のルールを守り、${cast.name}になりきって返答してください。`;
 
-    // 🚀 本番用モデル: Gemini 2.5 Flash
-    let reply = await callGemini(env.GEMINI_API_KEY, promptText);
+    // Gemini 2.5 Flash
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+    });
+    
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`AI通信エラー (${response.status}): ${errText}`);
+    }
+    
+    const data = await response.json();
+    let reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!reply) throw new Error("AIからの応答が空でした。");
 
     // 終了フラグ処理
     let isEnded = false;
     if (reply.includes("[END]")) {
-      isEnded = true;
-      reply = reply.replace("[END]", "").trim();
+        isEnded = true;
+        reply = reply.replace("[END]", "").trim();
     }
 
     // --- ログ保存・チケット消費 ---
@@ -106,19 +129,17 @@ ${text}
       await env.DB.prepare("UPDATE Users SET ticket_balance = ticket_balance - 1 WHERE id = ?").bind(userId).run();
     }
 
-    // ログ保存（エラー回避のためtry-catch）
+    // ログ保存
     try {
-      const nowISO = new Date().toISOString();
-      // 先にユーザーのメッセージを保存（ID順序を保証するため）
-      await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'user', ?, ?)").bind(userId, text || "(...)", nowISO).run();
-      await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'ai', ?, ?)").bind(userId, reply, nowISO).run();
+        const nowISO = new Date().toISOString();
+        await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'ai', ?, ?)").bind(userId, reply, nowISO).run();
+        await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'user', ?, ?)").bind(userId, text || "(...)", nowISO).run();
     } catch (e) {
-      console.error("DB Log Error:", e.message);
-      // timestampカラムがない場合のフォールバック（旧DB対応）
-      if (e.message.includes("no such column: timestamp")) {
-        await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, text || "(...)").run();
-        await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'ai', ?)").bind(userId, reply).run();
-      }
+        console.error("DB Log Error:", e.message);
+        if (e.message.includes("no such column: timestamp")) {
+             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'ai', ?)").bind(userId, reply).run();
+             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, text || "(...)").run();
+        }
     }
 
     return new Response(JSON.stringify({ reply, isEnded }));
