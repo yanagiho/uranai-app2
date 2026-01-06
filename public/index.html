@@ -221,6 +221,7 @@
         async function sendMessage(manualText = null) {
             const input = document.getElementById('chat-input'), box = document.getElementById('chat-box');
             const loading = document.getElementById('loading-indicator');
+            const inputArea = document.getElementById('input-area');
             const text = manualText !== null ? manualText : input.value;
             
             // ★キャラごとの待機メッセージを設定
@@ -238,6 +239,9 @@
 
             try {
                 if (loading) loading.style.display = 'block';
+                // ★追加：待機中は入力エリアを消す
+                if (inputArea) inputArea.style.display = 'none';
+                
                 box.scrollTop = box.scrollHeight;
 
                 const res = await fetch('/api/chat', { 
@@ -260,9 +264,15 @@
                 const data = await res.json();
                 
                 if (loading) loading.style.display = 'none';
+                
+                // ★追加：まだ終了していない場合のみ、入力エリアを再表示
+                if (!data.isEnded && inputArea) {
+                    inputArea.style.display = 'flex';
+                }
 
                 if (data.error) {
                     alert("エラー: " + data.error);
+                    if (inputArea) inputArea.style.display = 'flex'; // エラー時は復帰
                     return;
                 }
 
@@ -281,7 +291,7 @@
                 else box.appendChild(messageElement);
 
                 if (data.isEnded) {
-                    document.getElementById('input-area').style.display = 'none';
+                    if (inputArea) inputArea.style.display = 'none';
                     document.getElementById('end-session-area').style.display = 'block';
                 }
 
@@ -289,6 +299,7 @@
                 syncTickets(); 
             } catch (e) { 
                 if (loading) loading.style.display = 'none';
+                if (inputArea) inputArea.style.display = 'flex'; // エラー時は復帰
                 console.error(e);
                 alert("通信エラーが発生しました: " + e.message);
             }
