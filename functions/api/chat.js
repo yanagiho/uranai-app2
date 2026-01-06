@@ -56,23 +56,26 @@ export async function onRequestPost(context) {
         console.error("DB Error (history):", e.message);
     }
 
-    // ★追加：現在日時の取得とフォーマット（日本時間）
+    // ★現在日時（2026年対応）
     const now = new Date();
     const currentDate = now.toLocaleString('ja-JP', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric', 
-        weekday: 'long',
-        hour: 'numeric', 
-        minute: 'numeric',
+        year: 'numeric', month: 'long', day: 'numeric', 
+        weekday: 'long', hour: 'numeric', minute: 'numeric',
         timeZone: 'Asia/Tokyo' 
     });
 
-    // プロンプト（日時認識を追加）
+    // ★修正ポイント：「null null様」を防ぐ処理
+    // 名前がDBにない場合は「お客様」とする
+    const userName = (user.last_name && user.first_name) 
+        ? `${user.last_name} ${user.first_name} 様` 
+        : "お客様";
+
+    const userDob = user.dob ? `(${user.dob}生まれ)` : "";
+
     const promptText = `
 あなたはチャット占い師「${cast.name}」です。AIではなく、感情を持った人間として振る舞ってください。
 設定：${cast.systemPrompt}
-相談者：${user.last_name} ${user.first_name} 様 (${user.dob}生まれ)
+相談者：${userName} ${userDob}
 ${expertKnowledge}
 
 【現在日時】
@@ -88,7 +91,7 @@ ${text}
 
 【対話・鑑定の絶対ルール】
 1. **人間味の追求**:
-   - 即答で解決策を出さず、まずは「うーん、それは辛いですね…」「なるほど…」といった**フィラー（間投詞）や共感**から始めてください。
+   - 即答で解決策を出さず、まずは「うーん、それは辛いですね…」「なるほど…」といったフィラー（間投詞）や共感から始めてください。
 2. **文脈の維持**:
    - 過去の履歴にある内容を「さっき仰っていた〜」と引用し、**記憶していること**をアピールしてください。
 3. **終了の判断（重要）**:
@@ -115,21 +118,18 @@ ${text}
     let reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!reply) throw new Error("AIからの応答が空でした。");
 
-    // 終了フラグ処理
     let isEnded = false;
     if (reply.includes("[END]")) {
         isEnded = true;
         reply = reply.replace("[END]", "").trim();
     }
 
-    // --- ログ保存・チケット消費 ---
     if (reservation) {
       await env.DB.prepare("UPDATE Reservations SET status = 'completed' WHERE id = ?").bind(reservation.id).run();
     } else if (!isSessionActive) {
       await env.DB.prepare("UPDATE Users SET ticket_balance = ticket_balance - 1 WHERE id = ?").bind(userId).run();
     }
 
-    // ログ保存
     try {
         const nowISO = new Date().toISOString();
         await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content, timestamp) VALUES (?, 'ai', ?, ?)").bind(userId, reply, nowISO).run();
