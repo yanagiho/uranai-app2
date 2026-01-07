@@ -68,20 +68,19 @@ export async function onRequestPost(context) {
 
     // --- AIへの状況指示（ディレクション）作成 ---
     let systemDirection = "";
-    let safetyInstruction = ""; // 初回は空にしておく（誤作動防止）
+    let safetyInstruction = "";
 
-    // 1. 導入パート（初回）: ここで「終わってしまう」のを防ぎ、導入を行う
+    // 1. 導入パート（初回）
     if (turnCount === 0) {
         systemDirection = `
-        【重要指示：導入と信頼関係の構築】
+        【重要指示：導入と流れの説明】
         **まだ占いを始めないでください。**
-        現在は会話の冒頭です（相談者は入室したばかりです）。
-        まずは相談者との信頼関係（ラポール）を築くために、以下の手順で会話を始めてください：
-        1. 相談者の名前と生年月日を「〜さん、〜生まれですね？」のように優しく確認し、親しみを込めて挨拶する。
-        2. **「占いの精度を高めるために、性別も教えていただけますか？」と自然な流れで尋ねる。**
-        3. いきなり長文で語らず、相手の返事を待つような短い問いかけで終えること。
+        現在は会話の冒頭です。まずは相談者との信頼関係を築き、今後の流れを説明してください：
+        1. 相談者の名前と生年月日を確認し、親しみを込めて挨拶する。
+        2. 「占いの精度を高めるために、性別も教えていただけますか？」と自然に尋ねる。
+        3. **「お悩みをお聞かせください。お話がまとまったら、タロットで占わせていただきますね。」と、占いの流れを明確に伝える。**
+        4. いきなり長文で語らず、相手の返事を待つような短い問いかけで終えること。
         `;
-        // 初回は安全装置をオフにする（「あ」や空文字で終了させないため）
         safetyInstruction = ""; 
     } 
     // 2. 時間・回数による終了制御
@@ -100,135 +99,5 @@ export async function onRequestPost(context) {
         回答の最後に、**「${cast.name}」らしい口調で**、「そろそろお時間ですが、最後に一つだけ聞きたいことはありますか？」といった内容を付け加えて、次で終わるように誘導してください。
         まだ [END] はつけないでください。
         `;
-        safetyInstruction = ""; // 終了間際は多少の変な入力も許容して締める
-    } 
-    // 3. 通常フェーズ（ヒアリング重視）
-    else {
-        systemDirection = `
-        【重要指示：ヒアリングと深掘り】
-        相談者の悩みに対して、**すぐにカードを引いたり結論を出したりしないでください。**
-        まずはカウンセリングのように状況を詳しく聞くことに徹してください。
-        
-        具体的な質問例：
-        - 「それはいつ頃からですか？」
-        - 「その時、どう感じましたか？」
-        - 「具体的にどのような状況でしたか？」
-        
-        このように質問を投げかけ、相談者が話しやすい雰囲気を作ってください。
-        本格的な占いは、状況が十分に把握できた後、または相談者が「占ってほしい」と明確に求めた段階で行ってください。
-        `;
-
-        // 通常時は変な入力への防御を有効にする
-        safetyInstruction = `
-        【防御指示】
-        もし相談者の入力が「あ」や「test」などの無意味な文字列、または占いに無関係な暴言やスパムだと判断した場合は、
-        まともに取り合わず、「星が曇って声が届かないようです…」といったニュアンス（キャラの口調で）で返し、
-        **即座に [END] をつけて会話を強制終了してください。**
-        `;
+        safetyInstruction = ""; 
     }
-
-    // --- プロンプト構築 ---
-    const expertKnowledge = activeCastId === 1 ? `【タロット知識】\n${JSON.stringify(tarotDataShion)}` : "";
-    
-    // 過去ログテキスト化（直近10件）
-    const recentHistory = currentSessionLogs.slice(-10).map(log => {
-        return `${log.sender === 'user' ? '相談者' : 'あなた'}: ${log.content}`;
-    }).join("\n");
-
-    const currentDate = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
-    
-    // ユーザー名・生年月日処理
-    let lastName = user.last_name;
-    let firstName = user.first_name;
-    if (lastName === "null" || !lastName) lastName = "";
-    if (firstName === "null" || !firstName) firstName = "";
-    const userName = (lastName && firstName) ? `${lastName} ${firstName} 様` : "お客様";
-    const userDobInfo = user.dob ? `${user.dob}生まれ` : "生年月日不明";
-
-    // ★重要：初回などの空テキスト対策
-    const userTextContent = text ? text : "（会話開始・入室）";
-
-    const promptText = `
-あなたはチャット占い師「${cast.name}」です。AIではなく、感情を持った人間として振る舞ってください。
-設定：${cast.systemPrompt}
-
-【相談者データ】
-名前：${userName}
-生年月日：${userDobInfo}
-
-【現在日時】
-${currentDate} (※現在は2026年です)
-
-【現在の会話状況】
-- 経過時間: 約${Math.floor(elapsedMinutes)}分
-- やり取り回数: ${turnCount}回
-${systemDirection}
-${safetyInstruction}
-
-${expertKnowledge}
-
-【直近の会話履歴】
-${recentHistory}
-
-【相談者の最新の言葉】
-${userTextContent}
-
-【対話・鑑定の絶対ルール】
-1. **人間味の追求**: まずは「うーん…」「なるほど…」といったフィラーや共感から始めてください。
-2. **文脈の維持**: 過去の話を覚えているように振る舞ってください。
-3. **終了処理**: 指示に従い、会話を終える時は最後に [END] を付けてください。
-4. **演出**: タロット画像 [CARD: ...] は必要な時だけ出してください。
-5. **名前**: 「${userName.replace(" 様", "")}さん」と呼んでください。
-
-以上のルールと状況指示を守り、${cast.name}になりきって返答してください。`;
-
-    // --- Gemini API 呼び出し ---
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-    });
-    
-    if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`AI通信エラー (${response.status}): ${errText}`);
-    }
-    
-    const data = await response.json();
-    let reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!reply) throw new Error("AIからの応答が空でした。");
-
-    // 終了フラグ処理
-    let isEnded = false;
-    if (reply.includes("[END]")) {
-        isEnded = true;
-        reply = reply.replace("[END]", "").trim();
-    }
-
-    // --- ログ保存・チケット消費 ---
-    if (reservation) {
-      await env.DB.prepare("UPDATE Reservations SET status = 'completed' WHERE id = ?").bind(reservation.id).run();
-    } else if (currentSessionLogs.length === 0) {
-      // 新規セッション開始時のみチケット消費
-      await env.DB.prepare("UPDATE Users SET ticket_balance = ticket_balance - 1 WHERE id = ?").bind(userId).run();
-    }
-
-    try {
-        const nowISO = new Date().toISOString();
-        await env.DB.prepare("INSERT INTO ChatLogs (user_id, cast_id, sender, content, timestamp) VALUES (?, ?, 'ai', ?, ?)").bind(userId, activeCastId, reply, nowISO).run();
-        // ログには実際のテキスト（空ならそのまま）を保存するが、後で見やすいように（...）を入れても良い
-        await env.DB.prepare("INSERT INTO ChatLogs (user_id, cast_id, sender, content, timestamp) VALUES (?, ?, 'user', ?, ?)").bind(userId, activeCastId, text || "(会話開始)", nowISO).run();
-    } catch (e) {
-        console.error("DB Log Error:", e.message);
-        // DB更新前などでカラムがない場合のフォールバック
-        if (e.message.includes("has no column named cast_id") || e.message.includes("no such column: cast_id")) {
-             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'ai', ?)").bind(userId, reply).run();
-             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, text || "(会話開始)").run();
-        }
-    }
-
-    return new Response(JSON.stringify({ reply, isEnded }));
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
-  }
-}
