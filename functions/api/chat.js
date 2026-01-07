@@ -58,8 +58,7 @@ export async function onRequestPost(context) {
     }
 
     const elapsedMinutes = (now - sessionStartTime) / (1000 * 60); // 経過分数
-    const isSessionActive = elapsedMinutes < 10; // 10分以内ならチケット消費なし（再接続判定用）
-
+    
     // --- チケット消費判定 ---
     // 新規セッション開始時のみチケット消費
     const ticketBalance = user.ticket_balance || 0;
@@ -69,21 +68,24 @@ export async function onRequestPost(context) {
 
     // --- AIへの状況指示（ディレクション）作成 ---
     let systemDirection = "";
-    
-    // 1. 導入パート（初回）
+    let safetyInstruction = ""; // 初回は空にしておく（誤作動防止）
+
+    // 1. 導入パート（初回）: ここで「終わってしまう」のを防ぎ、導入を行う
     if (turnCount === 0) {
         systemDirection = `
         【重要指示：導入と信頼関係の構築】
         **まだ占いを始めないでください。**
+        現在は会話の冒頭です（相談者は入室したばかりです）。
         まずは相談者との信頼関係（ラポール）を築くために、以下の手順で会話を始めてください：
         1. 相談者の名前と生年月日を「〜さん、〜生まれですね？」のように優しく確認し、親しみを込めて挨拶する。
         2. **「占いの精度を高めるために、性別も教えていただけますか？」と自然な流れで尋ねる。**
         3. いきなり長文で語らず、相手の返事を待つような短い問いかけで終えること。
         `;
+        // 初回は安全装置をオフにする（「あ」や空文字で終了させないため）
+        safetyInstruction = ""; 
     } 
     // 2. 時間・回数による終了制御
     else if (elapsedMinutes >= 25 || turnCount >= 10) {
-        // 強制終了フェーズ
         systemDirection = `
         【重要指示：鑑定終了】
         これまでの会話で、鑑定時間は終了しました。
@@ -92,13 +94,13 @@ export async function onRequestPost(context) {
         そして、出力の最後に必ず [END] をつけてください。
         `;
     } else if (elapsedMinutes >= 20 || turnCount >= 8) {
-        // 終了予告フェーズ
         systemDirection = `
         【重要指示：そろそろ終了】
         鑑定時間が残りわずかです（または質問回数が上限に近づいています）。
         回答の最後に、**「${cast.name}」らしい口調で**、「そろそろお時間ですが、最後に一つだけ聞きたいことはありますか？」といった内容を付け加えて、次で終わるように誘導してください。
         まだ [END] はつけないでください。
         `;
+        safetyInstruction = ""; // 終了間際は多少の変な入力も許容して締める
     } 
     // 3. 通常フェーズ（ヒアリング重視）
     else {
@@ -115,15 +117,15 @@ export async function onRequestPost(context) {
         このように質問を投げかけ、相談者が話しやすい雰囲気を作ってください。
         本格的な占いは、状況が十分に把握できた後、または相談者が「占ってほしい」と明確に求めた段階で行ってください。
         `;
-    }
 
-    // 2. 変な入力への防御指示
-    const safetyInstruction = `
-    【防御指示】
-    もし相談者の入力が「あ」や「test」などの無意味な文字列、または占いに無関係な暴言やスパムだと判断した場合は、
-    まともに取り合わず、「星が曇って声が届かないようです…」といったニュアンス（キャラの口調で）で返し、
-    **即座に [END] をつけて会話を強制終了してください。**
-    `;
+        // 通常時は変な入力への防御を有効にする
+        safetyInstruction = `
+        【防御指示】
+        もし相談者の入力が「あ」や「test」などの無意味な文字列、または占いに無関係な暴言やスパムだと判断した場合は、
+        まともに取り合わず、「星が曇って声が届かないようです…」といったニュアンス（キャラの口調で）で返し、
+        **即座に [END] をつけて会話を強制終了してください。**
+        `;
+    }
 
     // --- プロンプト構築 ---
     const expertKnowledge = activeCastId === 1 ? `【タロット知識】\n${JSON.stringify(tarotDataShion)}` : "";
@@ -142,6 +144,9 @@ export async function onRequestPost(context) {
     if (firstName === "null" || !firstName) firstName = "";
     const userName = (lastName && firstName) ? `${lastName} ${firstName} 様` : "お客様";
     const userDobInfo = user.dob ? `${user.dob}生まれ` : "生年月日不明";
+
+    // ★重要：初回などの空テキスト対策
+    const userTextContent = text ? text : "（会話開始・入室）";
 
     const promptText = `
 あなたはチャット占い師「${cast.name}」です。AIではなく、感情を持った人間として振る舞ってください。
@@ -166,7 +171,7 @@ ${expertKnowledge}
 ${recentHistory}
 
 【相談者の最新の言葉】
-${text}
+${userTextContent}
 
 【対話・鑑定の絶対ルール】
 1. **人間味の追求**: まずは「うーん…」「なるほど…」といったフィラーや共感から始めてください。
@@ -211,13 +216,14 @@ ${text}
     try {
         const nowISO = new Date().toISOString();
         await env.DB.prepare("INSERT INTO ChatLogs (user_id, cast_id, sender, content, timestamp) VALUES (?, ?, 'ai', ?, ?)").bind(userId, activeCastId, reply, nowISO).run();
-        await env.DB.prepare("INSERT INTO ChatLogs (user_id, cast_id, sender, content, timestamp) VALUES (?, ?, 'user', ?, ?)").bind(userId, activeCastId, text || "(...)", nowISO).run();
+        // ログには実際のテキスト（空ならそのまま）を保存するが、後で見やすいように（...）を入れても良い
+        await env.DB.prepare("INSERT INTO ChatLogs (user_id, cast_id, sender, content, timestamp) VALUES (?, ?, 'user', ?, ?)").bind(userId, activeCastId, text || "(会話開始)", nowISO).run();
     } catch (e) {
         console.error("DB Log Error:", e.message);
         // DB更新前などでカラムがない場合のフォールバック
         if (e.message.includes("has no column named cast_id") || e.message.includes("no such column: cast_id")) {
              await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'ai', ?)").bind(userId, reply).run();
-             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, text || "(...)").run();
+             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, text || "(会話開始)").run();
         }
     }
 
