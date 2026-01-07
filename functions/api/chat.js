@@ -70,8 +70,17 @@ export async function onRequestPost(context) {
     // --- AIへの状況指示（ディレクション）作成 ---
     let systemDirection = "";
     
-    // 1. 時間・回数による終了制御
-    if (elapsedMinutes >= 25 || turnCount >= 10) {
+    // ★変更点：冒頭の挙動を制御
+    if (turnCount === 0) {
+        systemDirection = `
+        【重要指示：導入パート】
+        まだ占いを始めず、まずは相談者との信頼関係（ラポール）を築く段階です。
+        いきなり長文で語らず、以下の手順で会話を始めてください：
+        1. 相談者の名前と生年月日を「〜さん、〜生まれですね？」のように優しく確認し、親しみを込めて挨拶する。
+        2. **「占いのために、性別も教えていただけますか？」と自然な流れで尋ねる。**
+        3. 相手の返事を待つため、短めの言葉で投げかけること。
+        `;
+    } else if (elapsedMinutes >= 25 || turnCount >= 10) {
         // 強制終了フェーズ
         systemDirection = `
         【重要指示：鑑定終了】
@@ -129,7 +138,7 @@ export async function onRequestPost(context) {
 
 【相談者データ】
 名前：${userName}
-生年月日：${userDobInfo} (※この情報は把握済みです。聞き直さないこと)
+生年月日：${userDobInfo}
 
 【現在日時】
 ${currentDate} (※現在は2026年です)
