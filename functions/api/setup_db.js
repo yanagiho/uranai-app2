@@ -4,7 +4,7 @@ export async function onRequest(context) {
   
   const { env } = context;
   try {
-    // データベースを一度削除して、正しい形（cast_id付き）で作り直す
+    // 実行したいSQLを定義
     const sql = `
       DROP TABLE IF EXISTS Users;
       CREATE TABLE Users (
@@ -39,19 +39,24 @@ export async function onRequest(context) {
       CREATE TABLE ChatLogs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT,
-        cast_id INTEGER, -- ★ここが今回追加された重要な項目です
+        cast_id INTEGER,
         sender TEXT,
         content TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `;
 
-    const statements = sql.split(';').filter(s => s.trim());
-    for (const stmt of statements) {
-      await env.DB.prepare(stmt).run();
-    }
+    // SQLをステートメントの配列に変換
+    const statements = sql
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0) // 空行を除去
+      .map(s => env.DB.prepare(s)); // D1用の命令に変換
 
-    return new Response("✅ データベースの構造を更新しました（cast_id追加）。エラーは解消されました。", {
+    // ★修正点：batch() を使って一括実行（これでタイムアウトを防ぎます）
+    await env.DB.batch(statements);
+
+    return new Response("✅ データベースの構造を更新しました（batch実行成功）。", {
       headers: { "Content-Type": "text/plain; charset=utf-8" }
     });
   } catch (err) {
