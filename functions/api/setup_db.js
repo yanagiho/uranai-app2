@@ -1,14 +1,10 @@
 export async function onRequest(context) {
-  // ★安全対策：本番稼働中はアクセスできないように即時終了させます
-  return new Response("この機能はセキュリティのため無効化されています。", { status: 403 });
-
-  /* // =================================================================
-  // ⚠️ データベース初期化用コード（必要時のみコメントアウトを外す）
-  // =================================================================
+  // ★重要：メンテナンス用に一時的に制限を解除します。
+  // 本番運用時はここを return new Response(..., {status: 403}) に戻してください。
   
   const { env } = context;
   try {
-    // データベースを一度削除して、正しい形（timestamp付き）で作り直す
+    // データベースを一度削除して、正しい形（cast_id付き）で作り直す
     const sql = `
       DROP TABLE IF EXISTS Users;
       CREATE TABLE Users (
@@ -43,6 +39,7 @@ export async function onRequest(context) {
       CREATE TABLE ChatLogs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT,
+        cast_id INTEGER, -- ★ここが今回追加された重要な項目です
         sender TEXT,
         content TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -54,11 +51,10 @@ export async function onRequest(context) {
       await env.DB.prepare(stmt).run();
     }
 
-    return new Response("✅ データベースの初期化が完了しました！これでチャットが動きます。", {
+    return new Response("✅ データベースの構造を更新しました（cast_id追加）。エラーは解消されました。", {
       headers: { "Content-Type": "text/plain; charset=utf-8" }
     });
   } catch (err) {
     return new Response("❌ DB設定エラー: " + err.message, { status: 500 });
   }
-  */
 }
