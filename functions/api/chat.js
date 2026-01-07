@@ -100,4 +100,130 @@ export async function onRequestPost(context) {
         まだ [END] はつけないでください。
         `;
         safetyInstruction = ""; 
+    } 
+    // 3. 通常フェーズ（ヒアリングと占いの開始判断）
+    else {
+        systemDirection = `
+        【重要指示：ヒアリングと占いの開始】
+        相談者の悩みに対して、まずはカウンセリングのように状況を詳しく聞くことに徹してください（例：「それはいつ頃から？」「どう感じましたか？」）。
+
+        **ただし、以下のいずれかの場合、直ちにヒアリングを終了し、タロット占いを行ってください。**
+        1. **相談者が「占って」「タロットをお願い」「結果を教えて」など、明確に占いを求めた場合（最優先）。**
+        2. あなたが「状況は十分に把握できた、今が占うタイミングだ」と判断した場合。
+        3. 会話が3ラリー以上続き、まだ占っていない場合、「そろそろタロットで見てみましょうか？」と提案し、占いを始めてください。
+
+        占いを行う際は、必ずカードの画像（例: [CARD: ... ]）を提示し、そのカードに基づいた鑑定結果を伝えてください。
+        `;
+
+        safetyInstruction = `
+        【防御指示】
+        もし相談者の入力が「あ」や「test」などの無意味な文字列、または占いに無関係な暴言やスパムだと判断した場合は、
+        まともに取り合わず、「星が曇って声が届かないようです…」といったニュアンス（キャラの口調で）で返し、
+        **即座に [END] をつけて会話を強制終了してください。**
+        `;
     }
+
+    // --- プロンプト構築 ---
+    const expertKnowledge = activeCastId === 1 ? `【タロット知識】\n${JSON.stringify(tarotDataShion)}` : "";
+    
+    // 過去ログテキスト化（直近10件）
+    const recentHistory = currentSessionLogs.slice(-10).map(log => {
+        return `${log.sender === 'user' ? '相談者' : 'あなた'}: ${log.content}`;
+    }).join("\n");
+
+    const currentDate = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+    
+    // ユーザー名・生年月日処理
+    let lastName = user.last_name;
+    let firstName = user.first_name;
+    if (lastName === "null" || !lastName) lastName = "";
+    if (firstName === "null" || !firstName) firstName = "";
+    const userName = (lastName && firstName) ? `${lastName} ${firstName} 様` : "お客様";
+    const userDobInfo = user.dob ? `${user.dob}生まれ` : "生年月日不明";
+
+    // 初回などの空テキスト対策
+    const userTextContent = text ? text : "（会話開始・入室）";
+
+    const promptText = `
+あなたはチャット占い師「${cast.name}」です。AIではなく、感情を持った人間として振る舞ってください。
+設定：${cast.systemPrompt}
+
+【相談者データ】
+名前：${userName}
+生年月日：${userDobInfo}
+
+【現在日時】
+${currentDate} (※現在は2026年です)
+
+【現在の会話状況】
+- 経過時間: 約${Math.floor(elapsedMinutes)}分
+- やり取り回数: ${turnCount}回
+${systemDirection}
+${safetyInstruction}
+
+${expertKnowledge}
+
+【直近の会話履歴】
+${recentHistory}
+
+【相談者の最新の言葉】
+${userTextContent}
+
+【対話・鑑定の絶対ルール】
+1. **人間味の追求**: まずは「うーん…」「なるほど…」といったフィラーや共感から始めてください。
+2. **文脈の維持**: 過去の話を覚えているように振る舞ってください。
+3. **終了処理**: 指示に従い、会話を終える時は最後に [END] を付けてください。
+4. **演出**: タロット画像 [CARD: ...] は必要な時だけ出してください。
+5. **名前**: 「${userName.replace(" 様", "")}さん」と呼んでください。
+
+以上のルールと状況指示を守り、${cast.name}になりきって返答してください。`;
+
+    // --- Gemini API 呼び出し ---
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+    });
+    
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`AI通信エラー (${response.status}): ${errText}`);
+    }
+    
+    const data = await response.json();
+    let reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!reply) throw new Error("AIからの応答が空でした。");
+
+    // 終了フラグ処理
+    let isEnded = false;
+    if (reply.includes("[END]")) {
+        isEnded = true;
+        reply = reply.replace("[END]", "").trim();
+    }
+
+    // --- ログ保存・チケット消費 ---
+    if (reservation) {
+      await env.DB.prepare("UPDATE Reservations SET status = 'completed' WHERE id = ?").bind(reservation.id).run();
+    } else if (currentSessionLogs.length === 0) {
+      // 新規セッション開始時のみチケット消費
+      await env.DB.prepare("UPDATE Users SET ticket_balance = ticket_balance - 1 WHERE id = ?").bind(userId).run();
+    }
+
+    try {
+        const nowISO = new Date().toISOString();
+        await env.DB.prepare("INSERT INTO ChatLogs (user_id, cast_id, sender, content, timestamp) VALUES (?, ?, 'ai', ?, ?)").bind(userId, activeCastId, reply, nowISO).run();
+        await env.DB.prepare("INSERT INTO ChatLogs (user_id, cast_id, sender, content, timestamp) VALUES (?, ?, 'user', ?, ?)").bind(userId, activeCastId, text || "(会話開始)", nowISO).run();
+    } catch (e) {
+        console.error("DB Log Error:", e.message);
+        // DB更新前などでカラムがない場合のフォールバック
+        if (e.message.includes("has no column named cast_id") || e.message.includes("no such column: cast_id")) {
+             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'ai', ?)").bind(userId, reply).run();
+             await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, text || "(会話開始)").run();
+        }
+    }
+
+    return new Response(JSON.stringify({ reply, isEnded }));
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+  }
+}
