@@ -1,49 +1,327 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>運命の回廊 - 神秘の導き</title>
     <style>
-        :root { --bg: #0a0510; --accent: #9c27b0; --gold: #d4af37; --glass: rgba(255,255,255,0.07); --error: #ff4d4d; }
-        body { font-family: 'Hiragino Mincho ProN', serif; background: var(--bg); color: #eee; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-        .screen { display: none; padding: 60px 20px 20px; text-align: center; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; flex-direction: column; align-items: center; }
-        #gateway-screen { background-image: url('/img/title_bg.png'); background-size: cover; background-position: center; }
-        .logo-img { max-width: 80%; height: auto; margin-bottom: 20px; }
-        .form-box { width: 100%; max-width: 360px; margin: 0 auto; text-align: left; background: var(--glass); padding: 25px; border-radius: 20px; backdrop-filter: blur(10px); }
-        input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; font-size: 1rem; outline: none; }
-        .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
-        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; }
-        .google-icon { width: 20px; height: 20px; margin-right: 10px; background: white; border-radius: 50%; padding: 2px; }
-        .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; width: 100%; max-width: 500px; }
-        .cast-card { background: var(--glass); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; }
-        .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; margin-bottom: 8px; }
-        #chat-box { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; background: rgba(0,0,0,0.2); border-radius: 15px; margin-bottom: 15px; width: 100%; max-width: 600px; }
-        .msg { padding: 12px 16px; border-radius: 18px; max-width: 85%; font-size: 0.95rem; line-height: 1.6; text-align: left; }
-        .msg.ai { background: var(--glass); border-left: 4px solid var(--gold); align-self: flex-start; }
-        .msg.user { background: var(--accent); color: #fff; align-self: flex-end; }
-        .loading-msg { display: none; align-self: flex-start; background: var(--glass); border-left: 4px solid var(--gold); padding: 12px 16px; border-radius: 18px; color: #ccc; font-style: italic; }
-        .loading-icon { display: inline-block; margin-right: 8px; animation: blink 1.5s infinite both; }
-        @keyframes blink { 0%, 100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); color: var(--gold); } }
-        #end-session-area { display: none; width: 100%; max-width: 600px; padding: 10px; text-align: center; }
-        .end-btn { background: #333; color: var(--gold); border: 2px solid var(--gold); width: 100%; padding: 15px; border-radius: 30px; font-weight: bold; cursor: pointer; animation: fadeIn 1s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        nav { position: fixed; top: 0; left: 0; right: 0; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(0,0,0,0.5); align-items: center; }
-        .slot-btn { padding: 10px; border: 1px solid var(--gold); color: #fff; background: none; border-radius: 8px; cursor: pointer; }
+        :root {
+            --bg: #0a0510;
+            --accent: #9c27b0;
+            --gold: #d4af37;
+            --glass: rgba(255, 255, 255, 0.07);
+            --error: #ff4d4d;
+        }
+
+        body {
+            font-family: 'Hiragino Mincho ProN', serif;
+            background: var(--bg);
+            color: #eee;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .screen {
+            display: none;
+            padding: 60px 20px 20px;
+            text-align: center;
+            overflow-y: auto;
+            flex: 1;
+            height: 100%;
+            box-sizing: border-box;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #gateway-screen {
+            background-image: url('/img/title_bg.png');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .logo-img {
+            max-width: 80%;
+            height: auto;
+            margin-bottom: 20px;
+        }
+
+        .form-box {
+            width: 100%;
+            max-width: 360px;
+            margin: 0 auto;
+            text-align: left;
+            background: var(--glass);
+            padding: 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background: #000;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .main-btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 16px;
+            border-radius: 35px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .auth-btn {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-weight: bold;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .google-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            background: white;
+            border-radius: 50%;
+            padding: 2px;
+        }
+
+        .cast-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .cast-card {
+            background: var(--glass);
+            border: 1px solid #333;
+            padding: 12px;
+            border-radius: 15px;
+            cursor: pointer;
+        }
+
+        .cast-card img {
+            width: 100%;
+            aspect-ratio: 1/1;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 8px;
+        }
+
+        #chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .msg {
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 85%;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        .msg.ai {
+            background: var(--glass);
+            border-left: 4px solid var(--gold);
+            align-self: flex-start;
+        }
+
+        .msg.user {
+            background: var(--accent);
+            color: #fff;
+            align-self: flex-end;
+        }
+
+        .loading-msg {
+            display: none;
+            align-self: flex-start;
+            background: var(--glass);
+            border-left: 4px solid var(--gold);
+            padding: 12px 16px;
+            border-radius: 18px;
+            color: #ccc;
+            font-style: italic;
+        }
+
+        .loading-icon {
+            display: inline-block;
+            margin-right: 8px;
+            animation: blink 1.5s infinite both;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 0.2;
+                transform: scale(0.8);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.2);
+                color: var(--gold);
+            }
+        }
+
+        #end-session-area {
+            display: none;
+            width: 100%;
+            max-width: 600px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .end-btn {
+            background: #333;
+            color: var(--gold);
+            border: 2px solid var(--gold);
+            width: 100%;
+            padding: 15px;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            animation: fadeIn 1s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+        }
+
+        .slot-btn {
+            padding: 10px;
+            border: 1px solid var(--gold);
+            color: #fff;
+            background: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
         /* ★追加: 予約不可のボタンを暗くするスタイル */
-        .slot-btn:disabled { border-color: #444; color: #555; cursor: not-allowed; }
-        
-        .day-tab { min-width: 60px; padding: 8px; border: 1px solid #444; border-radius: 8px; cursor: pointer; font-size: 0.8rem; background: none; color: #fff; }
-        .day-tab.active { border-color: var(--gold); color: var(--gold); }
-        .slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; width: 100%; }
-        #cast-modal, #ticket-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; align-items: flex-end; }
-        .modal-content, .ticket-box { width: 100%; max-width: 500px; margin: 0 auto; background: #1a0b2e; border-top: 3px solid var(--gold); border-radius: 30px 30px 0 0; padding: 30px; box-sizing: border-box; transform: translateY(100%); transition: 0.4s; }
-        .active .modal-content, .active .ticket-box { transform: translateY(0); }
+        .slot-btn:disabled {
+            border-color: #444;
+            color: #555;
+            cursor: not-allowed;
+        }
+
+        .day-tab {
+            min-width: 60px;
+            padding: 8px;
+            border: 1px solid #444;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            background: none;
+            color: #fff;
+        }
+
+        .day-tab.active {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .slot-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        #cast-modal,
+        #ticket-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            align-items: flex-end;
+        }
+
+        .modal-content,
+        .ticket-box {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            background: #1a0b2e;
+            border-top: 3px solid var(--gold);
+            border-radius: 30px 30px 0 0;
+            padding: 30px;
+            box-sizing: border-box;
+            transform: translateY(100%);
+            transition: 0.4s;
+        }
+
+        .active .modal-content,
+        .active .ticket-box {
+            transform: translateY(0);
+        }
     </style>
 </head>
+
 <body>
     <nav id="main-nav" style="display:none">
         <div style="color:var(--gold); font-weight:bold; cursor:pointer;" onclick="location.reload()">運命の回廊</div>
-        <div style="color:var(--gold); cursor:pointer;" onclick="openTicketModal()">🎟 <span id="nav-ticket">0</span> ＋</div>
+        <div style="color:var(--gold); cursor:pointer;" onclick="openTicketModal()">🎟 <span id="nav-ticket">0</span> ＋
+        </div>
     </nav>
     <div id="gateway-screen" class="screen" style="display:flex; justify-content:center;">
         <h1 class="logo"><img src="/img/title_logo.png" alt="運命の回廊 CORRIDOR OF FATE" class="logo-img"></h1>
@@ -52,8 +330,10 @@
     <div id="title-screen" class="screen">
         <h1 class="logo" style="font-size:1.6rem; color:var(--gold);">入館の儀</h1>
         <div class="form-box">
-            <button class="auth-btn" style="background:#fff; color:#000; width:100%; margin-bottom:20px;" onclick="window.handleGoogleLogin()">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="google-icon">
+            <button class="auth-btn" style="background:#fff; color:#000; width:100%; margin-bottom:20px;"
+                onclick="window.handleGoogleLogin()">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
+                    class="google-icon">
                 Google で入館
             </button>
 
@@ -62,35 +342,44 @@
             <p style="text-align:left; font-size:0.9rem; color:#ccc; margin:0 0 8px 0;">メールアドレスで入館</p>
             <input type="email" id="email" placeholder="メールアドレス" style="margin-bottom:10px;">
             <input type="password" id="password" placeholder="パスワード（6文字以上）" style="margin-bottom:15px;">
-            
+
             <div style="display:flex; gap:10px;">
-                <button class="main-btn" style="background:#444; font-size:0.9rem; margin-top:0;" onclick="window.handleEmailLogin()">ログイン</button>
-                <button class="main-btn" style="font-size:0.9rem; margin-top:0;" onclick="window.handleEmailSignup()">新規登録</button>
+                <button class="main-btn" style="background:#444; font-size:0.9rem; margin-top:0;"
+                    onclick="window.handleEmailLogin()">ログイン</button>
+                <button class="main-btn" style="font-size:0.9rem; margin-top:0;"
+                    onclick="window.handleEmailSignup()">新規登録</button>
             </div>
         </div>
     </div>
     <div id="setup-screen" class="screen">
         <h1 style="color:var(--gold)">運命のカルテ登録</h1>
         <div class="form-box">
-            <div style="display:flex; gap:5px;"><input type="text" id="user-last-name" placeholder="姓"><input type="text" id="user-first-name" placeholder="名"></div>
-            <div style="display:flex; gap:5px;"><input type="text" id="dob-year" placeholder="年"><input type="text" id="dob-month" placeholder="月"><input type="text" id="dob-day" placeholder="日"></div>
+            <div style="display:flex; gap:5px;"><input type="text" id="user-last-name" placeholder="姓"><input
+                    type="text" id="user-first-name" placeholder="名"></div>
+            <div style="display:flex; gap:5px;"><input type="text" id="dob-year" placeholder="年"><input type="text"
+                    id="dob-month" placeholder="月"><input type="text" id="dob-day" placeholder="日"></div>
             <button class="main-btn" onclick="validateAndRegister()">運命を刻む</button>
         </div>
     </div>
     <div id="selection-screen" class="screen">
-        <div id="reservation-status" style="display:none; background:rgba(156, 39, 176, 0.2); padding:15px; border-radius:15px; margin-bottom:20px; border:1px solid var(--accent); width:100%; max-width:400px;">
+        <div id="reservation-status"
+            style="display:none; background:rgba(156, 39, 176, 0.2); padding:15px; border-radius:15px; margin-bottom:20px; border:1px solid var(--accent); width:100%; max-width:400px;">
             <p style="margin:0;">予約があります。</p>
-            <button class="main-btn" style="padding:10px; margin-top:10px; font-size:0.8rem;" onclick="startChat()">鑑定室へ進む</button>
+            <button class="main-btn" style="padding:10px; margin-top:10px; font-size:0.8rem;"
+                onclick="startChat()">鑑定室へ進む</button>
         </div>
         <h2 style="color:var(--gold)">鑑定師をお選びください</h2>
         <div id="cast-list" class="cast-grid"></div>
-        <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:30px;" onclick="window.logout()">ログアウト</p>
+        <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:30px;" onclick="window.logout()">
+            ログアウト</p>
     </div>
     <div id="booking-screen" class="screen">
         <h2 id="book-cast-name" style="color:var(--gold)"></h2>
-        <div id="day-list" style="display:flex; gap:10px; overflow-x:auto; padding:10px 0; justify-content:center; width:100%;"></div>
+        <div id="day-list"
+            style="display:flex; gap:10px; overflow-x:auto; padding:10px 0; justify-content:center; width:100%;"></div>
         <div id="time-slots" class="slot-grid"></div>
-        <button id="confirm-btn" class="main-btn" style="display:none; margin-top:30px;" onclick="submitBooking()">予約を確定する</button>
+        <button id="confirm-btn" class="main-btn" style="display:none; margin-top:30px;"
+            onclick="submitBooking()">予約を確定する</button>
         <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="showScreen('selection-screen')">戻る</p>
     </div>
     <div id="chat-screen" class="screen">
@@ -111,11 +400,13 @@
     </div>
     <div id="cast-modal" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <img id="modal-img" src="" style="width:90px; height:90px; border-radius:50%; border:2px solid var(--gold); margin-bottom:10px; object-fit:cover;">
+            <img id="modal-img" src=""
+                style="width:90px; height:90px; border-radius:50%; border:2px solid var(--gold); margin-bottom:10px; object-fit:cover;">
             <h2 id="modal-name" style="color:var(--gold); margin:5px 0;"></h2>
             <p id="modal-intro" style="font-size:0.9rem; color:#ccc; line-height:1.5;"></p>
             <button class="main-btn" onclick="goToBooking()">この先生に予約する</button>
-            <button class="main-btn" style="background:#555; margin-top:10px;" onclick="startChat()">今すぐ相談する (1枚)</button>
+            <button class="main-btn" style="background:#555; margin-top:10px;" onclick="startChat()">今すぐ相談する
+                (1枚)</button>
             <p style="margin-top:10px; color:#666; cursor:pointer;" onclick="closeModal()">閉じる</p>
         </div>
     </div>
@@ -123,7 +414,8 @@
         <div class="ticket-box" onclick="event.stopPropagation()">
             <h2 style="color:var(--gold)">チケット購入</h2>
             <button class="main-btn" onclick="buyTickets(1)">1枚購入 (¥3,000)</button>
-            <button class="main-btn" style="background:var(--gold); color:#000;" onclick="buyTickets(10)">10枚セット (¥27,000)</button>
+            <button class="main-btn" style="background:var(--gold); color:#000;" onclick="buyTickets(10)">10枚セット
+                (¥27,000)</button>
             <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="closeTicketModal()">閉じる</p>
         </div>
     </div>
@@ -163,7 +455,7 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             if (!email || !password) return alert("メールとパスワードを入力してください");
-            
+
             try {
                 const result = await createUserWithEmailAndPassword(auth, email, password);
                 handleAuthWithFirebase(result.user, 'Email');
@@ -202,23 +494,24 @@
 
         // 共通認証処理（authTypeでSNSかメールかを区別）
         async function handleAuthWithFirebase(firebaseUser, authType = 'Email') {
-            const userId = firebaseUser.uid; 
+            const userId = firebaseUser.uid;
             const email = firebaseUser.email;
-            
+
             localStorage.setItem('fortune_user_id', userId);
-            
+            localStorage.setItem('fortune_auth_type', authType);
+
             try {
-                const res = await fetch('/api/login', { 
-                    method: 'POST', 
+                const res = await fetch('/api/login', {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, email, auth_type: authType }) 
+                    body: JSON.stringify({ userId, email, auth_type: authType })
                 });
-                
+
                 if (!res.ok) throw new Error("サーバー通信エラー");
                 const data = await res.json();
-                
+
                 if (data.isComplete) {
-                    window.initApp(); 
+                    window.initApp();
                 } else {
                     window.showScreen('setup-screen');
                 }
@@ -237,12 +530,12 @@
             try {
                 const urlParams = new URLSearchParams(window.location.search);
                 if (userId) {
-                    const res = await fetch('/api/login', { 
-                        method: 'POST', 
+                    const res = await fetch('/api/login', {
+                        method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId }) 
+                        body: JSON.stringify({ userId })
                     });
-                    
+
                     if (!res.ok) {
                         console.error("Session check failed");
                         localStorage.removeItem('fortune_user_id');
@@ -256,8 +549,8 @@
                     } else {
                         showScreen('setup-screen');
                     }
-                } else { 
-                    showScreen('gateway-screen'); 
+                } else {
+                    showScreen('gateway-screen');
                 }
             } catch (e) {
                 console.error("Init Error:", e);
@@ -265,15 +558,15 @@
             }
         };
 
-        window.showScreen = function(id) {
+        window.showScreen = function (id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
             const target = document.getElementById(id);
-            if (target) target.style.display = 'flex'; 
+            if (target) target.style.display = 'flex';
             const nav = document.getElementById('main-nav');
-            if (nav) nav.style.display = (['gateway-screen','title-screen','setup-screen'].includes(id)) ? 'none' : 'flex';
+            if (nav) nav.style.display = (['gateway-screen', 'title-screen', 'setup-screen'].includes(id)) ? 'none' : 'flex';
         };
 
-        window.initApp = async function() {
+        window.initApp = async function () {
             showScreen('selection-screen');
             await syncTickets();
             try {
@@ -299,9 +592,9 @@
                 } else {
                     document.getElementById('reservation-status').style.display = 'none';
                 }
-            } catch(e) { console.error(e); }
+            } catch (e) { console.error(e); }
         }
-        window.openIntro = function(id) {
+        window.openIntro = function (id) {
             const cast = castsData.find(c => c.id === id);
             currentCastId = id;
             document.getElementById('modal-img').src = `/img/${cast.img}`;
@@ -310,8 +603,8 @@
             document.getElementById('cast-modal').style.display = 'flex';
             setTimeout(() => document.getElementById('cast-modal').classList.add('active'), 10);
         };
-        window.closeModal = function() { document.getElementById('cast-modal').classList.remove('active'); setTimeout(() => document.getElementById('cast-modal').style.display = 'none', 300); };
-        window.goToBooking = function() {
+        window.closeModal = function () { document.getElementById('cast-modal').classList.remove('active'); setTimeout(() => document.getElementById('cast-modal').style.display = 'none', 300); };
+        window.goToBooking = function () {
             closeModal();
             const cast = castsData.find(c => c.id === currentCastId);
             document.getElementById('book-cast-name').innerText = cast.name + " 予約";
@@ -319,72 +612,72 @@
             for (let i = 0; i < 7; i++) {
                 const d = new Date(); d.setDate(d.getDate() + i);
                 const dateStr = d.toISOString().split('T')[0];
-                list.innerHTML += `<div class="day-tab" onclick="selectDay('${dateStr}', this)">${i===0?'今日':(d.getMonth()+1)+'/'+d.getDate()}</div>`;
+                list.innerHTML += `<div class="day-tab" onclick="selectDay('${dateStr}', this)">${i === 0 ? '今日' : (d.getMonth() + 1) + '/' + d.getDate()}</div>`;
             }
             showScreen('booking-screen');
             selectDay(new Date().toISOString().split('T')[0], null);
         };
-        window.selectDay = async function(date, el) {
+        window.selectDay = async function (date, el) {
             selectedDate = date;
             document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
             if (el) el.classList.add('active');
             const res = await fetch(`/api/get_slots?castId=${currentCastId}&date=${date}`);
             const data = await res.json();
-            document.getElementById('time-slots').innerHTML = data.slots.map(s => `<button class="slot-btn" ${s.status!=='available'?'disabled':''} onclick="selectTime('${s.time}', this)">${s.time}</button>`).join('');
+            document.getElementById('time-slots').innerHTML = data.slots.map(s => `<button class="slot-btn" ${s.status !== 'available' ? 'disabled' : ''} onclick="selectTime('${s.time}', this)">${s.time}</button>`).join('');
         };
-        window.selectTime = function(time, el) {
+        window.selectTime = function (time, el) {
             selectedTime = time;
             document.querySelectorAll('.slot-btn').forEach(b => b.style.borderColor = 'var(--gold)');
             el.style.borderColor = '#fff';
             document.getElementById('confirm-btn').style.display = 'block';
         };
-        window.submitBooking = async function() {
+        window.submitBooking = async function () {
             const res = await fetch('/api/reserve', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, scheduledAt: `${selectedDate}T${selectedTime}` }) });
             const data = await res.json();
             if (data.error) return alert(data.error);
             initApp();
         };
-        window.startChat = function() { 
-            closeModal(); 
+        window.startChat = function () {
+            closeModal();
             const currentCast = castsData.find(c => c.id === currentCastId);
-            document.getElementById('chat-cast-name').innerText = currentCast?.name || "鑑定室"; 
+            document.getElementById('chat-cast-name').innerText = currentCast?.name || "鑑定室";
             const chatBox = document.getElementById('chat-box');
             chatBox.querySelectorAll('.msg').forEach(el => el.remove());
             document.getElementById('input-area').style.display = 'flex';
             document.getElementById('end-session-area').style.display = 'none';
             document.getElementById('chat-input').value = "";
-            showScreen('chat-screen'); 
-            sendMessage(""); 
+            showScreen('chat-screen');
+            sendMessage("");
         };
-        
-        window.sendMessage = async function(manualText = null) {
+
+        window.sendMessage = async function (manualText = null) {
             const input = document.getElementById('chat-input'), box = document.getElementById('chat-box');
             const loading = document.getElementById('loading-indicator');
             const inputArea = document.getElementById('input-area');
             const text = manualText !== null ? manualText : input.value;
-            
+
             const currentCast = castsData.find(c => c.id === currentCastId);
             const loadingText = currentCast && currentCast.waitingMsg ? currentCast.waitingMsg : "星々が囁き、水晶が未来を映し出しています...";
             document.getElementById('loading-text').innerText = loadingText;
 
-            if (text && manualText === null) { 
+            if (text && manualText === null) {
                 if (loading && loading.parentNode === box) box.insertBefore(createMsgElement(text, 'user'), loading);
                 else box.appendChild(createMsgElement(text, 'user'));
-                input.value = ""; 
+                input.value = "";
             }
-            
+
             box.scrollTop = box.scrollHeight;
 
             try {
                 if (loading) loading.style.display = 'block';
                 if (inputArea) inputArea.style.display = 'none';
-                
+
                 box.scrollTop = box.scrollHeight;
 
-                const res = await fetch('/api/chat', { 
-                    method: 'POST', 
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, castId: currentCastId, text }) 
+                    body: JSON.stringify({ userId, castId: currentCastId, text })
                 });
 
                 if (res.status === 401) {
@@ -399,7 +692,7 @@
                 }
 
                 const data = await res.json();
-                
+
                 if (loading) loading.style.display = 'none';
                 if (!data.isEnded && inputArea) {
                     inputArea.style.display = 'flex';
@@ -407,7 +700,7 @@
 
                 if (data.error) {
                     alert("エラー: " + data.error);
-                    if (inputArea) inputArea.style.display = 'flex'; 
+                    if (inputArea) inputArea.style.display = 'flex';
                     return;
                 }
 
@@ -431,39 +724,41 @@
                 }
 
                 box.scrollTop = box.scrollHeight;
-                syncTickets(); 
-            } catch (e) { 
+                syncTickets();
+            } catch (e) {
                 if (loading) loading.style.display = 'none';
-                if (inputArea) inputArea.style.display = 'flex'; 
+                if (inputArea) inputArea.style.display = 'flex';
                 console.error(e);
                 alert("通信エラーが発生しました: " + e.message);
             }
         };
-        window.finishSession = function() { showScreen('selection-screen'); };
+        window.finishSession = function () { showScreen('selection-screen'); };
         function createMsgElement(html, type) {
             const div = document.createElement('div');
             div.className = `msg ${type}`;
             div.innerHTML = html;
             return div;
         }
-        window.validateAndRegister = async function() {
+        window.validateAndRegister = async function () {
             const ln = document.getElementById('user-last-name').value, fn = document.getElementById('user-first-name').value;
             const y = document.getElementById('dob-year').value, m = document.getElementById('dob-month').value, d = document.getElementById('dob-day').value;
-            if(!ln || !fn || !y || !m || !d) return alert("全て入力してください");
-            await fetch('/api/save_user', { 
+            if (!ln || !fn || !y || !m || !d) return alert("全て入力してください");
+            const authType = localStorage.getItem('fortune_auth_type') || 'Google';
+            await fetch('/api/save_user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, lastName: ln, firstName: fn, dob: `${y}-${m}-${d}`, auth_type: 'Google' }) 
+                body: JSON.stringify({ userId, lastName: ln, firstName: fn, dob: `${y}-${m}-${d}`, auth_type: authType })
             });
             initApp();
         };
-        window.openTicketModal = function() { document.getElementById('ticket-modal').style.display = 'flex'; setTimeout(() => document.getElementById('ticket-modal').classList.add('active'), 10); };
-        window.closeTicketModal = function() { document.getElementById('ticket-modal').classList.remove('active'); setTimeout(() => document.getElementById('ticket-modal').style.display = 'none', 300); };
-        window.buyTickets = async function(amount) {
+        window.openTicketModal = function () { document.getElementById('ticket-modal').style.display = 'flex'; setTimeout(() => document.getElementById('ticket-modal').classList.add('active'), 10); };
+        window.closeTicketModal = function () { document.getElementById('ticket-modal').classList.remove('active'); setTimeout(() => document.getElementById('ticket-modal').style.display = 'none', 300); };
+        window.buyTickets = async function (amount) {
             const res = await fetch('/api/stripe_checkout', { method: 'POST', body: JSON.stringify({ userId, amount }) });
             const data = await res.json();
             if (data.url) window.location.href = data.url;
         };
     </script>
 </body>
+
 </html>
