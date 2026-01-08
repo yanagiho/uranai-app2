@@ -49,11 +49,21 @@
     <div id="title-screen" class="screen">
         <h1 class="logo" style="font-size:1.6rem; color:var(--gold);">入館の儀</h1>
         <div class="form-box">
-            <button class="auth-btn" style="background:#fff; color:#000; width:100%;" onclick="window.handleGoogleLogin()">
+            <button class="auth-btn" style="background:#fff; color:#000; width:100%; margin-bottom:20px;" onclick="window.handleGoogleLogin()">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="google-icon">
                 Google で入館
             </button>
-            <p style="text-align:center; font-size:0.8rem; color:#aaa; margin-top:15px;">※現在はGoogle認証のみ対応しています</p>
+
+            <hr style="border:0; border-top:1px solid #444; margin: 20px 0;">
+
+            <p style="text-align:left; font-size:0.9rem; color:#ccc; margin:0 0 8px 0;">メールアドレスで入館</p>
+            <input type="email" id="email" placeholder="メールアドレス" style="margin-bottom:10px;">
+            <input type="password" id="password" placeholder="パスワード（6文字以上）" style="margin-bottom:15px;">
+            
+            <div style="display:flex; gap:10px;">
+                <button class="main-btn" style="background:#444; font-size:0.9rem; margin-top:0;" onclick="window.handleEmailLogin()">ログイン</button>
+                <button class="main-btn" style="font-size:0.9rem; margin-top:0;" onclick="window.handleEmailSignup()">新規登録</button>
+            </div>
         </div>
     </div>
     <div id="setup-screen" class="screen">
@@ -117,7 +127,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        // ★修正点: メール認証用モジュールを追加インポート
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCNaMyiMhGfWsCP69f-WELJP0oVwM-b3fY",
@@ -133,13 +144,50 @@
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
+        // Googleログイン
         window.handleGoogleLogin = async () => {
             try {
                 const result = await signInWithPopup(auth, provider);
-                handleAuthWithFirebase(result.user);
+                handleAuthWithFirebase(result.user, 'Google');
             } catch (error) {
                 console.error(error);
                 alert("ログインエラー: " + error.message);
+            }
+        };
+
+        // ★追加: メールで新規登録
+        window.handleEmailSignup = async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            if (!email || !password) return alert("メールとパスワードを入力してください");
+            
+            try {
+                const result = await createUserWithEmailAndPassword(auth, email, password);
+                handleAuthWithFirebase(result.user, 'Email');
+            } catch (error) {
+                console.error(error);
+                let msg = "登録エラー: " + error.message;
+                if (error.code === 'auth/email-already-in-use') msg = "このメールアドレスは既に登録されています。ログインしてください。";
+                if (error.code === 'auth/weak-password') msg = "パスワードは6文字以上にしてください。";
+                alert(msg);
+            }
+        };
+
+        // ★追加: メールでログイン
+        window.handleEmailLogin = async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            if (!email || !password) return alert("メールとパスワードを入力してください");
+
+            try {
+                const result = await signInWithEmailAndPassword(auth, email, password);
+                handleAuthWithFirebase(result.user, 'Email');
+            } catch (error) {
+                console.error(error);
+                let msg = "ログインエラー: " + error.message;
+                if (error.code === 'auth/invalid-credential') msg = "メールアドレスまたはパスワードが違います。";
+                if (error.code === 'auth/user-not-found') msg = "登録されていません。新規登録してください。";
+                alert(msg);
             }
         };
 
@@ -149,25 +197,25 @@
             location.reload();
         };
 
-        async function handleAuthWithFirebase(firebaseUser) {
+        // 共通認証処理（authTypeでSNSかメールかを区別）
+        async function handleAuthWithFirebase(firebaseUser, authType = 'Email') {
             const userId = firebaseUser.uid; 
             const email = firebaseUser.email;
             
             localStorage.setItem('fortune_user_id', userId);
             
             try {
-                // ★修正点：headersを追加してJSONとして送信
                 const res = await fetch('/api/login', { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, email, auth_type: 'Google' }) 
+                    body: JSON.stringify({ userId, email, auth_type: authType }) 
                 });
                 
                 if (!res.ok) throw new Error("サーバー通信エラー");
                 const data = await res.json();
                 
                 if (data.isComplete) {
-                    window.initApp(); // グローバル関数の呼び出し
+                    window.initApp(); 
                 } else {
                     window.showScreen('setup-screen');
                 }
@@ -182,12 +230,10 @@
         let userId = localStorage.getItem('fortune_user_id');
         let castsData = [], currentCastId = null, selectedDate = null, selectedTime = null;
 
-        // ★修正点：起動処理をtry-catchで囲み、エラー時も画面を出す
         window.onload = async () => {
             try {
                 const urlParams = new URLSearchParams(window.location.search);
                 if (userId) {
-                    // IDがある場合、サーバーに問い合わせ
                     const res = await fetch('/api/login', { 
                         method: 'POST', 
                         headers: { 'Content-Type': 'application/json' },
@@ -195,7 +241,6 @@
                     });
                     
                     if (!res.ok) {
-                        // サーバーエラー等の場合、無理やりログインさせずログアウト扱いにする
                         console.error("Session check failed");
                         localStorage.removeItem('fortune_user_id');
                         showScreen('gateway-screen');
@@ -213,12 +258,10 @@
                 }
             } catch (e) {
                 console.error("Init Error:", e);
-                // エラー時はタイトル画面へ戻す（真っ白回避）
                 showScreen('gateway-screen');
             }
         };
 
-        // グローバル関数として定義（Moduleから呼べるようにwindowにつける）
         window.showScreen = function(id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
             const target = document.getElementById(id);
