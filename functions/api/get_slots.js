@@ -15,11 +15,32 @@ export async function onRequestGet(context) {
       .bind(castId, `${date}%`).all();
     const actualBooked = results ? results.map(r => r.scheduled_at.split('T')[1]) : [];
 
+    // ★追加: 擬似的に予約を埋めるための関数（リロードしても結果が変わらないように計算で出す）
+    const isFakeBooked = (d, t, c) => {
+       // 日付+時間+キャストIDの文字列からハッシュ値を生成
+       const str = d + t + c + "magic_salt"; 
+       let hash = 0;
+       for (let i = 0; i < str.length; i++) {
+         hash = (hash << 5) - hash + str.charCodeAt(i);
+         hash |= 0; 
+       }
+       // 30%の確率で「予約済み(booked)」とみなす (数字を変えれば埋まり率を調整可能)
+       return (Math.abs(hash) % 10) < 3; 
+    };
+
     const slots = baseTimes.map(time => {
+      // 過去の時間は「past」
       if (date === todayStr && time <= currentTime) return { time, status: "past" };
+      
+      // 本当にDBに予約がある場合は「booked」
       if (actualBooked.includes(time)) return { time, status: "booked" };
+      
+      // ★追加: 擬似的な予約判定に引っかかったら「booked」にする
+      if (isFakeBooked(date, time, castId)) return { time, status: "booked" };
+
       return { time, status: "available" };
     });
+
     return new Response(JSON.stringify({ slots }), { headers: { "Content-Type": "application/json" } });
   } catch (err) { return new Response(JSON.stringify({ slots: [], error: err.message })); }
 }
