@@ -12,7 +12,8 @@
         .form-box { width: 100%; max-width: 360px; margin: 0 auto; text-align: left; background: var(--glass); padding: 25px; border-radius: 20px; backdrop-filter: blur(10px); }
         input { width: 100%; padding: 12px; background: #000; border: 1px solid #444; color: #fff; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; font-size: 1rem; outline: none; }
         .main-btn { background: var(--accent); color: #fff; border: none; padding: 16px; border-radius: 35px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
-        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .auth-btn { width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 10px; border: none; font-weight: bold; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; }
+        .google-icon { width: 20px; height: 20px; margin-right: 10px; background: white; border-radius: 50%; padding: 2px; }
         .cast-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 20px; width: 100%; max-width: 500px; }
         .cast-card { background: var(--glass); border: 1px solid #333; padding: 12px; border-radius: 15px; cursor: pointer; }
         .cast-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; margin-bottom: 8px; }
@@ -48,13 +49,12 @@
     <div id="title-screen" class="screen">
         <h1 class="logo" style="font-size:1.6rem; color:var(--gold);">入館の儀</h1>
         <div class="form-box">
-            <button class="auth-btn" style="background:#000; width:100%;" onclick="handleAuth('X')">X で入館</button>
-            <button class="auth-btn" style="background:#1877F2; width:100%;" onclick="handleAuth('Facebook')">Facebook で入館</button>
-            <button class="auth-btn" style="background:#ff0033; width:100%;" onclick="handleAuth('Yahoo')">Yahoo! で入館</button>
-            <button class="auth-btn" style="background:#06C755; width:100%;" onclick="handleAuth('LINE')">LINE で入館</button>
-            <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
-            <input type="email" id="login-email" placeholder="メールアドレスを入力">
-            <button class="main-btn" style="width:100%;" onclick="handleAuth('Email')">メール認証で入館</button>
+            <button class="auth-btn" style="background:#fff; color:#000; width:100%;" onclick="window.handleGoogleLogin()">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="google-icon">
+                Google で入館
+            </button>
+            
+            <p style="text-align:center; font-size:0.8rem; color:#aaa; margin-top:15px;">※現在はGoogle認証のみ対応しています</p>
         </div>
     </div>
     <div id="setup-screen" class="screen">
@@ -72,7 +72,7 @@
         </div>
         <h2 style="color:var(--gold)">鑑定師をお選びください</h2>
         <div id="cast-list" class="cast-grid"></div>
-        <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:30px;" onclick="logout()">ログアウト</p>
+        <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:30px;" onclick="window.logout()">ログアウト</p>
     </div>
     <div id="booking-screen" class="screen">
         <h2 id="book-cast-name" style="color:var(--gold)"></h2>
@@ -115,33 +115,104 @@
             <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="closeTicketModal()">閉じる</p>
         </div>
     </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // あなたが取得したFirebaseの設定
+        const firebaseConfig = {
+            apiKey: "AIzaSyCNaMyiMhGfWsCP69f-WELJP0oVwM-b3fY",
+            authDomain: "uranai-app-54348.firebaseapp.com",
+            projectId: "uranai-app-54348",
+            storageBucket: "uranai-app-54348.firebasestorage.app",
+            messagingSenderId: "104535743252",
+            appId: "1:104535743252:web:83f60f87def0d636448001",
+            measurementId: "G-T89YYWNPL3"
+        };
+
+        // Firebase初期化
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        // グローバル関数として公開（HTMLのonclickから呼ぶため）
+        window.handleGoogleLogin = async () => {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                console.log("Logged in:", user);
+                // ログイン成功したらアプリの認証処理へ
+                handleAuthWithFirebase(user);
+            } catch (error) {
+                console.error("Login Error:", error);
+                alert("ログインに失敗しました: " + error.message);
+            }
+        };
+
+        window.logout = async () => {
+            await signOut(auth);
+            localStorage.clear();
+            location.reload();
+        };
+
+        // アプリ独自の認証フローへつなぐ
+        async function handleAuthWithFirebase(firebaseUser) {
+            const userId = firebaseUser.uid; // FirebaseのUIDを使う
+            const email = firebaseUser.email;
+            
+            // ローカル保存
+            localStorage.setItem('fortune_user_id', userId);
+            
+            // サーバーへ通知（ユーザー登録/確認）
+            const res = await fetch('/api/login', { 
+                method: 'POST', 
+                body: JSON.stringify({ userId, email, auth_type: 'Google' }) 
+            });
+            const data = await res.json();
+            
+            if (data.isComplete) {
+                initApp();
+            } else {
+                showScreen('setup-screen');
+            }
+        }
+
+        // 既存のグローバル変数・関数も module スコープから window に生やす必要があるもの等はここで定義
+        // ※ただし、下部のscriptタグ内の関数はグローバルなので、ここから呼び出せるように調整
+        window.initApp = initApp; // 下で定義されるinitAppを呼ぶ
+        window.showScreen = showScreen;
+    </script>
+
     <script>
+        // --- 既存のアプリロジック ---
         let userId = localStorage.getItem('fortune_user_id');
-        let castsData = [], currentCastId = null, selectedDate = null, selectedTime = null, currentAuthType = "";
+        let castsData = [], currentCastId = null, selectedDate = null, selectedTime = null;
+
+        // 起動時チェック
         window.onload = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             if (userId) {
+                // IDがあっても、サーバー側でユーザー登録済みかチェック
                 const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId }) });
                 const data = await res.json();
-                if (data.isComplete || urlParams.get('payment') === 'success') initApp(); else showScreen('setup-screen');
-            } else { showScreen('gateway-screen'); }
+                if (data.isComplete || urlParams.get('payment') === 'success') {
+                    initApp();
+                } else {
+                    showScreen('setup-screen');
+                }
+            } else { 
+                showScreen('gateway-screen'); 
+            }
         };
+
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
             const target = document.getElementById(id);
             target.style.display = 'flex'; 
             document.getElementById('main-nav').style.display = (['gateway-screen','title-screen','setup-screen'].includes(id)) ? 'none' : 'flex';
         }
-        async function handleAuth(type) {
-            currentAuthType = type;
-            const email = document.getElementById('login-email').value.trim();
-            const prefix = { 'X':'x_','Facebook':'f_','Yahoo':'y_','LINE':'l_','Email':'e_' }[type] || 's_';
-            const simId = type === 'Email' ? prefix + btoa(email) : (userId || prefix + Math.random().toString(36).substr(2, 9));
-            userId = simId; localStorage.setItem('fortune_user_id', userId);
-            const res = await fetch('/api/login', { method: 'POST', body: JSON.stringify({ userId: simId, email, auth_type: type }) });
-            const data = await res.json();
-            if (data.isComplete) initApp(); else showScreen('setup-screen');
-        }
+
         async function initApp() {
             showScreen('selection-screen');
             await syncTickets();
@@ -151,6 +222,8 @@
                 <div class="cast-card" onclick="openIntro(${c.id})"><img src="/img/${c.img}"><strong>${c.name}</strong><br><small>${c.role}</small></div>
             `).join('');
         }
+
+        // ... 以下、既存の関数群（変更なし） ...
         async function syncTickets() {
             const res = await fetch(`/api/user_info?userId=${userId}`);
             const data = await res.json();
@@ -239,7 +312,6 @@
 
             try {
                 if (loading) loading.style.display = 'block';
-                // ★追加：待機中は入力エリアを消す
                 if (inputArea) inputArea.style.display = 'none';
                 
                 box.scrollTop = box.scrollHeight;
@@ -252,7 +324,7 @@
 
                 if (res.status === 401) {
                     alert("データが更新されました。再度ご入館ください。");
-                    logout();
+                    window.logout(); // ログアウト処理へ
                     return;
                 }
 
@@ -264,15 +336,13 @@
                 const data = await res.json();
                 
                 if (loading) loading.style.display = 'none';
-                
-                // ★追加：まだ終了していない場合のみ、入力エリアを再表示
                 if (!data.isEnded && inputArea) {
                     inputArea.style.display = 'flex';
                 }
 
                 if (data.error) {
                     alert("エラー: " + data.error);
-                    if (inputArea) inputArea.style.display = 'flex'; // エラー時は復帰
+                    if (inputArea) inputArea.style.display = 'flex'; 
                     return;
                 }
 
@@ -299,12 +369,11 @@
                 syncTickets(); 
             } catch (e) { 
                 if (loading) loading.style.display = 'none';
-                if (inputArea) inputArea.style.display = 'flex'; // エラー時は復帰
+                if (inputArea) inputArea.style.display = 'flex'; 
                 console.error(e);
                 alert("通信エラーが発生しました: " + e.message);
             }
         }
-        function finishSession() { showScreen('selection-screen'); }
         function createMsgElement(html, type) {
             const div = document.createElement('div');
             div.className = `msg ${type}`;
@@ -315,7 +384,7 @@
             const ln = document.getElementById('user-last-name').value, fn = document.getElementById('user-first-name').value;
             const y = document.getElementById('dob-year').value, m = document.getElementById('dob-month').value, d = document.getElementById('dob-day').value;
             if(!ln || !fn || !y || !m || !d) return alert("全て入力してください");
-            await fetch('/api/save_user', { method: 'POST', body: JSON.stringify({ userId, lastName: ln, firstName: fn, dob: `${y}-${m}-${d}`, auth_type: currentAuthType }) });
+            await fetch('/api/save_user', { method: 'POST', body: JSON.stringify({ userId, lastName: ln, firstName: fn, dob: `${y}-${m}-${d}`, auth_type: 'Google' }) });
             initApp();
         }
         function openTicketModal() { document.getElementById('ticket-modal').style.display = 'flex'; setTimeout(() => document.getElementById('ticket-modal').classList.add('active'), 10); }
@@ -325,7 +394,6 @@
             const data = await res.json();
             if (data.url) window.location.href = data.url;
         }
-        function logout() { localStorage.clear(); location.reload(); }
     </script>
 </body>
 </html>
