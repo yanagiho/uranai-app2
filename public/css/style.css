@@ -265,7 +265,8 @@ nav {
 
 .slot-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    /* ★ここを変更しました：3列から4列へ */
+    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
     margin-top: 15px;
     width: 100%;
