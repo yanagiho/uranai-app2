@@ -13,7 +13,13 @@ export async function onRequestGet(context) {
     const reservation = await env.DB.prepare("SELECT cast_id, scheduled_at FROM Reservations WHERE user_id = ? AND status = 'pending'").bind(userId).first();
 
     let reservationInfo = null;
+    let hasPendingReservation = false;
+    let pendingCastId = null;
+
     if (reservation) {
+        hasPendingReservation = true;
+        pendingCastId = reservation.cast_id;
+        
         const cast = casts[reservation.cast_id];
         // 日時のフォーマット整形 (例: 2026-01-15T14:00 -> 1/15 14:00)
         const dateObj = new Date(reservation.scheduled_at);
@@ -34,6 +40,8 @@ export async function onRequestGet(context) {
       gender: user?.gender || "", // 性別を追加
       email: user?.email || "",
       ticket_balance: user?.ticket_balance || 0,
+      hasPendingReservation,
+      pendingCastId,
       reservation: reservationInfo // 予約詳細オブジェクトを追加
     }), { headers: { "Content-Type": "application/json" } });
   } catch (e) { 
