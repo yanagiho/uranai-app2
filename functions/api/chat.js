@@ -27,32 +27,26 @@ export async function onRequestPost(context) {
         ORDER BY id DESC LIMIT 50
     `).bind(userId, activeCastId).all();
 
-    // ログを古い順（時系列）に並べ替え
     const historyLogs = logs.results.reverse();
-
     let currentSessionLogs = [];
-    const SESSION_TIMEOUT_MS = 20 * 60 * 1000; // ★20分以上空いたら別セッションとみなす
+    const SESSION_TIMEOUT_MS = 20 * 60 * 1000;
     const now = Date.now();
 
-    // ★修正ロジック: まず「最後の会話」から時間が経ちすぎていないかチェック
+    // セッションリセット判定
     let isNewSession = false;
     if (historyLogs.length > 0) {
         const lastLog = historyLogs[historyLogs.length - 1];
         const lastLogTime = new Date(lastLog.timestamp.endsWith('Z') ? lastLog.timestamp : lastLog.timestamp + 'Z').getTime();
-        
-        // 最後のログから20分以上経過していたら、強制的に新規セッションとする
         if (now - lastLogTime > SESSION_TIMEOUT_MS) {
             isNewSession = true;
             currentSessionLogs = []; 
         }
     }
 
-    // まだリセットされていなければ、ログの中身を走査して切れ目を探す
     if (!isNewSession) {
         let lastTime = 0;
         for (const log of historyLogs) {
             const logTime = new Date(log.timestamp.endsWith('Z') ? log.timestamp : log.timestamp + 'Z').getTime();
-            // ログ同士の間隔が20分以上空いていたら、そこで切る
             if (lastTime > 0 && (logTime - lastTime) > SESSION_TIMEOUT_MS) {
                 currentSessionLogs = []; 
             }
@@ -63,7 +57,7 @@ export async function onRequestPost(context) {
 
     // --- 現在の状況計算 ---
     let sessionStartTime = now;
-    let turnCount = 0; // ユーザーの発言回数
+    let turnCount = 0;
 
     if (currentSessionLogs.length > 0) {
         const firstLog = currentSessionLogs[0];
@@ -71,35 +65,35 @@ export async function onRequestPost(context) {
         turnCount = currentSessionLogs.filter(l => l.sender === 'user').length;
     }
 
-    const elapsedMinutes = (now - sessionStartTime) / (1000 * 60); // 経過分数
+    const elapsedMinutes = (now - sessionStartTime) / (1000 * 60);
     
     // --- チケット消費判定 ---
-    // 新規セッション開始時のみチケット消費
     const ticketBalance = user.ticket_balance || 0;
     if (!reservation && currentSessionLogs.length === 0 && ticketBalance < 1) {
       return new Response(JSON.stringify({ reply: "鑑定を受けるにはチケットが必要です。右上の「＋」からお求めください。" }));
     }
 
     // --- AIへの状況指示（ディレクション）作成 ---
-    const { systemDirection, safetyInstruction } = buildSystemDirection(turnCount, elapsedMinutes, cast.name);
+    // ★修正: prompt_builderにcastIdを渡すように変更
+    const { systemDirection, safetyInstruction } = buildSystemDirection(turnCount, elapsedMinutes, cast.name, activeCastId);
 
     // --- プロンプト構築 ---
+    // ★修正: タロット知識は紫雲(ID:1)の時だけ渡す
     const expertKnowledge = activeCastId === 1 ? `【タロット知識】\n${JSON.stringify(tarotDataShion)}` : "";
     
-    // 過去ログテキスト化（直近10件）
+    // 過去ログ
     const recentHistory = currentSessionLogs.slice(-10).map(log => {
         return `${log.sender === 'user' ? '相談者' : 'あなた'}: ${log.content}`;
     }).join("\n");
 
     const currentDate = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
     
-    // ユーザー名・生年月日処理
     let lastName = user.last_name || "";
     let firstName = user.first_name || "";
     const userName = (lastName && firstName) ? `${lastName} ${firstName} 様` : "お客様";
     const userDobInfo = user.dob ? `${user.dob}生まれ` : "（生年月日はまだ聞いていません）";
+    const userGenderInfo = user.gender ? `性別：${user.gender}` : "（性別はまだ聞いていません）";
 
-    // 初回などの空テキスト対策
     const userTextContent = text ? text : "（会話開始・入室）";
 
     const promptText = `
@@ -109,7 +103,8 @@ export async function onRequestPost(context) {
 【相談者データ】
 名前：${userName}
 生年月日：${userDobInfo}
-※生年月日がデータにある場合は、それを前提に占ってください。「忘れた」などと言わないでください。
+${userGenderInfo}
+※データがある場合はそれを前提に話してください。「忘れた」などと言わないでください。
 
 【現在日時】
 ${currentDate}
@@ -132,8 +127,7 @@ ${userTextContent}
 1. **人間味の追求**: まずは「うーん…」「なるほど…」といったフィラーや共感から始めてください。
 2. **文脈の維持**: 過去の話を覚えているように振る舞ってください。
 3. **終了処理**: 指示に従い、会話を終える時は最後に [END] を付けてください。
-4. **演出**: タロット画像 [CARD: ...] は必要な時だけ出してください。**指示がない限り出してはいけません。**
-5. **名前**: 「${userName.replace(" 様", "")}さん」と呼んでください。
+4. **名前**: 「${userName.replace(" 様", "")}さん」と呼んでください。
 
 以上のルールと状況指示を守り、${cast.name}になりきって返答してください。`;
 
@@ -164,7 +158,6 @@ ${userTextContent}
     if (reservation) {
       await env.DB.prepare("UPDATE Reservations SET status = 'completed' WHERE id = ?").bind(reservation.id).run();
     } else if (currentSessionLogs.length === 0) {
-      // 新規セッション開始時のみチケット消費
       await env.DB.prepare("UPDATE Users SET ticket_balance = ticket_balance - 1 WHERE id = ?").bind(userId).run();
     }
 
@@ -174,7 +167,7 @@ ${userTextContent}
         await env.DB.prepare("INSERT INTO ChatLogs (user_id, cast_id, sender, content, timestamp) VALUES (?, ?, 'user', ?, ?)").bind(userId, activeCastId, text || "(会話開始)", nowISO).run();
     } catch (e) {
         console.error("DB Log Error:", e.message);
-        // DB更新前などでカラムがない場合のフォールバック
+        // フォールバック
         if (e.message.includes("has no column named cast_id") || e.message.includes("no such column: cast_id")) {
              await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'ai', ?)").bind(userId, reply).run();
              await env.DB.prepare("INSERT INTO ChatLogs (user_id, sender, content) VALUES (?, 'user', ?)").bind(userId, text || "(会話開始)").run();
