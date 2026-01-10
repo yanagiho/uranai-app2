@@ -1,5 +1,6 @@
 import { casts } from "./lib/casts.js";
 import { tarotDataShion } from "./lib/tarot_data_shion.js";
+import { buildSystemDirection } from "./lib/prompt_builder.js";
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -66,75 +67,8 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ reply: "鑑定を受けるにはチケットが必要です。右上の「＋」からお求めください。" }));
     }
 
-    // --- AIへの状況指示（ディレクション）作成 ---
-    let systemDirection = "";
-    // 通常の防御指示（初回と終了間際以外で使用）
-    const defaultSafetyInstruction = `
-    【防御指示】
-    もし相談者の入力が「あ」や「test」などの無意味な文字列、または占いに無関係な暴言やスパムだと判断した場合は、
-    まともに取り合わず、「星が曇って声が届かないようです…」といったニュアンス（キャラの口調で）で返し、
-    **即座に [END] をつけて会話を強制終了してください。**
-    `;
-    let safetyInstruction = defaultSafetyInstruction;
-
-    // ▼▼▼ ロジック変更部分 ▼▼▼
-
-    // 1. 導入パート（初回 Turn 0）: 性別のヒアリングを確実に行う
-    if (turnCount === 0) {
-        systemDirection = `
-        【重要指示：導入と性別の確認】
-        **現在は会話の冒頭です。まだ占いをしないでください。お悩みもまだ聞かないでください。**
-        まずは相談者との信頼関係を築くために、以下の手順で発言してください：
-        1. 相談者の名前と生年月日を復唱し、親しみを込めて挨拶する。
-        2. **「占いの精度を高めるために、まずは性別を教えていただけますか？」と明確に質問する。**
-        3. 性別の回答を待つ形で発言を終えてください。
-        `;
-        safetyInstruction = ""; // 初回は防御オフ
-    } 
-    // 2. 終了フェーズ（時間・回数オーバー）
-    else if (elapsedMinutes >= 25 || turnCount >= 15) {
-        systemDirection = `
-        【重要指示：鑑定終了】
-        鑑定時間は終了しました。これ以上、新しい占いや質問への回答はしないでください。
-        **「${cast.name}」らしい口調で別れの挨拶をし、最後に必ず [END] をつけて終了してください。**
-        `;
-    } else if (elapsedMinutes >= 20 || turnCount >= 12) {
-        systemDirection = `
-        【重要指示：そろそろ終了】
-        鑑定時間が残りわずかです。
-        回答の最後に、「そろそろお時間ですが、最後に一つだけ聞きたいことはありますか？」と付け加え、次で終わるように誘導してください。
-        まだ [END] はつけないでください。
-        `;
-        safetyInstruction = ""; // 終了間際は防御オフ
-    }
-    // 3. ヒアリング専用フェーズ（Turn 1〜2）: まだ占わない
-    else if (turnCount < 3) {
-        systemDirection = `
-        【重要指示：ヒアリング徹底（まだ占わない）】
-        **まだ占いの段階ではありません。カード画像 [CARD:...] も表示しないでください。**
-        （もし直前の会話で性別を聞いていた場合は、答えてくれたことにお礼を言ってください）
-        
-        これから相談者のお悩みを聞くフェーズです。
-        「それでは、お悩みをお聞かせください。しっかりお話を伺ってから占いますね」といった導入をし、カウンセリングのように話を聴いてください。
-        焦って結論を出そうとせず、相手が話しやすい雰囲気を作ってください。
-        `;
-    }
-    // 4. 通常フェーズ（Turn 3以降）: 状況に応じて占い開始
-    else {
-        systemDirection = `
-        【重要指示：ヒアリングと占いの開始判断】
-        引き続きヒアリングを行うか、いよいよタロット占いを行うかを判断してください。
-
-        **以下のいずれかの場合、直ちにヒアリングを終了し、タロット占いを行ってください。**
-        1. **相談者が「占って」「カード引いて」「結果教えて」など、明確に占いを求めた場合（最優先）。**
-        2. あなたが「状況は十分に把握できた、今が占うタイミングだ」と判断した場合。
-        3. (会話が長引いているがまだ占っていない場合)「そろそろタロットで見てみましょうか？」と提案し、占いを始める。
-
-        **占いを行う時だけ**、必ずカードの画像（例: [CARD: ... ]）を提示し、そのカードに基づいた鑑定結果を伝えてください。
-        それ以外はまだヒアリングを続けてください。
-        `;
-    }
-    // ▲▲▲ ロジック変更ここまで ▲▲▲
+    // --- AIへの状況指示（ディレクション）作成（リファクタリング済） ---
+    const { systemDirection, safetyInstruction } = buildSystemDirection(turnCount, elapsedMinutes, cast.name);
 
     // --- プロンプト構築 ---
     const expertKnowledge = activeCastId === 1 ? `【タロット知識】\n${JSON.stringify(tarotDataShion)}` : "";
