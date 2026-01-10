@@ -19,7 +19,7 @@ body {
 
 .screen {
     display: none;
-    padding: 60px 20px 20px;
+    padding: 80px 20px 40px; /* 上下の余白を少し増やしました */
     text-align: center;
     overflow-y: auto;
     flex: 1;
@@ -33,6 +33,7 @@ body {
     background-image: url('/img/title_bg.png');
     background-size: cover;
     background-position: center;
+    padding-top: 60px;
 }
 
 .logo-img {
@@ -217,8 +218,9 @@ nav {
     display: flex;
     justify-content: space-between;
     z-index: 100;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.8); /* 背景を少し濃くしました */
     align-items: center;
+    backdrop-filter: blur(5px);
 }
 
 .nav-title {
@@ -232,18 +234,30 @@ nav {
     cursor: pointer;
 }
 
+/* --- 予約画面の調整 --- */
+
+/* 日付リストのスタイル強制適用 */
+#day-list {
+    margin-bottom: 25px !important; /* タブの下に隙間を開ける */
+    padding-bottom: 10px !important;
+    border-bottom: 1px solid rgba(255,255,255,0.1); /* 区切り線 */
+    width: 100%;
+}
+
 .slot-btn {
-    padding: 10px;
+    padding: 8px 4px; /* ボタンの内側を少し狭く */
     border: 1px solid var(--gold);
     color: #fff;
     background: none;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
+    font-size: 0.85rem; /* 文字サイズを少し小さくして4列に対応 */
 }
 
 .slot-btn:disabled {
-    border-color: #444;
-    color: #555;
+    border-color: #333;
+    color: #444;
+    background: rgba(0,0,0,0.3);
     cursor: not-allowed;
 }
 
@@ -256,21 +270,25 @@ nav {
     font-size: 0.8rem;
     background: none;
     color: #fff;
+    white-space: nowrap; /* 折り返し禁止 */
 }
 
 .day-tab.active {
     border-color: var(--gold);
     color: var(--gold);
+    background: rgba(212, 175, 55, 0.1);
 }
 
 .slot-grid {
     display: grid;
-    /* ★ここを変更しました：3列から4列へ */
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-top: 15px;
+    grid-template-columns: repeat(4, 1fr); /* 4列表示 */
+    gap: 8px; /* ボタン間の隙間 */
+    margin-top: 10px;
     width: 100%;
+    padding-bottom: 60px; /* 下部が切れないように余白追加 */
 }
+
+/* --- モーダル調整 --- */
 
 #cast-modal,
 #ticket-modal {
@@ -294,6 +312,8 @@ nav {
     box-sizing: border-box;
     transform: translateY(100%);
     transition: 0.4s;
+    max-height: 80vh; /* モーダルが高すぎないように制限 */
+    overflow-y: auto;
 }
 
 .active .modal-content,
