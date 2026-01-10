@@ -254,3 +254,110 @@ window.buyTickets = async function (amount) {
     const data = await res.json();
     if (data.url) window.location.href = data.url;
 };
+
+// --- マイページ関連の機能 ---
+
+window.openMyPage = async function() {
+    showScreen('mypage-screen');
+    if (!userId) return;
+
+    try {
+        // 最新情報を取得
+        const res = await fetch(`/api/user_info?userId=${userId}`);
+        const data = await res.json();
+
+        // フォームに値をセット
+        document.getElementById('my-last-name').value = data.lastName;
+        document.getElementById('my-first-name').value = data.firstName;
+        document.getElementById('my-gender').value = data.gender || "";
+        
+        if (data.dob) {
+            const [y, m, d] = data.dob.split('-');
+            document.getElementById('my-dob-year').value = y;
+            document.getElementById('my-dob-month').value = m;
+            document.getElementById('my-dob-day').value = d;
+        }
+
+        // 予約情報の表示
+        const resDiv = document.getElementById('mypage-reservation');
+        if (data.reservation) {
+            currentCastId = null; 
+            resDiv.innerHTML = `
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <img src="/img/${data.reservation.castImg}" style="width:60px; height:60px; border-radius:50%; border:2px solid var(--gold); object-fit:cover;">
+                    <div>
+                        <div style="font-weight:bold; color:var(--gold); font-size:1.1rem;">${data.reservation.castName}</div>
+                        <div style="font-size:0.9rem;">予約日時: ${data.reservation.timeStr}</div>
+                    </div>
+                </div>
+                <button class="main-btn" style="margin-top:15px; background:var(--accent);" onclick="startChatFromMyPage(${data.pendingCastId})">鑑定室へ入る</button>
+                <p style="text-align:right; margin-top:5px; font-size:0.8rem; color:#888; cursor:pointer;" onclick="cancelReservation()">予約をキャンセル</p>
+            `;
+        } else {
+            resDiv.innerHTML = `<p style="color:#999; text-align:center; padding:10px;">現在、予約はありません。</p>
+            <button class="main-btn" style="background:#333; margin-top:10px;" onclick="showScreen('selection-screen')">鑑定師を探す</button>`;
+        }
+
+    } catch(e) {
+        console.error(e);
+        alert("データ取得に失敗しました");
+    }
+};
+
+window.saveProfile = async function() {
+    const ln = document.getElementById('my-last-name').value;
+    const fn = document.getElementById('my-first-name').value;
+    const y = document.getElementById('my-dob-year').value;
+    const m = document.getElementById('my-dob-month').value;
+    const d = document.getElementById('my-dob-day').value;
+    const gender = document.getElementById('my-gender').value;
+
+    if (!ln || !fn || !y || !m || !d) return alert("氏名と生年月日は必須です");
+
+    try {
+        const res = await fetch('/api/save_user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                userId, 
+                lastName: ln, 
+                firstName: fn, 
+                dob: `${y}-${m}-${d}`,
+                gender: gender 
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert("プロフィールを更新しました");
+        } else {
+            alert("更新エラー: " + data.error);
+        }
+    } catch(e) {
+        alert("通信エラーが発生しました");
+    }
+};
+
+window.startChatFromMyPage = function(castId) {
+    if(castId) currentCastId = castId; 
+    startChat(); 
+};
+
+window.cancelReservation = async function() {
+    if(!confirm("予約をキャンセルしますか？（チケットは返却されます）")) return;
+    try {
+        const res = await fetch('/api/cancel_reservation', { 
+            method: 'POST', 
+            body: JSON.stringify({ userId }) 
+        });
+        const data = await res.json();
+        if(data.success) {
+            alert("予約をキャンセルしました。");
+            openMyPage(); 
+            syncTickets(); 
+        } else {
+            alert("キャンセル失敗: " + data.error);
+        }
+    } catch(e) {
+        alert("通信エラー");
+    }
+};
