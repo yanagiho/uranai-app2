@@ -13,7 +13,6 @@
     <meta property="og:url" content="https://kairo-uranai.com">
     <meta name="twitter:card" content="summary_large_image">
     <style>
-        /* フッター用スタイル */
         footer {
             text-align: center;
             padding: 30px 10px;
@@ -39,8 +38,11 @@
 
 <body>
     <nav id="main-nav" style="display:none">
-        <div class="nav-title" onclick="location.reload()">運命の回廊</div>
-        <div class="nav-ticket" onclick="openTicketModal()">🎟 <span id="nav-ticket">0</span> ＋</div>
+        <div class="nav-title" onclick="showScreen('selection-screen')">運命の回廊</div>
+        <div style="display:flex; gap:15px; align-items:center;">
+            <div class="nav-ticket" onclick="openTicketModal()">🎟 <span id="nav-ticket">0</span> ＋</div>
+            <div class="nav-icon" onclick="openMyPage()" style="cursor:pointer; font-size:1.2rem;">👤</div>
+        </div>
     </nav>
 
     <div id="gateway-screen" class="screen" style="display:flex; justify-content:center;">
@@ -124,6 +126,55 @@
         <button id="confirm-btn" class="main-btn" style="display:none; margin-top:30px;"
             onclick="submitBooking()">予約を確定する</button>
         <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="showScreen('selection-screen')">戻る</p>
+    </div>
+
+    <div id="mypage-screen" class="screen">
+        <h2 style="color:var(--gold); margin-bottom:20px;">マイページ</h2>
+        
+        <div style="width:100%; max-width:400px; margin-bottom:30px;">
+            <h3 style="text-align:left; border-bottom:1px solid #444; padding-bottom:5px; margin-bottom:15px; color:var(--gold); font-size:1rem;">現在の予約</h3>
+            <div id="mypage-reservation" style="background:var(--glass); padding:15px; border-radius:10px; text-align:left;">
+                <p style="color:#999; text-align:center;">現在、予約はありません。</p>
+            </div>
+        </div>
+
+        <div class="form-box">
+            <h3 style="color:var(--gold); margin-top:0; border-bottom:1px solid #444; padding-bottom:10px; font-size:1rem;">登録情報</h3>
+            
+            <p style="text-align:left; margin:5px 0; font-size:0.8rem; color:#ccc;">お名前</p>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="my-last-name" placeholder="姓">
+                <input type="text" id="my-first-name" placeholder="名">
+            </div>
+
+            <p style="text-align:left; margin:5px 0; font-size:0.8rem; color:#ccc;">生年月日</p>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="my-dob-year" placeholder="年">
+                <input type="text" id="my-dob-month" placeholder="月">
+                <input type="text" id="my-dob-day" placeholder="日">
+            </div>
+
+            <p style="text-align:left; margin:5px 0; font-size:0.8rem; color:#ccc;">性別</p>
+            <select id="my-gender" style="width:100%; padding:12px; background:#000; border:1px solid #444; color:#fff; border-radius:8px; margin-bottom:15px;">
+                <option value="">未設定</option>
+                <option value="女性">女性</option>
+                <option value="男性">男性</option>
+                <option value="その他">その他</option>
+            </select>
+
+            <button class="main-btn" onclick="saveProfile()">情報を更新する</button>
+        </div>
+
+        <p style="margin-top:30px; color:#666; cursor:pointer; text-decoration:underline;" onclick="window.logout()">ログアウト</p>
+        <p style="margin-top:10px; color:#666; cursor:pointer;" onclick="showScreen('selection-screen')">戻る</p>
+        
+        <footer>
+            <a href="/terms.html" target="_blank">利用規約</a> | 
+            <a href="/privacy.html" target="_blank">プライバシーポリシー</a> | 
+            <a href="/law.html" target="_blank">特定商取引法に基づく表記</a>
+            <br>
+            &copy; 2026 Corridor of Fate
+        </footer>
     </div>
 
     <div id="chat-screen" class="screen">
