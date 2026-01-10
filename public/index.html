@@ -12,6 +12,27 @@
     <meta property="og:image" content="https://kairo-uranai.com/img/title_logo.png">
     <meta property="og:url" content="https://kairo-uranai.com">
     <meta name="twitter:card" content="summary_large_image">
+    <style>
+        /* 追加: フッター用のスタイル */
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: auto; /* 画面下部に押し下げる */
+            width: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        footer a {
+            color: #999;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        footer a:hover {
+            color: var(--gold);
+            text-decoration: underline;
+        }
+    </style>
 </head>
 
 <body>
@@ -23,6 +44,13 @@
     <div id="gateway-screen" class="screen" style="display:flex; justify-content:center;">
         <h1 class="logo"><img src="/img/title_logo.png" alt="運命の回廊 CORRIDOR OF FATE" class="logo-img"></h1>
         <button class="main-btn" style="width:200px" onclick="showScreen('title-screen')">回廊に入る</button>
+        
+        <footer>
+            <a href="/terms.html" target="_blank">利用規約</a> | 
+            <a href="/privacy.html" target="_blank">プライバシーポリシー</a>
+            <br><br>
+            &copy; 2026 Corridor of Fate
+        </footer>
     </div>
 
     <div id="title-screen" class="screen">
@@ -48,6 +76,10 @@
                     onclick="window.handleEmailSignup()">新規登録</button>
             </div>
         </div>
+        <footer>
+            <a href="/terms.html" target="_blank">利用規約</a> | 
+            <a href="/privacy.html" target="_blank">プライバシーポリシー</a>
+        </footer>
     </div>
 
     <div id="setup-screen" class="screen">
@@ -72,6 +104,11 @@
         <div id="cast-list" class="cast-grid"></div>
         <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:30px;" onclick="window.logout()">
             ログアウト</p>
+        
+        <footer>
+            <a href="/terms.html" target="_blank">利用規約</a> | 
+            <a href="/privacy.html" target="_blank">プライバシーポリシー</a>
+        </footer>
     </div>
 
     <div id="booking-screen" class="screen">
