@@ -21,7 +21,6 @@ export async function onRequestPost(context) {
     if (!cast) throw new Error("鑑定師データが見つかりません。");
 
     // --- セッション履歴の取得と分析 ---
-    // 過去のログを多めに取得して、現在の会話セッションがいつ始まったかを分析します
     const logs = await env.DB.prepare(`
         SELECT * FROM ChatLogs 
         WHERE user_id = ? AND cast_id = ? 
@@ -32,29 +31,43 @@ export async function onRequestPost(context) {
     const historyLogs = logs.results.reverse();
 
     let currentSessionLogs = [];
-    let lastTime = 0;
+    const SESSION_TIMEOUT_MS = 20 * 60 * 1000; // ★20分以上空いたら別セッションとみなす
+    const now = Date.now();
 
-    // 「10分以上間隔が空いたら新しいセッション」とみなして、今のセッションのログだけ抽出
-    for (const log of historyLogs) {
-        const logTime = new Date(log.timestamp.endsWith('Z') ? log.timestamp : log.timestamp + 'Z').getTime();
-        if (lastTime > 0 && (logTime - lastTime) > 10 * 60 * 1000) {
-            currentSessionLogs = []; // 間隔が空いたのでリセット
+    // ★修正ロジック: まず「最後の会話」から時間が経ちすぎていないかチェック
+    let isNewSession = false;
+    if (historyLogs.length > 0) {
+        const lastLog = historyLogs[historyLogs.length - 1];
+        const lastLogTime = new Date(lastLog.timestamp.endsWith('Z') ? lastLog.timestamp : lastLog.timestamp + 'Z').getTime();
+        
+        // 最後のログから20分以上経過していたら、強制的に新規セッションとする
+        if (now - lastLogTime > SESSION_TIMEOUT_MS) {
+            isNewSession = true;
+            currentSessionLogs = []; 
         }
-        currentSessionLogs.push(log);
-        lastTime = logTime;
+    }
+
+    // まだリセットされていなければ、ログの中身を走査して切れ目を探す
+    if (!isNewSession) {
+        let lastTime = 0;
+        for (const log of historyLogs) {
+            const logTime = new Date(log.timestamp.endsWith('Z') ? log.timestamp : log.timestamp + 'Z').getTime();
+            // ログ同士の間隔が20分以上空いていたら、そこで切る
+            if (lastTime > 0 && (logTime - lastTime) > SESSION_TIMEOUT_MS) {
+                currentSessionLogs = []; 
+            }
+            currentSessionLogs.push(log);
+            lastTime = logTime;
+        }
     }
 
     // --- 現在の状況計算 ---
-    const now = Date.now();
     let sessionStartTime = now;
     let turnCount = 0; // ユーザーの発言回数
 
     if (currentSessionLogs.length > 0) {
-        // セッション開始時刻
         const firstLog = currentSessionLogs[0];
         sessionStartTime = new Date(firstLog.timestamp.endsWith('Z') ? firstLog.timestamp : firstLog.timestamp + 'Z').getTime();
-        
-        // ラリー数のカウント
         turnCount = currentSessionLogs.filter(l => l.sender === 'user').length;
     }
 
@@ -67,7 +80,7 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ reply: "鑑定を受けるにはチケットが必要です。右上の「＋」からお求めください。" }));
     }
 
-    // --- AIへの状況指示（ディレクション）作成（リファクタリング済） ---
+    // --- AIへの状況指示（ディレクション）作成 ---
     const { systemDirection, safetyInstruction } = buildSystemDirection(turnCount, elapsedMinutes, cast.name);
 
     // --- プロンプト構築 ---
@@ -81,12 +94,10 @@ export async function onRequestPost(context) {
     const currentDate = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
     
     // ユーザー名・生年月日処理
-    let lastName = user.last_name;
-    let firstName = user.first_name;
-    if (lastName === "null" || !lastName) lastName = "";
-    if (firstName === "null" || !firstName) firstName = "";
+    let lastName = user.last_name || "";
+    let firstName = user.first_name || "";
     const userName = (lastName && firstName) ? `${lastName} ${firstName} 様` : "お客様";
-    const userDobInfo = user.dob ? `${user.dob}生まれ` : "生年月日不明";
+    const userDobInfo = user.dob ? `${user.dob}生まれ` : "（生年月日はまだ聞いていません）";
 
     // 初回などの空テキスト対策
     const userTextContent = text ? text : "（会話開始・入室）";
@@ -98,13 +109,14 @@ export async function onRequestPost(context) {
 【相談者データ】
 名前：${userName}
 生年月日：${userDobInfo}
+※生年月日がデータにある場合は、それを前提に占ってください。「忘れた」などと言わないでください。
 
 【現在日時】
-${currentDate} (※現在は2026年です)
+${currentDate}
 
 【現在の会話状況】
 - 経過時間: 約${Math.floor(elapsedMinutes)}分
-- やり取り回数: ${turnCount}回（※Turn 0は性別確認、Turn 1-2はヒアリング）
+- やり取り回数: ${turnCount}回
 ${systemDirection}
 ${safetyInstruction}
 
