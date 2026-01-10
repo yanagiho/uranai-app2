@@ -19,7 +19,7 @@ body {
 
 .screen {
     display: none;
-    padding: 80px 20px 40px; /* 上下の余白を少し増やしました */
+    padding: 80px 20px 40px;
     text-align: center;
     overflow-y: auto;
     flex: 1;
@@ -218,7 +218,7 @@ nav {
     display: flex;
     justify-content: space-between;
     z-index: 100;
-    background: rgba(0, 0, 0, 0.8); /* 背景を少し濃くしました */
+    background: rgba(0, 0, 0, 0.8);
     align-items: center;
     backdrop-filter: blur(5px);
 }
@@ -234,24 +234,30 @@ nav {
     cursor: pointer;
 }
 
-/* --- 予約画面の調整 --- */
+/* --- 予約画面の調整 (ここを重点的に修正) --- */
 
-/* 日付リストのスタイル強制適用 */
 #day-list {
-    margin-bottom: 25px !important; /* タブの下に隙間を開ける */
-    padding-bottom: 10px !important;
-    border-bottom: 1px solid rgba(255,255,255,0.1); /* 区切り線 */
+    display: flex !important;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 10px 0 !important;
+    justify-content: flex-start; /* 左詰めにする（スマホで見やすく） */
     width: 100%;
+    
+    /* ↓↓↓ 修正箇所：高さを確保し、余白を大きく取る ↓↓↓ */
+    min-height: 60px; 
+    margin-bottom: 50px !important; /* ボタンとの距離を大幅に離す */
+    border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
 .slot-btn {
-    padding: 8px 4px; /* ボタンの内側を少し狭く */
+    padding: 8px 4px;
     border: 1px solid var(--gold);
     color: #fff;
     background: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 0.85rem; /* 文字サイズを少し小さくして4列に対応 */
+    font-size: 0.85rem;
 }
 
 .slot-btn:disabled {
@@ -262,30 +268,34 @@ nav {
 }
 
 .day-tab {
-    min-width: 60px;
-    padding: 8px;
+    min-width: 70px; /* タブの幅を少し広げる */
+    padding: 10px;
     border: 1px solid #444;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 0.8rem;
-    background: none;
+    font-size: 0.85rem;
+    background: rgba(0,0,0,0.5);
     color: #fff;
-    white-space: nowrap; /* 折り返し禁止 */
+    white-space: nowrap;
+    flex-shrink: 0; /* 縮まないようにする */
 }
 
 .day-tab.active {
     border-color: var(--gold);
     color: var(--gold);
-    background: rgba(212, 175, 55, 0.1);
+    background: rgba(212, 175, 55, 0.2);
 }
 
 .slot-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* 4列表示 */
-    gap: 8px; /* ボタン間の隙間 */
-    margin-top: 10px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    
+    /* ↓↓↓ 修正箇所：上部の余白を追加 ↓↓↓ */
+    margin-top: 30px; 
+    
     width: 100%;
-    padding-bottom: 60px; /* 下部が切れないように余白追加 */
+    padding-bottom: 80px;
 }
 
 /* --- モーダル調整 --- */
@@ -312,7 +322,7 @@ nav {
     box-sizing: border-box;
     transform: translateY(100%);
     transition: 0.4s;
-    max-height: 80vh; /* モーダルが高すぎないように制限 */
+    max-height: 80vh;
     overflow-y: auto;
 }
 
