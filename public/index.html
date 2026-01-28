@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>運命の回廊 - 神秘の導き</title>
     <link rel="stylesheet" href="/css/style.css">
+    <script src="https://js.pay.jp/v2/pay.js"></script>
     
     <meta property="og:title" content="運命の回廊 - タロット占いチャット">
     <meta property="og:description" content="運命の扉を開き、星々の声に耳を傾けてみませんか？24時間いつでも対話できる、新感覚のエンターテインメントチャット。">
@@ -52,13 +53,26 @@
         .warning-text { font-size: 1.1rem; line-height: 1.6; margin-bottom: 30px; }
         .open-safari-hint { color: var(--gold); border: 1px solid var(--gold); padding: 10px 20px; border-radius: 5px; }
         
-        /* ★追加: 審査対策用の注釈スタイル */
         .disclaimer {
             font-size: 0.7rem;
             color: #999;
             margin-top: 15px;
             line-height: 1.5;
             max-width: 90%;
+        }
+
+        /* PAY.JP カード入力フォーム用スタイル */
+        #payjp-card-element {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .payment-error {
+            color: #ff4444;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            display: none;
         }
     </style>
     <script>
@@ -271,10 +285,24 @@
     <div id="ticket-modal" onclick="closeTicketModal()">
         <div class="ticket-box" onclick="event.stopPropagation()">
             <h2 style="color:var(--gold)">チケット購入</h2>
-            <button class="main-btn" onclick="buyTickets(1)">1枚購入 (¥3,000)</button>
-            <button class="main-btn" style="background:var(--gold); color:#000;" onclick="buyTickets(10)">10枚セット
+            <button class="main-btn" onclick="openPaymentModal(1)">1枚購入 (¥3,000)</button>
+            <button class="main-btn" style="background:var(--gold); color:#000;" onclick="openPaymentModal(10)">10枚セット
                 (¥27,000)</button>
             <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="closeTicketModal()">閉じる</p>
+        </div>
+    </div>
+
+    <div id="payment-modal" onclick="closePaymentModal()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; justify-content:center; align-items:center;">
+        <div class="ticket-box" onclick="event.stopPropagation()" style="width:90%; max-width:400px;">
+            <h2 style="color:var(--gold); margin-bottom:20px;">カード情報入力</h2>
+            <p id="payment-amount-display" style="margin-bottom:15px;">お支払い金額: ¥3,000</p>
+            
+            <div id="payjp-card-element">
+                </div>
+            <div id="payment-error" class="payment-error"></div>
+
+            <button id="submit-payment-btn" class="main-btn" style="background:var(--accent); margin-top:10px;" onclick="submitPayment()">支払う</button>
+            <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="closePaymentModal()">キャンセル</p>
         </div>
     </div>
 
