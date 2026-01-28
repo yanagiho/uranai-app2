@@ -1,5 +1,5 @@
 // ★★★ 重要：ここにPAY.JPの「公開鍵 (pk_live_...)」を貼り付けてください ★★★
-const PAYJP_PUBLIC_KEY = 'pk_live_ここにあなたの公開鍵を入力';
+const PAYJP_PUBLIC_KEY = 'pk_live_06a966413bc89cdcc4830136';
 
 let userId = localStorage.getItem('fortune_user_id');
 let castsData = [], currentCastId = null, selectedDate = null, selectedTime = null;
