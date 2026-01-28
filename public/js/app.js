@@ -1,8 +1,19 @@
+// ★★★ 重要：ここにPAY.JPの「公開鍵 (pk_live_...)」を貼り付けてください ★★★
+const PAYJP_PUBLIC_KEY = 'pk_live_ここにあなたの公開鍵を入力';
+
 let userId = localStorage.getItem('fortune_user_id');
 let castsData = [], currentCastId = null, selectedDate = null, selectedTime = null;
+let payjp = null, elements = null, cardElement = null;
+let currentPaymentItem = 1; // 1 or 10 (枚数)
 
 window.onload = async () => {
     try {
+        // PAY.JP初期化
+        if (typeof Payjp !== 'undefined') {
+            payjp = Payjp(PAYJP_PUBLIC_KEY);
+            elements = payjp.elements();
+        }
+
         const urlParams = new URLSearchParams(window.location.search);
         if (userId) {
             const res = await fetch('/api/login', {
@@ -19,7 +30,7 @@ window.onload = async () => {
             }
 
             const data = await res.json();
-            if (data.isComplete || urlParams.get('payment') === 'success') {
+            if (data.isComplete) {
                 initApp();
             } else {
                 showScreen('setup-screen');
@@ -249,24 +260,103 @@ window.closeTicketModal = function () {
     setTimeout(() => document.getElementById('ticket-modal').style.display = 'none', 300); 
 };
 
-window.buyTickets = async function (amount) {
-    const res = await fetch('/api/stripe_checkout', { method: 'POST', body: JSON.stringify({ userId, amount }) });
-    const data = await res.json();
-    if (data.url) window.location.href = data.url;
+// --- PAY.JP 決済処理 ---
+
+window.openPaymentModal = function(itemType) {
+    closeTicketModal();
+    currentPaymentItem = itemType;
+    const amount = itemType === 10 ? 27000 : 3000;
+    document.getElementById('payment-amount-display').innerText = `お支払い金額: ¥${amount.toLocaleString()}`;
+    document.getElementById('payment-modal').style.display = 'flex';
+    
+    // カード要素の作成とマウント（初回のみ）
+    if (elements && !cardElement) {
+        // ダークテーマ風のスタイル
+        const style = {
+            base: {
+                color: '#32325d',
+                lineHeight: '24px',
+                fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                fontSmoothing: 'antialiased',
+                fontSize: '16px',
+                '::placeholder': {
+                    color: '#aab7c4'
+                }
+            },
+            invalid: {
+                color: '#fa755a',
+                iconColor: '#fa755a'
+            }
+        };
+        cardElement = elements.create('card', { style: style });
+        cardElement.mount('#payjp-card-element');
+    }
 };
 
-// --- マイページ関連の機能 ---
+window.closePaymentModal = function() {
+    document.getElementById('payment-modal').style.display = 'none';
+    document.getElementById('payment-error').style.display = 'none';
+    document.getElementById('payment-error').innerText = '';
+};
+
+window.submitPayment = function() {
+    const errorDiv = document.getElementById('payment-error');
+    errorDiv.style.display = 'none';
+    errorDiv.innerText = '';
+    
+    const btn = document.getElementById('submit-payment-btn');
+    btn.disabled = true;
+    btn.innerText = "処理中...";
+
+    payjp.createToken(cardElement).then(async function(r) {
+        if (r.error) {
+            errorDiv.innerText = r.error.message;
+            errorDiv.style.display = 'block';
+            btn.disabled = false;
+            btn.innerText = "支払う";
+            return;
+        }
+
+        // トークン取得成功 -> サーバーへ送信
+        try {
+            const res = await fetch('/api/purchase', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    token: r.id,
+                    item_type: currentPaymentItem
+                })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                alert("決済が完了しました！チケットが付与されました。");
+                closePaymentModal();
+                syncTickets();
+            } else {
+                throw new Error(data.error || "決済に失敗しました");
+            }
+        } catch (e) {
+            errorDiv.innerText = e.message;
+            errorDiv.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "支払う";
+        }
+    });
+};
+
+// --- マイページ関連 ---
 
 window.openMyPage = async function() {
     showScreen('mypage-screen');
     if (!userId) return;
 
     try {
-        // 最新情報を取得
         const res = await fetch(`/api/user_info?userId=${userId}`);
         const data = await res.json();
 
-        // フォームに値をセット
         document.getElementById('my-last-name').value = data.lastName;
         document.getElementById('my-first-name').value = data.firstName;
         document.getElementById('my-gender').value = data.gender || "";
@@ -278,7 +368,6 @@ window.openMyPage = async function() {
             document.getElementById('my-dob-day').value = d;
         }
 
-        // 予約情報の表示
         const resDiv = document.getElementById('mypage-reservation');
         if (data.reservation) {
             currentCastId = null; 
