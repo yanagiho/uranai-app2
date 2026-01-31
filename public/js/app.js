@@ -8,7 +8,6 @@ let currentPaymentItem = 1; // 1 or 10 (枚数)
 
 window.onload = async () => {
     try {
-        // PAY.JP初期化
         if (typeof Payjp !== 'undefined') {
             payjp = Payjp(PAYJP_PUBLIC_KEY);
             elements = payjp.elements();
@@ -260,18 +259,20 @@ window.closeTicketModal = function () {
     setTimeout(() => document.getElementById('ticket-modal').style.display = 'none', 300); 
 };
 
-// --- PAY.JP 決済処理 ---
+// --- PAY.JP 決済処理（価格修正済み） ---
 
 window.openPaymentModal = function(itemType) {
     closeTicketModal();
     currentPaymentItem = itemType;
-    const amount = itemType === 10 ? 27000 : 3000;
+    
+    // ★★★ 価格計算の修正 ★★★
+    // 10枚なら 4,500円、1枚なら 500円
+    const amount = itemType === 10 ? 4500 : 500;
+    
     document.getElementById('payment-amount-display').innerText = `お支払い金額: ¥${amount.toLocaleString()}`;
     document.getElementById('payment-modal').style.display = 'flex';
     
-    // カード要素の作成とマウント（初回のみ）
     if (elements && !cardElement) {
-        // ダークテーマ風のスタイル
         const style = {
             base: {
                 color: '#32325d',
@@ -279,14 +280,9 @@ window.openPaymentModal = function(itemType) {
                 fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
                 fontSmoothing: 'antialiased',
                 fontSize: '16px',
-                '::placeholder': {
-                    color: '#aab7c4'
-                }
+                '::placeholder': { color: '#aab7c4' }
             },
-            invalid: {
-                color: '#fa755a',
-                iconColor: '#fa755a'
-            }
+            invalid: { color: '#fa755a', iconColor: '#fa755a' }
         };
         cardElement = elements.create('card', { style: style });
         cardElement.mount('#payjp-card-element');
@@ -317,7 +313,6 @@ window.submitPayment = function() {
             return;
         }
 
-        // トークン取得成功 -> サーバーへ送信
         try {
             const res = await fetch('/api/purchase', {
                 method: 'POST',
