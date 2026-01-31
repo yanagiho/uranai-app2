@@ -7,20 +7,22 @@ export async function onRequestPost(context) {
         return new Response(JSON.stringify({ error: "必須パラメータが不足しています" }), { status: 400 });
     }
 
-    // 金額と枚数の決定
+    // ★★★ 価格設定の変更箇所 ★★★
     let amount = 0;
     let ticketsToAdd = 0;
 
     if (item_type === 10) {
-        amount = 27000;
+        // 10枚セット: 4,500円
+        amount = 4500;
         ticketsToAdd = 10;
     } else {
-        amount = 3000;
+        // 1枚単発: 500円
+        amount = 500;
         ticketsToAdd = 1;
     }
 
-    // PAY.JPへ決済リクエスト (Basic認証)
-    const auth = btoa(`${env.PAYJP_SECRET_KEY}:`); // Secret KeyをBase64エンコード
+    // PAY.JPへ決済リクエスト
+    const auth = btoa(`${env.PAYJP_SECRET_KEY}:`);
     
     const payRes = await fetch('https://api.pay.jp/v1/charges', {
         method: 'POST',
