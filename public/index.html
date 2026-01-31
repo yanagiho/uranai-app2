@@ -285,9 +285,9 @@
     <div id="ticket-modal" onclick="closeTicketModal()">
         <div class="ticket-box" onclick="event.stopPropagation()">
             <h2 style="color:var(--gold)">チケット購入</h2>
-            <button class="main-btn" onclick="openPaymentModal(1)">1枚購入 (¥3,000)</button>
+            <button class="main-btn" onclick="openPaymentModal(1)">1枚購入 (¥500)</button>
             <button class="main-btn" style="background:var(--gold); color:#000;" onclick="openPaymentModal(10)">10枚セット
-                (¥27,000)</button>
+                (¥4,500)</button>
             <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="closeTicketModal()">閉じる</p>
         </div>
     </div>
@@ -295,10 +295,9 @@
     <div id="payment-modal" onclick="closePaymentModal()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:3000; justify-content:center; align-items:center;">
         <div class="ticket-box" onclick="event.stopPropagation()" style="width:90%; max-width:400px; transform: none; border-radius: 15px; max-height:90vh;">
             <h2 style="color:var(--gold); margin-bottom:20px;">カード情報入力</h2>
-            <p id="payment-amount-display" style="margin-bottom:15px;">お支払い金額: ¥3,000</p>
+            <p id="payment-amount-display" style="margin-bottom:15px;">お支払い金額: ¥500</p>
             
-            <div id="payjp-card-element">
-                </div>
+            <div id="payjp-card-element"></div>
             <div id="payment-error" class="payment-error"></div>
 
             <button id="submit-payment-btn" class="main-btn" style="background:var(--accent); margin-top:10px;" onclick="submitPayment()">支払う</button>
