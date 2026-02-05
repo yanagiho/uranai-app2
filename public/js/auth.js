@@ -12,7 +12,7 @@ import {
 
 // Firebase設定 (ご自身の環境に合わせて変更してください)
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
+    apiKey: "t1PKCwh3ItwJLIYH0371i8MWn",
     authDomain: "uranai-app2.firebaseapp.com",
     projectId: "uranai-app2",
     storageBucket: "uranai-app2.appspot.com",
