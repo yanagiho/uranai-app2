@@ -1,10 +1,13 @@
 // ★★★ 重要：ここにPAY.JPの「公開鍵 (pk_live_...)」を貼り付けてください ★★★
-const PAYJP_PUBLIC_KEY = 'pk_live_06a966413bc89cdcc4830136';
+const PAYJP_PUBLIC_KEY = 'pk_live_ここにあなたの公開鍵を入力';
 
 let userId = localStorage.getItem('fortune_user_id');
 let castsData = [], currentCastId = null, selectedDate = null, selectedTime = null;
 let payjp = null, elements = null, cardElement = null;
 let currentPaymentItem = 1; // 1 or 10 (枚数)
+
+// ★ チケット枚数を管理するグローバル変数
+let currentTicketBalance = 0;
 
 window.onload = async () => {
     try {
@@ -52,6 +55,7 @@ window.showScreen = function (id) {
 };
 
 window.initApp = async function () {
+    // ログイン後、すぐに選択画面へ
     showScreen('selection-screen');
     await syncTickets();
     try {
@@ -69,7 +73,12 @@ async function syncTickets() {
         const res = await fetch(`/api/user_info?userId=${userId}`);
         if (!res.ok) return;
         const data = await res.json();
-        document.getElementById('nav-ticket').innerText = data.ticket_balance || 0;
+        
+        // グローバル変数に保存
+        currentTicketBalance = data.ticket_balance || 0;
+        
+        document.getElementById('nav-ticket').innerText = currentTicketBalance;
+        
         if (data.hasPendingReservation) {
             currentCastId = data.pendingCastId;
             document.getElementById('reservation-status').style.display = 'block';
@@ -79,7 +88,16 @@ async function syncTickets() {
     } catch (e) { console.error(e); }
 }
 
+// ★★★ 変更箇所：占い師を選んだ瞬間のチェック ★★★
 window.openIntro = function (id) {
+    // 1. チケットを持っているかチェック
+    if (currentTicketBalance <= 0) {
+        alert("予約に進むにはチケットが必要です。\n先にチケットをご購入ください。");
+        openTicketModal(); // チケット購入画面を強制的に開く
+        return; // ここで処理を止める（プロフィール画面には行かない）
+    }
+
+    // 2. チケットがある場合のみ、プロフィールを開く
     const cast = castsData.find(c => c.id === id);
     currentCastId = id;
     document.getElementById('modal-img').src = `/img/${cast.img}`;
@@ -125,9 +143,17 @@ window.selectTime = function (time, el) {
 };
 
 window.submitBooking = async function () {
+    // 念のためここでもチェック
+    if (currentTicketBalance <= 0) {
+        alert("チケット不足です");
+        return;
+    }
+
     const res = await fetch('/api/reserve', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, scheduledAt: `${selectedDate}T${selectedTime}` }) });
     const data = await res.json();
     if (data.error) return alert(data.error);
+    
+    alert("予約が完了しました！");
     initApp();
 };
 
@@ -259,14 +285,12 @@ window.closeTicketModal = function () {
     setTimeout(() => document.getElementById('ticket-modal').style.display = 'none', 300); 
 };
 
-// --- PAY.JP 決済処理（価格修正済み） ---
+// --- PAY.JP 決済処理 ---
 
 window.openPaymentModal = function(itemType) {
     closeTicketModal();
     currentPaymentItem = itemType;
     
-    // ★★★ 価格計算の修正 ★★★
-    // 10枚なら 4,500円、1枚なら 500円
     const amount = itemType === 10 ? 4500 : 500;
     
     document.getElementById('payment-amount-display').innerText = `お支払い金額: ¥${amount.toLocaleString()}`;
@@ -329,6 +353,8 @@ window.submitPayment = function() {
                 alert("決済が完了しました！チケットが付与されました。");
                 closePaymentModal();
                 syncTickets();
+                // もし占い師を選んでいる最中だったら、そのままプロフィールを開くことも可能
+                // ここでは一度ユーザーに選ばせるために特に何もしない
             } else {
                 throw new Error(data.error || "決済に失敗しました");
             }
