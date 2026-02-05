@@ -6,9 +6,6 @@ let castsData = [], currentCastId = null, selectedDate = null, selectedTime = nu
 let payjp = null, elements = null, cardElement = null;
 let currentPaymentItem = 1; // 1 or 10 (枚数)
 
-// ★ チケット枚数を管理するグローバル変数
-let currentTicketBalance = 0;
-
 window.onload = async () => {
     try {
         if (typeof Payjp !== 'undefined') {
@@ -55,9 +52,8 @@ window.showScreen = function (id) {
 };
 
 window.initApp = async function () {
-    // ログイン後、すぐに選択画面へ
     showScreen('selection-screen');
-    await syncTickets();
+    await syncTickets(); // 画面表示時にも一応更新
     try {
         const cres = await fetch('/api/casts');
         castsData = await cres.json();
@@ -68,16 +64,16 @@ window.initApp = async function () {
 };
 
 async function syncTickets() {
-    if (!userId) return;
+    if (!userId) return 0;
     try {
         const res = await fetch(`/api/user_info?userId=${userId}`);
-        if (!res.ok) return;
+        if (!res.ok) return 0;
         const data = await res.json();
         
-        // グローバル変数に保存
-        currentTicketBalance = data.ticket_balance || 0;
+        // 数値として確実に変換
+        const balance = parseInt(data.ticket_balance, 10) || 0;
         
-        document.getElementById('nav-ticket').innerText = currentTicketBalance;
+        document.getElementById('nav-ticket').innerText = balance;
         
         if (data.hasPendingReservation) {
             currentCastId = data.pendingCastId;
@@ -85,20 +81,29 @@ async function syncTickets() {
         } else {
             document.getElementById('reservation-status').style.display = 'none';
         }
-    } catch (e) { console.error(e); }
+        return balance;
+    } catch (e) { 
+        console.error(e); 
+        return 0;
+    }
 }
 
-// ★★★ 変更箇所：占い師を選んだ瞬間のチェック ★★★
-window.openIntro = function (id) {
-    // 1. チケットを持っているかチェック
-    if (currentTicketBalance <= 0) {
+// ★★★ 修正箇所：タップ時にサーバーに最新枚数を確認して厳密にチェック ★★★
+window.openIntro = async function (id) {
+    // 1. 最新のチケット枚数を取得（通信待ち）
+    const currentBalance = await syncTickets();
+
+    // 2. チケットが0枚以下ならブロックして購入画面へ
+    if (currentBalance <= 0) {
         alert("予約に進むにはチケットが必要です。\n先にチケットをご購入ください。");
-        openTicketModal(); // チケット購入画面を強制的に開く
-        return; // ここで処理を止める（プロフィール画面には行かない）
+        openTicketModal();
+        return; // ★ここで処理終了。プロフィール画面は開きません。
     }
 
-    // 2. チケットがある場合のみ、プロフィールを開く
+    // 3. チケットがある場合のみ、プロフィールを開く
     const cast = castsData.find(c => c.id === id);
+    if (!cast) return;
+
     currentCastId = id;
     document.getElementById('modal-img').src = `/img/${cast.img}`;
     document.getElementById('modal-name').innerText = cast.name;
@@ -143,8 +148,9 @@ window.selectTime = function (time, el) {
 };
 
 window.submitBooking = async function () {
-    // 念のためここでもチェック
-    if (currentTicketBalance <= 0) {
+    // 念のためここでも再チェック
+    const balance = await syncTickets();
+    if (balance <= 0) {
         alert("チケット不足です");
         return;
     }
@@ -353,8 +359,6 @@ window.submitPayment = function() {
                 alert("決済が完了しました！チケットが付与されました。");
                 closePaymentModal();
                 syncTickets();
-                // もし占い師を選んでいる最中だったら、そのままプロフィールを開くことも可能
-                // ここでは一度ユーザーに選ばせるために特に何もしない
             } else {
                 throw new Error(data.error || "決済に失敗しました");
             }
