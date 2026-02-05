@@ -1,94 +1,109 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { 
+    getAuth, 
+    GoogleAuthProvider, 
+    signInWithRedirect, 
+    getRedirectResult,
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword, 
+    onAuthStateChanged,
+    signOut 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+// Firebase設定 (ご自身の環境に合わせて変更してください)
 const firebaseConfig = {
-    apiKey: "AIzaSyCNaMyiMhGfWsCP69f-WELJP0oVwM-b3fY",
-    authDomain: "uranai-app-54348.firebaseapp.com",
-    projectId: "uranai-app-54348",
-    storageBucket: "uranai-app-54348.firebasestorage.app",
-    messagingSenderId: "104535743252",
-    appId: "1:104535743252:web:83f60f87def0d636448001",
-    measurementId: "G-T89YYWNPL3"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "uranai-app2.firebaseapp.com",
+    projectId: "uranai-app2",
+    storageBucket: "uranai-app2.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
 
+// 初期化
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// グローバル関数として公開
-window.handleGoogleLogin = async () => {
-    try {
-        const result = await signInWithPopup(auth, provider);
-        handleAuthWithFirebase(result.user, 'Google');
-    } catch (error) {
-        console.error(error);
-        alert("ログインエラー: " + error.message);
+// 言語設定
+auth.languageCode = 'ja';
+
+// --------------------------------------------------
+// ★重要修正: ページ読み込み時に、リダイレクト結果を確認する
+// --------------------------------------------------
+getRedirectResult(auth)
+    .then((result) => {
+        if (result) {
+            // Googleログインから戻ってきた場合
+            const user = result.user;
+            console.log("Redirect Login Success:", user.uid);
+            handleLoginSuccess(user, 'Google');
+        }
+    })
+    .catch((error) => {
+        console.error("Redirect Error:", error);
+        // エラー内容によってはアラートを出すなど
+        if (error.code !== 'auth/popup-closed-by-user') {
+           // alert("ログインに失敗しました: " + error.message);
+        }
+    });
+
+// --------------------------------------------------
+// 認証状態の監視
+// --------------------------------------------------
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        // すでにログイン状態の場合
+        // (リダイレクト直後以外でも、ブラウザを閉じてまた開いた時など)
+        localStorage.setItem('fortune_user_id', user.uid);
+        
+        // 画面の表示切り替えは app.js 側で行われるが、
+        // もしトップページ(gateway/title)にいるならアプリを開始させる
+        const currentScreen = document.querySelector('.screen[style*="flex"]')?.id;
+        if (['gateway-screen', 'title-screen'].includes(currentScreen)) {
+            if (window.initApp) {
+                window.initApp();
+            } else {
+                // app.jsのロード待ち等の場合リロード
+                location.reload(); 
+            }
+        }
+    } else {
+        // 未ログイン時
+        // 特に何もしない（ログアウト処理は window.logout で行う）
     }
+});
+
+
+// --------------------------------------------------
+// ログイン処理関数 (Windowオブジェクトに紐付け)
+// --------------------------------------------------
+
+// ★Googleログイン（リダイレクト方式に変更）
+window.handleGoogleLogin = () => {
+    // Android/iOSでの安定性のため Redirect を使用
+    signInWithRedirect(auth, provider);
+    // ※この後、Googleの画面に遷移するため、ここから下の行は実行されません
 };
 
-window.handleEmailSignup = async () => {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    if (!email || !password) return alert("メールとパスワードを入力してください");
-
-    try {
-        const result = await createUserWithEmailAndPassword(auth, email, password);
-        handleAuthWithFirebase(result.user, 'Email');
-    } catch (error) {
-        console.error(error);
-        let msg = "登録エラー: " + error.message;
-        if (error.code === 'auth/email-already-in-use') msg = "このメールアドレスは既に登録されています。ログインしてください。";
-        if (error.code === 'auth/weak-password') msg = "パスワードは6文字以上にしてください。";
-        alert(msg);
-    }
-};
-
+// メールログイン
 window.handleEmailLogin = async () => {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    if (!email || !password) return alert("メールとパスワードを入力してください");
+    if (!email || !password) return alert("メールアドレスとパスワードを入力してください");
 
     try {
         const result = await signInWithEmailAndPassword(auth, email, password);
-        handleAuthWithFirebase(result.user, 'Email');
+        handleLoginSuccess(result.user, 'Email');
     } catch (error) {
         console.error(error);
-        let msg = "ログインエラー: " + error.message;
-        if (error.code === 'auth/invalid-credential') msg = "メールアドレスまたはパスワードが違います。";
-        if (error.code === 'auth/user-not-found') msg = "登録されていません。新規登録してください。";
-        alert(msg);
+        alert("ログイン失敗: " + error.message);
     }
 };
 
-window.logout = async () => {
-    await signOut(auth);
-    localStorage.clear();
-    location.reload();
-};
-
-async function handleAuthWithFirebase(firebaseUser, authType = 'Email') {
-    const userId = firebaseUser.uid;
-    const email = firebaseUser.email;
-
-    localStorage.setItem('fortune_user_id', userId);
-    localStorage.setItem('fortune_auth_type', authType);
-
-    try {
-        const res = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, email, auth_type: authType })
-        });
-
-        if (!res.ok) throw new Error("サーバー通信エラー");
-        const data = await res.json();
-
-        if (data.isComplete) {
-            window.initApp();
-        } else {
-            window.showScreen('setup-screen');
-        }
-    } catch (e) {
-        alert("認証後の処理に失敗しました: " + e.message);
-    }
-}
+// メール新規登録
+window.handleEmailSignup = async () => {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    if (!email || !password) return alert("メールアドレスとパスワードを入力してください");
+    if (password.length < 6) return alert("
