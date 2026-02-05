@@ -12,12 +12,12 @@ import {
 
 // Firebase設定 (ご自身の環境に合わせて変更してください)
 const firebaseConfig = {
-    apiKey: "t1PKCwh3ItwJLIYH0371i8MWn",
+    apiKey: "AIzaSyCNaMyiMhGfWsCP69f-WELJP0oVwM-b3fY",
     authDomain: "uranai-app2.firebaseapp.com",
     projectId: "uranai-app2",
     storageBucket: "uranai-app2.appspot.com",
     messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    appId: "1:104535743252:web:83f60f87def0d636448001"
 };
 
 // 初期化
@@ -106,4 +106,39 @@ window.handleEmailSignup = async () => {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     if (!email || !password) return alert("メールアドレスとパスワードを入力してください");
-    if (password.length < 6) return alert("
+    if (password.length < 6) return alert("パスワードは6文字以上で設定してください");
+
+    try {
+        const result = await createUserWithEmailAndPassword(auth, email, password);
+        handleLoginSuccess(result.user, 'Email');
+    } catch (error) {
+        console.error(error);
+        alert("登録失敗: " + error.message);
+    }
+};
+
+// ログアウト
+window.logout = () => {
+    signOut(auth).then(() => {
+        localStorage.removeItem('fortune_user_id');
+        localStorage.removeItem('fortune_auth_type');
+        alert("ログアウトしました");
+        location.reload();
+    }).catch((error) => {
+        console.error(error);
+    });
+};
+
+// 共通のログイン成功処理
+function handleLoginSuccess(user, type) {
+    localStorage.setItem('fortune_user_id', user.uid);
+    localStorage.setItem('fortune_auth_type', type);
+    
+    // ユーザー情報をサーバーに一度送って確認（app.jsのロジックに任せるためリロード推奨）
+    // もしくは initApp を直接呼ぶ
+    if (typeof window.initApp === 'function') {
+        window.initApp();
+    } else {
+        location.reload();
+    }
+}
