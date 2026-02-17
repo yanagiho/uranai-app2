@@ -34,7 +34,6 @@
             color: var(--gold);
             text-decoration: underline;
         }
-        /* アプリ内ブラウザ警告用 */
         #in-app-browser-warning {
             display: none;
             position: fixed;
@@ -52,40 +51,15 @@
         .warning-icon { font-size: 3rem; margin-bottom: 20px; }
         .warning-text { font-size: 1.1rem; line-height: 1.6; margin-bottom: 30px; }
         .open-safari-hint { color: var(--gold); border: 1px solid var(--gold); padding: 10px 20px; border-radius: 5px; }
-        
-        .disclaimer {
-            font-size: 0.7rem;
-            color: #999;
-            margin-top: 15px;
-            line-height: 1.5;
-            max-width: 90%;
-        }
-
-        /* PAY.JP カード入力フォーム用スタイル */
-        #payjp-card-element {
-            background-color: #fff;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        .payment-error {
-            color: #ff4444;
-            font-size: 0.9rem;
-            margin-top: 10px;
-            display: none;
-        }
+        .disclaimer { font-size: 0.7rem; color: #999; margin-top: 15px; line-height: 1.5; max-width: 90%; }
+        #payjp-card-element { background-color: #fff; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .payment-error { color: #ff4444; font-size: 0.9rem; margin-top: 10px; display: none; }
     </style>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             var ua = navigator.userAgent.toLowerCase();
-            var isInApp = ua.indexOf('line') > -1 || 
-                          ua.indexOf('twitter') > -1 || 
-                          ua.indexOf('instagram') > -1 || 
-                          ua.indexOf('fbav') > -1;
-
-            if (isInApp) {
-                document.getElementById('in-app-browser-warning').style.display = 'flex';
-            }
+            var isInApp = ua.indexOf('line') > -1 || ua.indexOf('twitter') > -1 || ua.indexOf('instagram') > -1 || ua.indexOf('fbav') > -1;
+            if (isInApp) { document.getElementById('in-app-browser-warning').style.display = 'flex'; }
         });
     </script>
 </head>
@@ -93,15 +67,8 @@
 <body>
     <div id="in-app-browser-warning">
         <div class="warning-icon">⚠️</div>
-        <div class="warning-text">
-            現在、アプリ内ブラウザ（LINEやTwitterなど）で開かれています。<br>
-            正常にログインするために、<br>
-            <strong>「Safari」または「Chrome」</strong>で開き直してください。
-        </div>
-        <div class="open-safari-hint">
-            右下のメニュー「︙」や「共有」アイコンから<br>
-            「ブラウザで開く」を選択してください
-        </div>
+        <div class="warning-text">現在、アプリ内ブラウザで開かれています。<br>正常に動作させるため、<br><strong>「Safari」または「Chrome」</strong>で開き直してください。</div>
+        <div class="open-safari-hint">右下のメニュー「︙」や「共有」アイコンから<br>「ブラウザで開く」を選択してください</div>
     </div>
 
     <nav id="main-nav" style="display:none">
@@ -113,51 +80,32 @@
     </nav>
 
     <div id="gateway-screen" class="screen" style="display:flex; justify-content:center;">
-        <h1 class="logo"><img src="/img/title_logo.png" alt="運命の回廊 CORRIDOR OF FATE" class="logo-img"></h1>
+        <h1 class="logo"><img src="/img/title_logo.png" alt="運命の回廊" class="logo-img"></h1>
         <button class="main-btn" style="width:200px" onclick="showScreen('title-screen')">回廊に入る</button>
-        
-        <p class="disclaimer">
-            ※本サービスはAI技術を活用したエンターテインメントチャットです。<br>
-            将来の出来事を保証するものではありません。
-        </p>
-        
+        <p class="disclaimer">※本サービスはAI技術を活用したエンターテインメントチャットです。</p>
         <footer>
             <a href="/terms.html" target="_blank">利用規約</a> | 
             <a href="/privacy.html" target="_blank">プライバシーポリシー</a> | 
             <a href="/law.html" target="_blank">特定商取引法に基づく表記</a>
-            <br>
-            &copy; 2026 Corridor of Fate
+            <br>&copy; 2026 Corridor of Fate
         </footer>
     </div>
 
     <div id="title-screen" class="screen">
         <h1 class="logo" style="font-size:1.6rem; color:var(--gold);">入館の儀</h1>
         <div class="form-box">
-            <button class="auth-btn" style="background:#fff; color:#000; width:100%; margin-bottom:20px;"
-                onclick="window.handleGoogleLogin()">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
-                    class="google-icon">
-                Google で入館
+            <button class="auth-btn" style="background:#fff; color:#000; width:100%; margin-bottom:20px;" onclick="window.handleGoogleLogin()">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="google-icon"> Google で入館
             </button>
-
             <hr style="border:0; border-top:1px solid #444; margin: 20px 0;">
-
             <p style="text-align:left; font-size:0.9rem; color:#ccc; margin:0 0 8px 0;">メールアドレスで入館</p>
             <input type="email" id="email" placeholder="メールアドレス" style="margin-bottom:10px;">
             <input type="password" id="password" placeholder="パスワード（6文字以上）" style="margin-bottom:15px;">
-
             <div style="display:flex; gap:10px;">
-                <button class="main-btn" style="background:#444; font-size:0.9rem; margin-top:0;"
-                    onclick="window.handleEmailLogin()">ログイン</button>
-                <button class="main-btn" style="font-size:0.9rem; margin-top:0;"
-                    onclick="window.handleEmailSignup()">新規登録</button>
+                <button class="main-btn" style="background:#444; font-size:0.9rem; margin-top:0;" onclick="window.handleEmailLogin()">ログイン</button>
+                <button class="main-btn" style="font-size:0.9rem; margin-top:0;" onclick="window.handleEmailSignup()">新規登録</button>
             </div>
         </div>
-        
-        <p class="disclaimer">
-            ※本サービスはAI技術を活用したエンターテインメントコンテンツです。
-        </p>
-
         <footer>
             <a href="/terms.html" target="_blank">利用規約</a> | 
             <a href="/privacy.html" target="_blank">プライバシーポリシー</a> |
@@ -168,26 +116,20 @@
     <div id="setup-screen" class="screen">
         <h1 style="color:var(--gold)">運命のカルテ登録</h1>
         <div class="form-box">
-            <div style="display:flex; gap:5px;"><input type="text" id="user-last-name" placeholder="姓"><input
-                    type="text" id="user-first-name" placeholder="名"></div>
-            <div style="display:flex; gap:5px;"><input type="text" id="dob-year" placeholder="年"><input type="text"
-                    id="dob-month" placeholder="月"><input type="text" id="dob-day" placeholder="日"></div>
+            <div style="display:flex; gap:5px;"><input type="text" id="user-last-name" placeholder="姓"><input type="text" id="user-first-name" placeholder="名"></div>
+            <div style="display:flex; gap:5px;"><input type="text" id="dob-year" placeholder="年"><input type="text" id="dob-month" placeholder="月"><input type="text" id="dob-day" placeholder="日"></div>
             <button class="main-btn" onclick="validateAndRegister()">運命を刻む</button>
         </div>
     </div>
 
     <div id="selection-screen" class="screen">
-        <div id="reservation-status"
-            style="display:none; background:rgba(156, 39, 176, 0.2); padding:15px; border-radius:15px; margin-bottom:20px; border:1px solid var(--accent); width:100%; max-width:400px;">
-            <p style="margin:0;">予約があります。</p>
-            <button class="main-btn" style="padding:10px; margin-top:10px; font-size:0.8rem;"
-                onclick="startChat()">鑑定室へ進む</button>
+        <div id="reservation-status" style="display:none; background:rgba(156, 39, 176, 0.2); padding:15px; border-radius:15px; margin-bottom:20px; border:1px solid var(--accent); width:100%; max-width:400px;">
+            <p style="margin:0;">中断された鑑定があります。</p>
+            <button class="main-btn" style="padding:10px; margin-top:10px; font-size:0.8rem;" onclick="startChat()">鑑定室へ戻る</button>
         </div>
-        <h2 style="color:var(--gold)">鑑定師をお選びください</h2>
+        <h2 style="color:var(--gold)">運命を読み解く者たち</h2>
         <div id="cast-list" class="cast-grid"></div>
-        <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:30px;" onclick="window.logout()">
-            ログアウト</p>
-        
+        <p style="color:#555; text-decoration:underline; cursor:pointer; margin-top:30px;" onclick="window.logout()">ログアウト</p>
         <footer>
             <a href="/terms.html" target="_blank">利用規約</a> | 
             <a href="/privacy.html" target="_blank">プライバシーポリシー</a> |
@@ -195,42 +137,21 @@
         </footer>
     </div>
 
-    <div id="booking-screen" class="screen">
-        <h2 id="book-cast-name" style="color:var(--gold)"></h2>
-        <div id="day-list"
-            style="display:flex; gap:10px; overflow-x:auto; padding:10px 0; justify-content:center; width:100%;"></div>
-        <div id="time-slots" class="slot-grid"></div>
-        <button id="confirm-btn" class="main-btn" style="display:none; margin-top:30px;"
-            onclick="submitBooking()">予約を確定する</button>
-        <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="showScreen('selection-screen')">戻る</p>
-    </div>
-
     <div id="mypage-screen" class="screen">
         <h2 style="color:var(--gold); margin-bottom:20px;">マイページ</h2>
-        
-        <div style="width:100%; max-width:400px; margin-bottom:30px;">
-            <h3 style="text-align:left; border-bottom:1px solid #444; padding-bottom:5px; margin-bottom:15px; color:var(--gold); font-size:1rem;">現在の予約</h3>
-            <div id="mypage-reservation" style="background:var(--glass); padding:15px; border-radius:10px; text-align:left;">
-                <p style="color:#999; text-align:center;">現在、予約はありません。</p>
-            </div>
-        </div>
-
         <div class="form-box">
             <h3 style="color:var(--gold); margin-top:0; border-bottom:1px solid #444; padding-bottom:10px; font-size:1rem;">登録情報</h3>
-            
             <p style="text-align:left; margin:5px 0; font-size:0.8rem; color:#ccc;">お名前</p>
             <div style="display:flex; gap:5px;">
                 <input type="text" id="my-last-name" placeholder="姓">
                 <input type="text" id="my-first-name" placeholder="名">
             </div>
-
             <p style="text-align:left; margin:5px 0; font-size:0.8rem; color:#ccc;">生年月日</p>
             <div style="display:flex; gap:5px;">
                 <input type="text" id="my-dob-year" placeholder="年">
                 <input type="text" id="my-dob-month" placeholder="月">
                 <input type="text" id="my-dob-day" placeholder="日">
             </div>
-
             <p style="text-align:left; margin:5px 0; font-size:0.8rem; color:#ccc;">性別</p>
             <select id="my-gender" style="width:100%; padding:12px; background:#000; border:1px solid #444; color:#fff; border-radius:8px; margin-bottom:15px;">
                 <option value="">未設定</option>
@@ -238,19 +159,15 @@
                 <option value="男性">男性</option>
                 <option value="その他">その他</option>
             </select>
-
             <button class="main-btn" onclick="saveProfile()">情報を更新する</button>
         </div>
-
         <p style="margin-top:30px; color:#666; cursor:pointer; text-decoration:underline;" onclick="window.logout()">ログアウト</p>
         <p style="margin-top:10px; color:#666; cursor:pointer;" onclick="showScreen('selection-screen')">戻る</p>
-        
         <footer>
             <a href="/terms.html" target="_blank">利用規約</a> | 
             <a href="/privacy.html" target="_blank">プライバシーポリシー</a> | 
             <a href="/law.html" target="_blank">特定商取引法に基づく表記</a>
-            <br>
-            &copy; 2026 Corridor of Fate
+            <br>&copy; 2026 Corridor of Fate
         </footer>
     </div>
 
@@ -273,12 +190,15 @@
 
     <div id="cast-modal" onclick="closeModal()">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <img id="modal-img" src=""
-                style="width:90px; height:90px; border-radius:50%; border:2px solid var(--gold); margin-bottom:10px; object-fit:cover;">
+            <img id="modal-img" src="" style="width:90px; height:90px; border-radius:50%; border:2px solid var(--gold); margin-bottom:10px; object-fit:cover;">
             <h2 id="modal-name" style="color:var(--gold); margin:5px 0;"></h2>
             <p id="modal-intro" style="font-size:0.9rem; color:#ccc; line-height:1.5;"></p>
-            <button class="main-btn" onclick="goToBooking()">この先生に予約する</button>
-            <p style="margin-top:10px; color:#666; cursor:pointer;" onclick="closeModal()">閉じる</p>
+            
+            <button class="main-btn" style="background: linear-gradient(45deg, var(--gold), #d4af37); color:#000; font-weight:bold; margin-top:15px;" onclick="startInstantChat()">
+                チケット1枚で鑑定開始
+            </button>
+            
+            <p style="margin-top:15px; color:#666; cursor:pointer;" onclick="closeModal()">閉じる</p>
         </div>
     </div>
 
@@ -286,8 +206,7 @@
         <div class="ticket-box" onclick="event.stopPropagation()">
             <h2 style="color:var(--gold)">チケット購入</h2>
             <button class="main-btn" onclick="openPaymentModal(1)">1枚購入 (¥500)</button>
-            <button class="main-btn" style="background:var(--gold); color:#000;" onclick="openPaymentModal(10)">10枚セット
-                (¥4,500)</button>
+            <button class="main-btn" style="background:var(--gold); color:#000;" onclick="openPaymentModal(10)">10枚セット (¥4,500)</button>
             <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="closeTicketModal()">閉じる</p>
         </div>
     </div>
@@ -295,11 +214,9 @@
     <div id="payment-modal" onclick="closePaymentModal()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:3000; justify-content:center; align-items:center;">
         <div class="ticket-box" onclick="event.stopPropagation()" style="width:90%; max-width:400px; transform: none; border-radius: 15px; max-height:90vh;">
             <h2 style="color:var(--gold); margin-bottom:20px;">カード情報入力</h2>
-            <p id="payment-amount-display" style="margin-bottom:15px;">お支払い金額: ¥500</p>
-            
+            <p id="payment-amount-display" style="margin-bottom:15px;"></p>
             <div id="payjp-card-element"></div>
             <div id="payment-error" class="payment-error"></div>
-
             <button id="submit-payment-btn" class="main-btn" style="background:var(--accent); margin-top:10px;" onclick="submitPayment()">支払う</button>
             <p style="margin-top:20px; color:#666; cursor:pointer;" onclick="closePaymentModal()">キャンセル</p>
         </div>
@@ -308,5 +225,4 @@
     <script type="module" src="/js/auth.js"></script>
     <script src="/js/app.js"></script>
 </body>
-
 </html>
