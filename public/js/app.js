@@ -2,9 +2,9 @@
 const PAYJP_PUBLIC_KEY = 'pk_live_ここにあなたの公開鍵を入力';
 
 let userId = localStorage.getItem('fortune_user_id');
-let castsData = [], currentCastId = null, selectedDate = null, selectedTime = null;
+let castsData = [], currentCastId = null;
 let payjp = null, elements = null, cardElement = null;
-let currentPaymentItem = 1; // 1 or 10 (枚数)
+let currentPaymentItem = 1; 
 
 window.onload = async () => {
     try {
@@ -53,7 +53,7 @@ window.showScreen = function (id) {
 
 window.initApp = async function () {
     showScreen('selection-screen');
-    await syncTickets(); // 画面表示時にも一応更新
+    await syncTickets(); 
     try {
         const cres = await fetch('/api/casts');
         castsData = await cres.json();
@@ -63,6 +63,7 @@ window.initApp = async function () {
     } catch (e) { console.error(e); }
 };
 
+// サーバーから最新のチケット枚数を取得する関数
 async function syncTickets() {
     if (!userId) return 0;
     try {
@@ -70,8 +71,11 @@ async function syncTickets() {
         if (!res.ok) return 0;
         const data = await res.json();
         
-        // 数値として確実に変換
-        const balance = parseInt(data.ticket_balance, 10) || 0;
+        let balance = 0;
+        if (data && typeof data.ticket_balance !== 'undefined') {
+            balance = parseInt(data.ticket_balance, 10);
+        }
+        if (isNaN(balance)) balance = 0;
         
         document.getElementById('nav-ticket').innerText = balance;
         
@@ -88,79 +92,83 @@ async function syncTickets() {
     }
 }
 
-// ★★★ 修正箇所：タップ時にサーバーに最新枚数を確認して厳密にチェック ★★★
+// 占い師クリック時の処理（厳密なチケットチェック）
 window.openIntro = async function (id) {
-    // 1. 最新のチケット枚数を取得（通信待ち）
-    const currentBalance = await syncTickets();
+    const card = event.currentTarget; 
+    card.style.opacity = "0.5";
 
-    // 2. チケットが0枚以下ならブロックして購入画面へ
-    if (currentBalance <= 0) {
-        alert("予約に進むにはチケットが必要です。\n先にチケットをご購入ください。");
-        openTicketModal();
-        return; // ★ここで処理終了。プロフィール画面は開きません。
+    try {
+        const currentBalance = await syncTickets();
+
+        // ★チケットがなければ、強制的に購入画面へ
+        if (currentBalance <= 0) {
+            alert("鑑定にはチケットが必要です。\n(現在の所持数: 0枚)\n\nチケット購入画面へ移動します。");
+            openTicketModal();
+            return; 
+        }
+
+        // チケットがあればプロフ画面を開く
+        const cast = castsData.find(c => c.id === id);
+        if (!cast) return;
+
+        currentCastId = id;
+        document.getElementById('modal-img').src = `/img/${cast.img}`;
+        document.getElementById('modal-name').innerText = cast.name;
+        document.getElementById('modal-intro').innerText = cast.intro;
+        document.getElementById('cast-modal').style.display = 'flex';
+        setTimeout(() => document.getElementById('cast-modal').classList.add('active'), 10);
+
+    } catch (error) {
+        console.error(error);
+        alert("通信エラーが発生しました。");
+    } finally {
+        card.style.opacity = "1";
     }
+};
 
-    // 3. チケットがある場合のみ、プロフィールを開く
-    const cast = castsData.find(c => c.id === id);
-    if (!cast) return;
+// ★即時鑑定スタート関数（新しいロジック）
+window.startInstantChat = async function () {
+    if(!confirm("チケットを1枚消費して、すぐに鑑定を始めますか？")) return;
 
-    currentCastId = id;
-    document.getElementById('modal-img').src = `/img/${cast.img}`;
-    document.getElementById('modal-name').innerText = cast.name;
-    document.getElementById('modal-intro').innerText = cast.intro;
-    document.getElementById('cast-modal').style.display = 'flex';
-    setTimeout(() => document.getElementById('cast-modal').classList.add('active'), 10);
+    // ボタン連打防止
+    const btn = event.currentTarget;
+    btn.disabled = true;
+    btn.innerText = "準備中...";
+
+    try {
+        // チケット消費APIを叩く
+        const res = await fetch('/api/reserve', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, castId: currentCastId }) 
+        });
+        
+        const data = await res.json();
+        
+        if (data.error) {
+            alert(data.error);
+            // チケット不足エラーなら購入へ誘導
+            if(data.error.includes("チケット")) openTicketModal();
+            btn.disabled = false;
+            btn.innerText = "チケット1枚で鑑定開始";
+            return;
+        }
+
+        // 成功したらチャット開始
+        alert("鑑定を開始します！");
+        await syncTickets();
+        startChat();
+
+    } catch(e) {
+        alert("エラーが発生しました: " + e.message);
+        btn.disabled = false;
+        btn.innerText = "チケット1枚で鑑定開始";
+    }
 };
 
 window.closeModal = function () { 
     document.getElementById('cast-modal').classList.remove('active'); 
     setTimeout(() => document.getElementById('cast-modal').style.display = 'none', 300); 
-};
-
-window.goToBooking = function () {
-    closeModal();
-    const cast = castsData.find(c => c.id === currentCastId);
-    document.getElementById('book-cast-name').innerText = cast.name + " 予約";
-    const list = document.getElementById('day-list'); list.innerHTML = "";
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(); d.setDate(d.getDate() + i);
-        const dateStr = d.toISOString().split('T')[0];
-        list.innerHTML += `<div class="day-tab" onclick="selectDay('${dateStr}', this)">${i === 0 ? '今日' : (d.getMonth() + 1) + '/' + d.getDate()}</div>`;
-    }
-    showScreen('booking-screen');
-    selectDay(new Date().toISOString().split('T')[0], null);
-};
-
-window.selectDay = async function (date, el) {
-    selectedDate = date;
-    document.querySelectorAll('.day-tab').forEach(t => t.classList.remove('active'));
-    if (el) el.classList.add('active');
-    const res = await fetch(`/api/get_slots?castId=${currentCastId}&date=${date}`);
-    const data = await res.json();
-    document.getElementById('time-slots').innerHTML = data.slots.map(s => `<button class="slot-btn" ${s.status !== 'available' ? 'disabled' : ''} onclick="selectTime('${s.time}', this)">${s.time}</button>`).join('');
-};
-
-window.selectTime = function (time, el) {
-    selectedTime = time;
-    document.querySelectorAll('.slot-btn').forEach(b => b.style.borderColor = 'var(--gold)');
-    el.style.borderColor = '#fff';
-    document.getElementById('confirm-btn').style.display = 'block';
-};
-
-window.submitBooking = async function () {
-    // 念のためここでも再チェック
-    const balance = await syncTickets();
-    if (balance <= 0) {
-        alert("チケット不足です");
-        return;
-    }
-
-    const res = await fetch('/api/reserve', { method: 'POST', body: JSON.stringify({ userId, castId: currentCastId, scheduledAt: `${selectedDate}T${selectedTime}` }) });
-    const data = await res.json();
-    if (data.error) return alert(data.error);
-    
-    alert("予約が完了しました！");
-    initApp();
 };
 
 window.startChat = function () {
@@ -372,8 +380,6 @@ window.submitPayment = function() {
     });
 };
 
-// --- マイページ関連 ---
-
 window.openMyPage = async function() {
     showScreen('mypage-screen');
     if (!userId) return;
@@ -392,24 +398,22 @@ window.openMyPage = async function() {
             document.getElementById('my-dob-month').value = m;
             document.getElementById('my-dob-day').value = d;
         }
-
+        
+        // マイページもシンプルに（予約日時を表示する必要がなくなるため）
+        // ただし、中断中のチャットがあれば表示
         const resDiv = document.getElementById('mypage-reservation');
-        if (data.reservation) {
-            currentCastId = null; 
-            resDiv.innerHTML = `
+        if (data.hasPendingReservation) {
+             resDiv.innerHTML = `
                 <div style="display:flex; align-items:center; gap:15px;">
-                    <img src="/img/${data.reservation.castImg}" style="width:60px; height:60px; border-radius:50%; border:2px solid var(--gold); object-fit:cover;">
-                    <div>
-                        <div style="font-weight:bold; color:var(--gold); font-size:1.1rem;">${data.reservation.castName}</div>
-                        <div style="font-size:0.9rem;">予約日時: ${data.reservation.timeStr}</div>
+                     <div>
+                        <div style="font-weight:bold; color:var(--gold); font-size:1.1rem;">中断中の鑑定</div>
+                        <div style="font-size:0.9rem;">${data.pendingCastId ? "先生があなたを待っています" : ""}</div>
                     </div>
                 </div>
-                <button class="main-btn" style="margin-top:15px; background:var(--accent);" onclick="startChatFromMyPage(${data.pendingCastId})">鑑定室へ入る</button>
-                <p style="text-align:right; margin-top:5px; font-size:0.8rem; color:#888; cursor:pointer;" onclick="cancelReservation()">予約をキャンセル</p>
+                <button class="main-btn" style="margin-top:15px; background:var(--accent);" onclick="startChatFromMyPage(${data.pendingCastId})">鑑定を再開する</button>
             `;
         } else {
-            resDiv.innerHTML = `<p style="color:#999; text-align:center; padding:10px;">現在、予約はありません。</p>
-            <button class="main-btn" style="background:#333; margin-top:10px;" onclick="showScreen('selection-screen')">鑑定師を探す</button>`;
+            resDiv.innerHTML = `<p style="color:#999; text-align:center; padding:10px;">現在、進行中の鑑定はありません。</p>`;
         }
 
     } catch(e) {
@@ -456,22 +460,10 @@ window.startChatFromMyPage = function(castId) {
     startChat(); 
 };
 
-window.cancelReservation = async function() {
-    if(!confirm("予約をキャンセルしますか？（チケットは返却されます）")) return;
-    try {
-        const res = await fetch('/api/cancel_reservation', { 
-            method: 'POST', 
-            body: JSON.stringify({ userId }) 
-        });
-        const data = await res.json();
-        if(data.success) {
-            alert("予約をキャンセルしました。");
-            openMyPage(); 
-            syncTickets(); 
-        } else {
-            alert("キャンセル失敗: " + data.error);
-        }
-    } catch(e) {
-        alert("通信エラー");
-    }
+window.logout = () => {
+    // auth.js側で実装されているが、ここでも呼び出せるようにしておく
+    localStorage.removeItem('fortune_user_id');
+    localStorage.removeItem('fortune_auth_type');
+    alert("ログアウトしました");
+    location.reload();
 };
